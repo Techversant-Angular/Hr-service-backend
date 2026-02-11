@@ -1,0 +1,24 @@
+{
+    "admin": {
+        "screening_station": true,
+        "written_station": true,
+        "technical_station": true,
+        "technical_station_two": true,
+        "hr_manager_station": true 
+    },
+    "sourceList": {
+        "1": "Naukri",
+        "2": "Linkedin",
+        "3": "Indeed",
+        "4": "Candidate",
+        "5": "Reference"
+    },
+    "stationList": {
+        "1": "Screening station",
+        "2": "Written station",
+        "3": "Technical One station",
+        "4": "Technical Two station",
+        "5": "Hr Manager Station",
+        "6": "Management Station"
+    }
+}
