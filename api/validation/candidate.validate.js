@@ -1,5 +1,7 @@
-const { body, validationResult } = require('express-validator');
+const { body, query, validationResult } = require('express-validator');
 const formidable = require('formidable');
+const createHttpError = require('http-errors');
+const validateRequest = require('../utils/validationHelper');
 
 exports.createRemove = [
     body('candidateId').notEmpty().isInt(),
@@ -52,10 +54,10 @@ exports.createCandidate = [
     }
 ];
 
-exports.candidateEdit=[
- 
+exports.candidateEdit = [
+
     body('candidateId').isInt().withMessage('Candidates Id against must be a Number').optional({ nullable: true }),
-  
+
 
     (req, res, next) => {
         const errors = validationResult(req);
@@ -67,3 +69,10 @@ exports.candidateEdit=[
         next();
     }
 ];
+
+
+exports.candidateHistoryFetch = [
+    query('email').isEmail().withMessage('Invalid email address'),
+    query('requestId').isInt().withMessage('Invalid request ID'),
+    validateRequest
+]
