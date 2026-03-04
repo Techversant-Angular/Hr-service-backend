@@ -106,7 +106,7 @@ exports.listCandidates = tryCatch(async (req, res) => {
   let experience = req.query.exprience;
   let ids = req.query.ids;
 
-  let search = req.query.search;
+  let search = req.query.search ? decodeURIComponent(req.query.search) : req.query.search;
   let skills = req.query.skills;
   let recuriter = req.query.recuriter;
   let serviceRequestId = req.query.serviceRequestId;
@@ -141,6 +141,11 @@ exports.listCandidates = tryCatch(async (req, res) => {
   if (search) {
     where[Op.or] = [
       { candidateFirstName: { [Op.iLike]: `${search}%` } },
+      { candidateLastName: { [Op.iLike]: `${search}%` } },
+      Sequelize.where(
+        Sequelize.fn("concat", Sequelize.col("candidateFirstName"), " ", Sequelize.col("candidateLastName")),
+        { [Op.iLike]: `${search}%` }
+      ),
       { candidateEmail: { [Op.iLike]: `${search}%` } },
       { candidateMobileNo: { [Op.iLike]: `${search}%` } },
       { candidatePreviousOrg: { [Op.iLike]: `${search}%` } },
@@ -287,7 +292,7 @@ exports.candidateCompareList = tryCatch(async (req, res) => {
   let limit = req.query.limit || 100;
   let offset = req.query.page || 0;
   let experience = req.query.exprience;
-  let search = req.query.search;
+  let search = req.query.search ? decodeURIComponent(req.query.search) : req.query.search;
   let skills = req.query.skills;
   let recuriter = req.query.recuriter;
   let serviceRequestId = req.query.serviceRequestId;
@@ -317,6 +322,11 @@ exports.candidateCompareList = tryCatch(async (req, res) => {
   if (search) {
     where[Op.or] = [
       { candidateFirstName: { [Op.iLike]: `${search}%` } },
+      { candidateLastName: { [Op.iLike]: `${search}%` } },
+      Sequelize.where(
+        Sequelize.fn("concat", Sequelize.col("candidateFirstName"), " ", Sequelize.col("candidateLastName")),
+        { [Op.iLike]: `${search}%` }
+      ),
       { candidateEmail: { [Op.iLike]: `${search}%` } },
       { candidateMobileNo: { [Op.iLike]: `${search}%` } },
       { candidatePreviousOrg: { [Op.iLike]: `${search}%` } },
@@ -676,11 +686,16 @@ async function entryInSequence(requrestId, candidateId, createdBy) {
 
 exports.candiateMailList = tryCatch(async (req, res, next) => {
 
-  let search = req.query.search;
+  let search = req.query.search ? decodeURIComponent(req.query.search) : req.query.search;
   let where = { candidateStatus: "active" };
   if (search) {
     where[Op.or] = [
       { candidateFirstName: { [Op.iLike]: `${search}%` } },
+      { candidateLastName: { [Op.iLike]: `${search}%` } },
+      Sequelize.where(
+        Sequelize.fn("concat", Sequelize.col("candidateFirstName"), " ", Sequelize.col("candidateLastName")),
+        { [Op.iLike]: `${search}%` }
+      ),
       { candidateEmail: { [Op.iLike]: `${search}%` } },
       { candidateMobileNo: { [Op.iLike]: `${search}%` } },
       { candidatePreviousOrg: { [Op.iLike]: `${search}%` } },
