@@ -198,7 +198,7 @@ exports.listCandidates = tryCatch(async (req, res) => {
 
   let candidates = await reqCandidates.findAll({
     include,
-    attributes: { exclude: ["createdAt", "updatedAt", "candidateCurrentSalary", "candidateExpectedSalary"] },
+    attributes: { exclude: ["candidateCurrentSalary", "candidateExpectedSalary"] },
     where,
     ...(report == "true" ? {} : {
       limit: limit,
