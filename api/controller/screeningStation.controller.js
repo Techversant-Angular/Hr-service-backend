@@ -917,27 +917,62 @@ exports.candidateMapRequirement = tryCatch(async (req, res) => {
 
 
 exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
-  let toDate = moment().format("YYYY-MM-DD");
+  let today = moment().format("YYYY-MM-DD");
+  const sixMonthsAgo = moment().add(6, "months").toDate();
+
+  let bypassing = req.body.bypassing || false;
   let candidates = req.body.candidates;
   let requiementId = req.body.requirementId;
   let candidateCreatedby = req.body.userId;
+
   const candidatesAginstRequest = [];
+  const candidatesIds = [];
 
-  let candidatesIds = candidates.map((el) => {
-    candidatesAginstRequest.push({ candidateId: el.candidatesId, serviceRequest: requiementId });
-    return el.candidatesId;
-  });
+  for (let el of candidates) {
 
-  let addCandidateRequirement = await reqCandidateRequestion.bulkCreate(candidatesAginstRequest, {
-    ignoreDuplicates: true
-  });
-  const insertedCandidatesIds = addCandidateRequirement.filter(item => item.candidateRequestId != null).map(item => item.candidateId);
+    const lastMapping = await reqServiceSequence.findOne({
+      where: {
+        serviceCandidate: el.candidatesId,
+        serviceServiceRequst: requiementId
+      },
+      order: [["insertOrUpdateDate", "DESC"]]
+    });
+
+    let allowMapping = false;
+
+    if (bypassing) {
+      allowMapping = true;
+    } 
+    else if (
+      !lastMapping ||
+      moment(lastMapping.insertOrUpdateDate).add(6, "months").isBefore(today)
+    ) {
+      allowMapping = true;
+    }
+
+    if (allowMapping) {
+      candidatesAginstRequest.push({
+        candidateId: el.candidatesId,
+        serviceRequest: requiementId
+      });
+
+      candidatesIds.push(el.candidatesId);
+    }
+  }
+
+  const addCandidateRequirement = await reqCandidateRequestion.bulkCreate(
+    candidatesAginstRequest
+  );
+
+  const insertedCandidatesIds = addCandidateRequirement
+    .filter(item => item.candidateRequestId != null)
+    .map(item => item.candidateId);
 
   await reqServiceSequence.update(
     {
       serviceServiceRequst: requiementId,
       serviceStatus: "pending",
-      insertOrUpdateDate: toDate,
+      insertOrUpdateDate: today,
       serviceScheduledBy: candidateCreatedby
     },
     { where: { serviceCandidate: { [Op.in]: candidatesIds } } }
@@ -963,17 +998,18 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
       "totalSourced",
       insertedCandidatesIds.length
     );
+
     return res.status(200).json({
       result: true,
-      message: "Requirement maped against candidate's",
+      message: "Requirement mapped against candidates"
     });
+
   } else {
     return res.status(401).json({
       result: false,
-      message: "Not able to map candidates ,Given candidates are already mapped",
+      message: "Candidates cannot be mapped within 6 months"
     });
   }
-
 });
 
 exports.toDateInterviewList = tryCatch(async (req, res) => {
@@ -1113,16 +1149,16 @@ exports.candidatesPrgressList = tryCatch(async (req, res) => {
   if (!candidateId) return res
     .status(400)
     .json({ result: false, message: "Candidate id is Mandatory" });
-    let excludeData=[ "createdAt",
-            "updatedAt",
-            "candidateStatus",
-            "candidateCreatedby",
-            "candidateStation",
-            "candidateHireRole",
-            "resumeSourceId"];
-    if(req.userRole=='visitor'){
-      excludeData.push("candidateCurrentSalary","candidateExpectedSalary");
-    }
+  let excludeData = ["createdAt",
+    "updatedAt",
+    "candidateStatus",
+    "candidateCreatedby",
+    "candidateStation",
+    "candidateHireRole",
+    "resumeSourceId"];
+  if (req.userRole == 'visitor') {
+    excludeData.push("candidateCurrentSalary", "candidateExpectedSalary");
+  }
   let candidates = await reqServiceSequencesAcitve.findAll({
     attributes: {
       include: [
