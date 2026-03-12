@@ -12,7 +12,7 @@ let {
   reqCandidates,
   reqCandidateProgress, reqServiceSequencesAcitve,
   reqUser,
-  reqCandidateComments, reqProgressSkill,reqTeam
+  reqCandidateComments, reqProgressSkill,reqTeam,reqAuditLog
 } = require("../../models");
 let commonFunction = require("../utils/commonFunction");
 let { excelGenerator } = require('../utils/excelGenerator');
@@ -330,6 +330,153 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
   return res
     .status(401)
     .json({ result: false, message: "Technical 1 Progress already found" });
+});
+exports.updateProgressV1 = tryCatch(async (req, res) => {
+  const { progressServiceId } = req.params;
+ 
+  let {
+    progressAssignee,
+    progressSkillTest,
+    progressComment,
+    progressSkill,
+    progressScore,
+    progressDescription,
+    file,
+  } = req.body;
+ 
+  if (!progressAssignee)
+    return res.status(400).json({
+      result: false,
+      message: "ProgressAssignee required",
+    });
+ 
+  if (!progressServiceId)
+    return res.status(400).json({
+      result: false,
+      message: "ProgressServiceId required",
+    });
+ 
+  if (!progressDescription)
+    return res.status(400).json({
+      result: false,
+      message: "ProgressDescription required",
+    });
+ 
+  // find existing progress
+  let progress = await reqCandidateProgress.findOne({
+    where: {
+      progressStation: 2,
+      progressServiceSequence: progressServiceId,
+    },
+  });
+ 
+  if (!progress) {
+    return res.status(404).json({
+      result: false,
+      message: "Technical 1 Progress not found",
+    });
+  }
+ 
+  let oldData = {
+    progressVerifiedBy: progress.progressVerifiedBy,
+    progressDescription: progress.progressDescription,
+    progressScore: progress.progressScore,
+    progressFile: progress.progressFile,
+  };
+ 
+  let updateData = {
+    progressVerifiedBy: progressAssignee,
+    progressDescription,
+    progressScore,
+  };
+ 
+  if (file) {
+    updateData.progressFile = file;
+  }
+ 
+  await reqCandidateProgress.update(updateData, {
+    where: {
+      progressStation: 2,
+      progressServiceSequence: progressServiceId,
+    },
+  });
+
+
+  if (progressSkill && progressSkill.length) {
+    for (let skill of progressSkill) {
+      await reqProgressSkill.update(
+        {
+          score: skill.score,
+          description:skill.description
+        },
+        {
+          where: {
+            serviceSeqId: progressServiceId,
+            skillId: skill.skillId,
+          },
+        }
+      );
+    }
+  }
+
+  // update comment instead of creating
+  if (progressComment) {
+    await reqCandidateComments.update(
+      {
+        commentComment: progressComment,
+        commentUserId: progressAssignee,
+      },
+      {
+        where: {
+          commentSeqenceId: progressServiceId,
+        },
+      }
+    );
+  }
+
+  let changes = {
+    before: oldData,
+    after: {
+      ...oldData,
+      ...updateData,
+      updatedSkills: progressSkill,
+      updatedComment: progressComment
+    }
+  };
+ 
+  await reqAuditLog.create({
+    actionBy: progressAssignee,
+    action: "UPDATE_PROGRESS",
+    endpoint: req.originalUrl || "/api/written-station/update-progress",
+    changes: JSON.stringify(changes)
+  });
+ 
+  // if (progressSkill.length) {
+  //   const formattedSkills = progressSkill.map(skill => ({ ...skill, serviceSeqId: progressServiceId }));
+  //   await reqProgressSkill.bulkCreate(formattedSkills);
+  // }
+ 
+  // await reqCandidateComments.create({
+  //   commentSeqenceId: progressServiceId,
+  //   commentComment: progressComment,
+  //   commentUserId: progressAssignee,
+  // });
+ 
+  let candidate = await reqServiceSequence.findOne({
+    attributes: ["serviceCandidate"],
+    where: { serviceId: progressServiceId },
+  });
+  logFunction(
+    candidate.serviceCandidate,
+    progressAssignee,
+    "Scores and Feedback updated in Technical 1",
+    2
+  );
+ 
+  return res.status(200).json({
+    result: true,
+    message: "Technical 1 Progress updated successfully",
+  });
 });
 
 exports.progressDetail = tryCatch(async (req, res) => {
