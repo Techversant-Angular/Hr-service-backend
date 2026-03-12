@@ -927,6 +927,8 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
 
   const candidatesAginstRequest = [];
   const candidatesIds = [];
+  const existingCandidateRequestions = [];
+  const newMappings = [];
 
   for (let el of candidates) {
 
@@ -938,11 +940,29 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
       order: [["insertOrUpdateDate", "DESC"]]
     });
 
+    const existingCandidateRequestion = await reqCandidateRequestion.findOne({
+      where: {
+        candidateId: el.candidatesId,
+        serviceRequest: requiementId
+      }, raw: true
+    });
+
+    if (!lastMapping) {
+      newMappings.push({
+        serviceCandidate: el.candidatesId,
+        serviceServiceRequst: requiementId,
+        serviceAssignee: candidateCreatedby,
+        serviceStatus: "pending",
+        insertOrUpdateDate: today,
+        serviceSourceDate: today
+      })
+    }
+
     let allowMapping = false;
 
     if (bypassing) {
       allowMapping = true;
-    } 
+    }
     else if (
       !lastMapping ||
       moment(lastMapping.insertOrUpdateDate).add(6, "months").isBefore(today)
@@ -955,14 +975,21 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
         candidateId: el.candidatesId,
         serviceRequest: requiementId
       });
-
+      existingCandidateRequestion && existingCandidateRequestions.push(existingCandidateRequestion);
       candidatesIds.push(el.candidatesId);
     }
   }
 
-  const addCandidateRequirement = await reqCandidateRequestion.bulkCreate(
-    candidatesAginstRequest
+  const existingCandidateIds = existingCandidateRequestions.map(
+    e => e?.candidateId
   );
+
+  const insertedItems = await reqCandidateRequestion.bulkCreate(
+    candidatesAginstRequest.filter(({ candidateId }) => !existingCandidateIds.includes(candidateId)),
+    { raw: true }
+  );
+
+  const addCandidateRequirement = [...insertedItems, ...existingCandidateRequestions];
 
   const insertedCandidatesIds = addCandidateRequirement
     .filter(item => item.candidateRequestId != null)
@@ -970,13 +997,24 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
 
   await reqServiceSequence.update(
     {
-      serviceServiceRequst: requiementId,
+      // serviceServiceRequst: requiementId,
       serviceStatus: "pending",
       insertOrUpdateDate: today,
       serviceScheduledBy: candidateCreatedby
     },
-    { where: { serviceCandidate: { [Op.in]: candidatesIds } } }
+    { where: { serviceCandidate: { [Op.in]: candidatesIds }, serviceServiceRequst: requiementId } }
   );
+
+  if (newMappings.length) {
+    await reqServiceSequence.destroy({
+      where: {
+        serviceCandidate: { [Op.in]: candidatesIds },
+        serviceServiceRequst: { [Op.is]: null },
+        serviceStatus: "sourced"
+      }
+    });
+    await reqServiceSequence.bulkCreate(newMappings);
+  }
 
   if (insertedCandidatesIds.length) {
     let reSourcesIds = [];
