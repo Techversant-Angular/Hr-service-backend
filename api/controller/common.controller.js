@@ -240,6 +240,7 @@ exports.rejectCandidate = tryCatch(async (req, res, next) => {
     },
     raw: true,
   });
+  let requestId=candidateStaion.serviceServiceRequst;
   logData.reciverId = candidateStaion.serviceCandidate;
   if (!candidateStaion)
     return res
@@ -333,7 +334,7 @@ exports.rejectCandidate = tryCatch(async (req, res, next) => {
     );
   }
   if (rejectedCandidate[0]) {
-    logFunction(candidateStaion.serviceCandidate, userId, message, stationId);
+    logFunction(candidateStaion.serviceCandidate, userId, message, stationId,requestId);
     return res.status(200).json({ result: true, message: message });
   }
   return res.status(404).json({

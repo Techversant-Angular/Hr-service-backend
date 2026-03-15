@@ -28,18 +28,22 @@ module.exports = (sequelize, DataTypes) => {
         model: 'reqCandidates',
         key: 'candidateId'
       },
-      type:DataTypes.INTEGER
+      type: DataTypes.INTEGER
     },
     serviceRequest: {
-      type:DataTypes.INTEGER,
-  references: {
-    model: 'reqServiceRequests',
-    key: 'requestId'
-  }  }
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'reqServiceRequests',
+        key: 'requestId'
+      }
+    },
+    interviewStatus: {
+      type: DataTypes.STRING
+    }
   }, {
     sequelize,
     modelName: 'reqCandidateRequestion',
-    timestamps:false
+    timestamps: false
   });
   return reqCandidateRequestion;
 };

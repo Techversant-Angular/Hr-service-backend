@@ -73,6 +73,6 @@ exports.candidateEdit = [
 
 exports.candidateHistoryFetch = [
     query('email').isEmail().withMessage('Invalid email address'),
-    query('requestId').isInt().withMessage('Invalid request ID'),
+    // query('requestId').isInt().withMessage('Invalid request ID'),
     validateRequest
 ]

@@ -1,6 +1,6 @@
 'use strict';
 const {
-  Model,Sequelize
+  Model, Sequelize
 } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class reqCandidateLog extends Model {
@@ -14,9 +14,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER
     },
     action: DataTypes.STRING,
+    requestId: DataTypes.INTEGER,
     date: {
       type: DataTypes.DATE,
-      defaultValue:Sequelize.fn('now')
+      defaultValue: Sequelize.fn('now')
     }
   }, {
     sequelize,

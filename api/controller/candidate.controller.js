@@ -164,7 +164,7 @@ exports.listCandidates = tryCatch(async (req, res) => {
     {
       model: reqCandidateRequestion,as: "candidateReqst",
       include: [{ model: reqServiceRequest,as:'serviceRequestion', attributes: ["requestName", "requestId"] }]
-    }, 
+    },
     {
       model: reqUser,
       as: "createdBy",
@@ -274,14 +274,14 @@ exports.listCandidates = tryCatch(async (req, res) => {
       message: "Candidates found",
       candidateCount,
       candidates: candidates.map((el) => {
-      // Convert reqServiceRequest to an array and merge with candidateReqst
-      const serviceRequests = [
-        ...(Array.isArray(el.candidateReqst) ? el.candidateReqst.map(req => req.serviceRequestion) : []),
-      ];
-      return {
-        ...el.toJSON(),
-        reqServiceRequest: serviceRequests
-      };
+        // Convert reqServiceRequest to an array and merge with candidateReqst
+        const serviceRequests = [
+          ...(Array.isArray(el.candidateReqst) ? el.candidateReqst.map(req => req.serviceRequestion) : []),
+        ];
+        return {
+          ...el.toJSON(),
+          reqServiceRequest: serviceRequests
+        };
       }),
     });
   throw new Error("Candidates not found");
@@ -833,43 +833,16 @@ exports.deleteSkill = tryCatch(async (req, res, next) => {
 exports.candidateHistory = tryCatch(async (req, res) => {
 
   let email = req.query.email;
-  let requestId = req.query.requestId;
 
-  let query = ` `;
-  if (Array.isArray(requestId)) {
-    requestId.forEach((element, index, array) => {
-      let addString = " ";
-
-      if (!index == array.length - 1) {
-        addString = ` UNION `;
-      }
-      query =
-        query +
-        ` SELECT  "candidateId",  "candidateFirstName", "candidateLastName", "candidateEmail", "requestName" AS "positionName", "requestId" AS "positionId",
-                jsonb_agg(
-                jsonb_build_object(
-                'interviewDate', "serviceDate",
-                'interviewScheduledBy', "interviewer"."userfirstName",
-                'interviewBy', "panelInterviewer"."userfirstName",
-                'station', "stationName",
-                'interviewType', "interviewRescheduledCount",
-                'status', "serviceStatus"
-                        ) ORDER BY "reqServiceSequences"."serviceId" DESC
-                    ) AS "interviewDetail"
-                FROM "reqCandidates"
-                LEFT JOIN "reqServiceRequests" ON  "requestId"="candidatesAddingAgainst" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" 
-                LEFT JOIN  "reqUsers" "interviewer" ON "interviewer"."userId"="serviceScheduledBy" LEFT JOIN "reqUsers" "panelInterviewer" ON "panelInterviewer"."userId"="serviceAssignee"  LEFT JOIN "reqStations" ON "stationId"="serviceStation"
-                WHERE "candidateEmail"='${email}'  AND "requestId"=${element}
-                GROUP BY  "candidateId","candidateFirstName","candidateLastName","candidateEmail", "positionName","positionId" ${addString}`;
-    });
-  } else {
-    query = `SELECT  
+  let query = `
+SELECT  
     "reqCandidates"."candidateId",  
-    "reqCandidates"."candidateFirstName", 
-    "reqCandidates"."candidateLastName", 
-    "reqCandidates"."candidateEmail", 
-    "requestName" AS "positionName", 
+    "reqCandidates"."candidateFirstName",
+    "reqCandidates"."candidateLastName",
+    "reqCandidates"."candidateEmail",
+    "requestName" AS "positionName",
     "requestId" AS "positionId",
+ 
     jsonb_agg(
         jsonb_build_object(
             'interviewDate', "serviceDate",
@@ -880,96 +853,180 @@ exports.candidateHistory = tryCatch(async (req, res) => {
             'status', "serviceStatus"
         ) ORDER BY "reqServiceSequences"."serviceId" DESC
     ) AS "interviewDetail"
-FROM "reqCandidates"  
-LEFT JOIN "reqCandidateRequestions" 
+ 
+FROM "reqCandidates"
+ 
+LEFT JOIN "reqCandidateRequestions"
     ON "reqCandidates"."candidateId" = "reqCandidateRequestions"."candidateId"
-LEFT JOIN "reqServiceRequests" 
-    ON "requestId" = "reqCandidateRequestions"."serviceRequest"
-INNER JOIN "reqServiceSequences" 
+ 
+LEFT JOIN "reqServiceRequests"
+    ON "reqServiceRequests"."requestId" = "reqCandidateRequestions"."serviceRequest"
+ 
+INNER JOIN "reqServiceSequences"
     ON "reqServiceSequences"."serviceCandidate" = "reqCandidates"."candidateId"
-LEFT JOIN "reqUsers" "interviewer" 
+    AND "reqServiceSequences"."serviceServiceRequst" = "reqServiceRequests"."requestId"
+ 
+LEFT JOIN "reqUsers" "interviewer"
     ON "interviewer"."userId" = "serviceScheduledBy"
-LEFT JOIN "reqUsers" "panelInterviewer" 
+ 
+LEFT JOIN "reqUsers" "panelInterviewer"
     ON "panelInterviewer"."userId" = "serviceAssignee"
-LEFT JOIN "reqStations" 
+ 
+LEFT JOIN "reqStations"
     ON "stationId" = "serviceStation"
-WHERE "reqCandidates"."candidateEmail" = '${email}'  
-  AND "requestId" = ${requestId}
+ 
+WHERE "reqCandidates"."candidateEmail" = :email
+ 
 GROUP BY  
-    "reqCandidates"."candidateId", 
-    "reqCandidates"."candidateFirstName", 
-    "reqCandidates"."candidateLastName", 
-    "reqCandidates"."candidateEmail", 
-    "requestName", "requestId"; `;
-  }
-
-  let [data, metadata] = await sequelize.query(query);
+    "reqCandidates"."candidateId",
+    "reqCandidates"."candidateFirstName",
+    "reqCandidates"."candidateLastName",
+    "reqCandidates"."candidateEmail",
+    "requestName",
+    "requestId";
+`;
+  let [data] = await sequelize.query(query, { replacements: { email } });
 
   let candidateId = data[0]?.candidateId;
   if (!candidateId) return res.status(200).json({ history: data });
 
-  let query2 = ` `;
-  let attachmentsQueryString = ` UNION SELECT "stationName" AS "station","reqOfferAttachments"."attachmentPath" AS "uploadedFile","reqOfferAttachments"."createdAt" AS "uploadedDate",
-  "scheduledBy"."userfirstName" AS "scheduledByName","interviewedBy"."userfirstName" AS "uploadedBy"  FROM "reqOfferAttachments" 
-  INNER JOIN "reqUsers" "scheduledBy" ON "scheduledBy"."userId"="updatedBy" INNER JOIN "reqUsers" "interviewedBy" ON "interviewedBy"."userId"="updatedBy"  
-  INNER JOIN "reqStations" ON "stationId"="station" WHERE "candidateId"=${candidateId} `;
+  for (let i = 0; i < data.length; i++) {
+    let positionId = data[i].positionId;
 
-  if (Array.isArray(requestId)) {
-    requestId.forEach((element, index, array) => {
-      let addString = " ";
+    /*
+    ATTACHMENTS QUERY
+    */
 
-      if (!index == array.length - 1) {
-        addString = ` UNION `;
-      }
-      query2 =
-        query2 +
-        `  SELECT "stationName" AS "station","progressFile" AS "uploadedFile","progressCreatedAt" AS "uploadedDate","scheduledBy"."userfirstName" AS "scheduledByName","interviewedBy"."userfirstName" AS "uploadedBy" 
-            FROM "reqServiceSequences" 
-            INNER JOIN "reqUsers" "scheduledBy" ON "scheduledBy"."userId"="serviceScheduledBy" 
-            INNER JOIN "reqUsers" "interviewedBy" ON "interviewedBy"."userId"="serviceAssignee" 
-            INNER JOIN "reqStations" ON "stationId"="serviceStation" 
-            LEFT JOIN "reqCandidateProgresses" ON "progressServiceSequence"="serviceId" 
-            WHERE "serviceServiceRequst"='${element}' AND "progressFile" IS NOT NULL AND  "serviceCandidate"=${candidateId} ${addString} ${attachmentsQueryString}`;
+    let query2 = `
+    SELECT
+        "stationName" AS "station",
+        "progressFile" AS "uploadedFile",
+        "progressCreatedAt" AS "uploadedDate",
+        "scheduledBy"."userfirstName" AS "scheduledByName",
+        "interviewedBy"."userfirstName" AS "uploadedBy"
+   
+    FROM "reqServiceSequences"
+   
+    INNER JOIN "reqUsers" "scheduledBy"
+        ON "scheduledBy"."userId"="serviceScheduledBy"
+   
+    INNER JOIN "reqUsers" "interviewedBy"
+        ON "interviewedBy"."userId"="serviceAssignee"
+   
+    INNER JOIN "reqStations"
+        ON "stationId"="serviceStation"
+   
+    INNER JOIN "reqCandidateProgresses"
+        ON "progressServiceSequence"="serviceId"
+   
+    WHERE
+        "progressFile" IS NOT NULL
+        AND "serviceCandidate" = :candidateId
+        AND "serviceServiceRequst" = :positionId
+   
+    UNION
+   
+    SELECT
+        "stationName" AS "station",
+        "reqOfferAttachments"."attachmentPath" AS "uploadedFile",
+        "reqOfferAttachments"."createdAt" AS "uploadedDate",
+        "scheduledBy"."userfirstName" AS "scheduledByName",
+        "interviewedBy"."userfirstName" AS "uploadedBy"
+   
+    FROM "reqOfferAttachments"
+   
+    INNER JOIN "reqUsers" "scheduledBy"
+        ON "scheduledBy"."userId"="updatedBy"
+   
+    INNER JOIN "reqUsers" "interviewedBy"
+        ON "interviewedBy"."userId"="updatedBy"
+   
+    INNER JOIN "reqStations"
+        ON "stationId"="station"
+   
+    WHERE "candidateId" = :candidateId
+    `;
+
+    let [attachedData] = await sequelize.query(query2, {
+      replacements: { candidateId, positionId },
     });
-  } else {
-    query2 = `SELECT "stationName" AS "station","progressFile" AS "uploadedFile","progressCreatedAt" AS "uploadedDate","scheduledBy"."userfirstName" AS "scheduledByName","interviewedBy"."userfirstName" AS "uploadedBy" 
-            FROM "reqServiceSequences" 
-            INNER JOIN "reqUsers" "scheduledBy" ON "scheduledBy"."userId"="serviceScheduledBy" 
-            INNER JOIN "reqUsers" "interviewedBy" ON "interviewedBy"."userId"="serviceAssignee" 
-            INNER JOIN "reqStations" ON "stationId"="serviceStation" 
-            INNER JOIN "reqCandidateProgresses" ON "progressServiceSequence"="serviceId" 
-            WHERE "serviceServiceRequst"='${requestId}' AND "progressFile" IS NOT NULL AND  "serviceCandidate"=${candidateId} ${attachmentsQueryString}
-           `;
-  }
-  let [attachedData, metaData] = await sequelize.query(query2);
 
-  data[0].attachedData = attachedData;
+    data[i].attachedData = attachedData;
 
+    /*
+    HISTORY DETAILS
+    */
 
-  let [historyDetail, historyMetaData] = await sequelize.query(
-    `
-            SELECT "action" AS "historyType","date" AS "historyDate","reqUsers"."userfirstName" AS "historyBy","stationName" AS "station" 
-            FROM "reqCandidateLogs" INNER JOIN "reqUsers" ON "actionBy"="userId" LEFT JOIN "reqStations" ON "stationId"="station" 
-            WHERE "candidateId"=:candidateId ORDER BY "id" DESC`,
-    { replacements: { candidateId } }
-  );
-  data[0].historyDetail = historyDetail.map((el) => {
-    el.station = !el.station ? "screening" : el.station;
-    return el;
-  });
-
-  if (req.userRole !== 'panel' && req.userRole !== 'manager') {
-    let [feedbackDetail, feedbackMetaData] = await sequelize.query(
-      `SELECT "commentComment" AS "feedbackMessage","stationName" AS "station","userfirstName" AS "feedbackBy" ,"commentDate" AS "feedbackDate" 
-    FROM  "reqCandidateComments" INNER JOIN "reqServiceSequences" ON "serviceId"="commentSeqenceId" 
-    LEFT JOIN "reqStations" ON "serviceStation"="stationId"  INNER JOIN "reqUsers" ON "userId"="commentUserId"  
-    WHERE "serviceCandidate"=:candidateId ORDER BY "commentId" DESC`,
-      { replacements: { candidateId } }
+    let [historyDetail] = await sequelize.query(
+      `
+      SELECT
+          "action" AS "historyType",
+          "date" AS "historyDate",
+          "reqUsers"."userfirstName" AS "historyBy",
+          "stationName" AS "station"
+   
+      FROM "reqCandidateLogs"
+   
+      INNER JOIN "reqUsers"
+          ON "actionBy"="userId"
+   
+      LEFT JOIN "reqStations"
+          ON "stationId"="station"
+   
+      WHERE "candidateId"=:candidateId
+        AND "reqCandidateLogs"."requestId" = :positionId
+        AND "action" != 'Candidate Sourced From Indeed'
+   
+      ORDER BY "id" DESC
+      `,
+      { replacements: { candidateId, positionId } }
     );
-    data[0].feedbackDetail = feedbackDetail.map((el) => {
+
+    data[i].historyDetail = historyDetail.map((el) => {
       el.station = !el.station ? "screening" : el.station;
       return el;
     });
+
+    /*
+    FEEDBACK DETAILS
+    */
+
+    if (req.userRole !== "panel" && req.userRole !== "manager") {
+      let [feedbackDetail] = await sequelize.query(
+        `
+        SELECT
+            "commentComment" AS "feedbackMessage",
+            "stationName" AS "station",
+            "userfirstName" AS "feedbackBy",
+            "commentDate" AS "feedbackDate"
+   
+        FROM "reqCandidateComments"
+   
+        INNER JOIN "reqServiceSequences"
+            ON "serviceId"="commentSeqenceId"
+   
+        LEFT JOIN "reqStations"
+            ON "serviceStation"="stationId"
+   
+        INNER JOIN "reqUsers"
+            ON "userId"="commentUserId"
+   
+        WHERE "serviceCandidate"=:candidateId
+          AND "reqServiceSequences"."serviceServiceRequst"=:positionId
+   
+        ORDER BY "commentId" DESC
+        `,
+        { replacements: { candidateId, positionId } }
+      );
+
+      data[i].feedbackDetail = feedbackDetail.map((el) => {
+        el.station = !el.station ? "screening" : el.station;
+        return el;
+      });
+    } else {
+      data[i].feedbackDetail = [];
+    }
   }
+
   return res.status(200).json({ history: data });
 });

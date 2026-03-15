@@ -286,6 +286,19 @@ exports.batchCandidates = tryCatch(async (req, res) => {
     offset = (offset - 1) * limit;
   }
   let where = { serviceServiceRequst: requestId };
+
+
+
+if (station == 1) {
+  where[Op.or] = [
+    { serviceStation: station },
+    { serviceStation: { [Op.is]: null } }
+  ];
+}else {
+  where.serviceStation = station;
+}
+
+  
   if (station == 2) {
     where.serviceStation = station;
   } else {
@@ -320,7 +333,7 @@ exports.batchCandidates = tryCatch(async (req, res) => {
       "candidatePreviousDesignation",
       "candidateResume",
       "candidateGender",
-      "candidateInterviewStatus",
+      // "candidateInterviewStatus",
       "candidateEmail",
       "candidatesAddingAgainst",
       "candidateCity",
@@ -384,7 +397,13 @@ exports.batchCandidates = tryCatch(async (req, res) => {
   candidates = await Promise.all(
     candidates.map(async (element) => {
       element.serviceId = element["serviceSequence.serviceId"];
-      element.serviceStatus =
+element.candidateInterviewStatus =
+  element["serviceSequence.serviceStatus"] == "pending"
+    ? "inprogress"
+    : element["serviceSequence.serviceStatus"] == "done"
+    ? "shorted"
+    : element["serviceSequence.serviceStatus"];
+          element.serviceStatus =
         element["serviceSequence.serviceStatus"] == "sourced"
           ? "pending"
           : element["serviceSequence.serviceStatus"];
@@ -609,7 +628,8 @@ exports.interviewDetail = tryCatch(async (req, res) => {
         candidateId,
         recruiterId,
         `Interview Scheduled in ${jsonData.stationList[station]}`,
-        station
+        station,
+        serviceRequest
       );
 
       if (updatedStation)
@@ -973,7 +993,8 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
     if (allowMapping) {
       candidatesAginstRequest.push({
         candidateId: el.candidatesId,
-        serviceRequest: requiementId
+        serviceRequest: requiementId,
+        interviewStatus: "inprogress"
       });
       existingCandidateRequestion && existingCandidateRequestions.push(existingCandidateRequestion);
       candidatesIds.push(el.candidatesId);
@@ -983,6 +1004,16 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
   const existingCandidateIds = existingCandidateRequestions.map(
     e => e?.candidateId
   );
+
+  await reqCandidateRequestion.update(
+  { interviewStatus: "inprogress" },
+  {
+    where: {
+      candidateId: existingCandidateIds,
+      serviceRequest: requiementId
+    }
+  }
+);
 
   const insertedItems = await reqCandidateRequestion.bulkCreate(
     candidatesAginstRequest.filter(({ candidateId }) => !existingCandidateIds.includes(candidateId)),

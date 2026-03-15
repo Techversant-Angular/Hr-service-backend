@@ -421,11 +421,25 @@ async function updateReportData(
   }
 }
 
-async function logFunction(candidateId, actionBy, actionString, station) {
+async function logFunction(candidateId, actionBy, actionString, station,requestId) {
   try {
     // let serviceRequestId = await reqServiceSequence.findOne({ where: { serviceId }, attributes: ["serviceServiceRequst"] });
-    let logData = { station, candidateId, actionBy, action: actionString };
-    await reqCandidateLog.create(logData);
+    let logData = { station, candidateId, actionBy, action: actionString,requestId};
+    // if(requestId){
+    //   await reqCandidateLog.update(
+    //   logData,
+    //   {
+    //     where: {
+    //       candidateId: candidateId,
+    //       requestId: requestId
+    //     }
+    //   }
+    // );
+    // }
+    // else{
+     await reqCandidateLog.create(logData); 
+    // }
+    
   } catch (error) {
     console.log(error);
   }
