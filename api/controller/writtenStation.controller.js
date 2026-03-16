@@ -412,18 +412,29 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
   const incomingSkillIds = progressSkill.map(s => s.skillId);
 
     for (let skill of progressSkill) {
-      await reqProgressSkill.update(
-        {
-          score: skill.score,
-          description:skill.description
-        },
-        {
-          where: {
-            serviceSeqId: progressServiceId,
-            skillId: skill.skillId,
+      if (existingSkillIds.includes(skill.skillId)) {
+        // UPDATE
+        await reqProgressSkill.update(
+          {
+            score: skill.score,
+            description: skill.description
           },
-        }
-      );
+          {
+            where: {
+              serviceSeqId: progressServiceId,
+              skillId: skill.skillId
+            }
+          }
+        );
+      } else {
+        // CREATE
+        await reqProgressSkill.create({
+          serviceSeqId: progressServiceId,
+          skillId: skill.skillId,
+          score: skill.score,
+          description: skill.description
+        });
+      }
     }
         // 2️⃣ Delete removed skills
   const skillsToDelete = existingSkillIds.filter(
