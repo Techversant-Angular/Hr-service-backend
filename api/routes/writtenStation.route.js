@@ -14,4 +14,6 @@ router.post('/approve', approve, authenticate, controller.approve);
 
 router.get('/progressDetail', authenticate, controller.progressDetail);
 
+router.put('/update-progress/v1/:progressServiceId', authenticate, controller.updateProgressV1);
+
 module.exports = router;
