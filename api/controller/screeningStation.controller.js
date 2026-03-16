@@ -1242,14 +1242,17 @@ exports.candidatesPrgressList = tryCatch(async (req, res) => {
                     FROM "reqServiceSequencesAcitves" AS "sequence" INNER JOIN "reqStations" ON "stationId"="serviceStation" WHERE "sequence"."serviceCandidate"="reqServiceSequencesAcitve"."serviceCandidate" ORDER BY "serviceId" DESC LIMIT 1)`),
           "currentStation",
         ],
-        sequelize.literal(`(
-        SELECT "stationName"
-        FROM "reqStations"
-        INNER JOIN "reqServiceSequencesAcitves" seq
-        ON "seq"."serviceStation" = "reqStations"."stationId"
-        WHERE seq."serviceId" = "reqServiceSequencesAcitve"."serviceId"
-        LIMIT 1
+        [
+          sequelize.literal(`(
+      SELECT "stationName" AS "stationNam"
+      FROM "reqStations"
+      INNER JOIN "reqServiceSequencesAcitves" seq
+        ON seq."serviceStation" = "reqStations"."stationId"
+      WHERE seq."serviceId" = "reqServiceSequencesAcitve"."serviceId"
+      LIMIT 1
   )`),
+          "stationNam",
+        ],
         [
           sequelize.literal(`(SELECT COUNT(*)
                     FROM "reqCandidateProgresses" AS "review" WHERE "review"."progressServiceSequence"="reqServiceSequencesAcitve"."serviceId" AND "review"."progressStation"=5)`),
