@@ -365,7 +365,7 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
   // find existing progress
   let progress = await reqCandidateProgress.findOne({
     where: {
-      progressStation: 2,
+      // progressStation: 2,
       progressServiceSequence: progressServiceId,
     },
   });
@@ -403,6 +403,14 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
 
 
   if (progressSkill && progressSkill.length) {
+      const existingSkills = await reqProgressSkill.findAll({
+    where: { serviceSeqId: progressServiceId },
+    raw: true
+  });
+
+  const existingSkillIds = existingSkills.map(s => s.skillId);
+  const incomingSkillIds = progressSkill.map(s => s.skillId);
+
     for (let skill of progressSkill) {
       await reqProgressSkill.update(
         {
@@ -417,6 +425,19 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
         }
       );
     }
+        // 2️⃣ Delete removed skills
+  const skillsToDelete = existingSkillIds.filter(
+    id => !incomingSkillIds.includes(id)
+  );
+
+  if (skillsToDelete.length) {
+    await reqProgressSkill.destroy({
+      where: {
+        serviceSeqId: progressServiceId,
+        skillId: skillsToDelete
+      }
+    });
+  }
   }
 
   // update comment instead of creating
