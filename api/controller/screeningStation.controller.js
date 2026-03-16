@@ -548,6 +548,7 @@ exports.interviewDetail = tryCatch(async (req, res) => {
         serviceCandidate: candidateId,
         serviceStatus: { [Op.notIn]: ["done", "rejected"] },
         serviceStation: { [Op.is]: null },
+        serviceServiceRequst: serviceRequest,
       },
       raw: true,
     });
