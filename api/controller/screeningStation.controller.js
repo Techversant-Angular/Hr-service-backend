@@ -24,7 +24,8 @@ const {
   reqIntervieMode,
   reqTeam,
   reqExperienceReport,
-  reqCandidateRequestion
+  reqCandidateRequestion,
+  reqCandidateLog
 } = require("../../models");
 
 // Utility Functions
@@ -968,6 +969,23 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
       }, raw: true
     });
 
+    const lastInterview = await reqCandidateLog.findOne({
+      where: {
+        candidateId: el.candidatesId,
+        action: {
+          [Op.in]: [
+            'Candidate Pannel Rejected',
+            'Candidate back off',
+            "Candidate Sourced From Indeed",
+            "Interview Scheduled in Screening station",
+            "Candidate cancelled"
+          ]
+        } // matches your data
+      },
+      order: [["date", "DESC"]],
+      raw: true
+    });
+
     if (!lastMapping) {
       newMappings.push({
         serviceCandidate: el.candidatesId,
@@ -985,12 +1003,14 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
       allowMapping = true;
     }
     else if (
-      !lastMapping ||
-      moment(lastMapping.insertOrUpdateDate).add(6, "months").isBefore(today)
+      (
+        (!lastMapping && !lastInterview) ||
+        (lastMapping && moment(lastMapping.insertOrUpdateDate).add(6, "months").isBefore(today))
+      )
     ) {
       allowMapping = true;
     }
-
+  
     if (allowMapping) {
       candidatesAginstRequest.push({
         candidateId: el.candidatesId,
@@ -1007,14 +1027,14 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
   );
 
   await reqCandidateRequestion.update(
-  { interviewStatus: "inprogress" },
-  {
-    where: {
-      candidateId: existingCandidateIds,
-      serviceRequest: requiementId
+    { interviewStatus: "inprogress" },
+    {
+      where: {
+        candidateId: existingCandidateIds,
+        serviceRequest: requiementId
+      }
     }
-  }
-);
+  );
 
   const insertedItems = await reqCandidateRequestion.bulkCreate(
     candidatesAginstRequest.filter(({ candidateId }) => !existingCandidateIds.includes(candidateId)),
