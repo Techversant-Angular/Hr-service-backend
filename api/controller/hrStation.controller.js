@@ -101,7 +101,7 @@ exports.list = tryCatch(async (req, res) => {
             FROM "reqHrReviews" AS "progress" WHERE "progress"."reviewedServiceId"="reqServiceSequencesAcitve"."serviceId")`), 'progressStatus'
         ], [
           sequelize.literal(`(SELECT "stationName"
-                    FROM "reqServiceSequencesAcitves" AS "sequence" INNER JOIN "reqStations" ON "stationId"="serviceStation" WHERE "sequence"."serviceCandidate"="reqServiceSequencesAcitve"."serviceCandidate" ORDER BY "serviceId" DESC LIMIT 1)`),
+                    FROM "reqServiceSequencesAcitves" AS "sequence" INNER JOIN "reqStations" ON "stationId"="serviceStation" WHERE "sequence"."serviceCandidate"="reqServiceSequencesAcitve"."serviceCandidate" AND "sequence"."serviceServiceRequst"="reqServiceSequencesAcitve"."serviceServiceRequst" ORDER BY "serviceId" DESC LIMIT 1)`),
           "currentStation",
         ],
 
@@ -116,6 +116,19 @@ exports.list = tryCatch(async (req, res) => {
     where, order: [['serviceId', 'DESC']]
   });
   let totalCount = await reqServiceSequencesAcitve.count({ where, include });
+
+  if (candidates) {
+    candidates = candidates.map((c) => {
+      c['candidate.candidateInterviewStatus'] = c.serviceStatus == "pending"
+        ? "inprogress"
+        : c.serviceStatus == "done"
+          ? "shorted"
+          : c.serviceStatus;
+
+      c.serviceStatus = c.serviceStatus == "sourced" ? "pending" : c.serviceStatus;
+      return c;
+    });
+  }
 
   if (report == 'true' && candidates) {
     let head = [{ header: "Request Name", key: "requestName", width: 10 },
@@ -563,7 +576,7 @@ exports.progressDetail = tryCatch(async (req, res) => {
         model: reqServiceRequest,
         as: "serviceRequest",
         required: true,
-         include: [
+        include: [
           {
             model: reqTeam,
             as: "team"

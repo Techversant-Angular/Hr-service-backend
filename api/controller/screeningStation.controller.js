@@ -290,16 +290,16 @@ exports.batchCandidates = tryCatch(async (req, res) => {
 
 
 
-if (station == 1) {
-  where[Op.or] = [
-    { serviceStation: station },
-    { serviceStation: { [Op.is]: null } }
-  ];
-}else {
-  where.serviceStation = station;
-}
+  if (station == 1) {
+    where[Op.or] = [
+      { serviceStation: station },
+      { serviceStation: { [Op.is]: null } }
+    ];
+  }else {
+    where.serviceStation = station;
+  }
 
-  
+
   if (station == 2) {
     where.serviceStation = station;
   } else {
@@ -398,13 +398,13 @@ if (station == 1) {
   candidates = await Promise.all(
     candidates.map(async (element) => {
       element.serviceId = element["serviceSequence.serviceId"];
-element.candidateInterviewStatus =
-  element["serviceSequence.serviceStatus"] == "pending"
-    ? "inprogress"
-    : element["serviceSequence.serviceStatus"] == "done"
-    ? "shorted"
-    : element["serviceSequence.serviceStatus"];
-          element.serviceStatus =
+      element.candidateInterviewStatus =
+        element["serviceSequence.serviceStatus"] == "pending"
+          ? "inprogress"
+          : element["serviceSequence.serviceStatus"] == "done"
+            ? "shorted"
+            : element["serviceSequence.serviceStatus"];
+      element.serviceStatus =
         element["serviceSequence.serviceStatus"] == "sourced"
           ? "pending"
           : element["serviceSequence.serviceStatus"];
@@ -553,6 +553,17 @@ exports.interviewDetail = tryCatch(async (req, res) => {
       },
       raw: true,
     });
+    if (!sequenceWIthoutStation) {
+      sequenceWIthoutStation = await reqServiceSequence.findOne({
+        where: {
+          serviceCandidate: candidateId,
+          serviceStation: 1,
+          serviceServiceRequst: serviceRequest,
+        },
+        raw: true,
+        order: [["serviceId", "DESC"]],
+      });
+    }
 
     if (sequenceWIthoutStation) {
       await updateReportData("interviewScheduled", recruiterId, position);
@@ -1010,7 +1021,7 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
     ) {
       allowMapping = true;
     }
-  
+
     if (allowMapping) {
       candidatesAginstRequest.push({
         candidateId: el.candidatesId,
@@ -1054,7 +1065,13 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
       insertOrUpdateDate: today,
       serviceScheduledBy: candidateCreatedby
     },
-    { where: { serviceCandidate: { [Op.in]: candidatesIds }, serviceServiceRequst: requiementId } }
+    {
+      where: {
+        serviceCandidate: { [Op.in]: candidatesIds },
+        serviceStation: 1,
+        serviceServiceRequst: requiementId
+      }
+    }
   );
 
   if (newMappings.length) {
@@ -1155,7 +1172,7 @@ exports.toDateInterviewList = tryCatch(async (req, res) => {
         ],
         [
           sequelize.literal(`(SELECT "stationName"
-                                FROM "reqServiceSequencesAcitves" AS "sequence" INNER JOIN "reqStations" ON "stationId"="serviceStation" WHERE "sequence"."serviceCandidate"="reqServiceSequencesAcitve"."serviceCandidate" ORDER BY "serviceId" DESC LIMIT 1)`),
+                                FROM "reqServiceSequencesAcitves" AS "sequence" INNER JOIN "reqStations" ON "stationId"="serviceStation" WHERE "sequence"."serviceCandidate"="reqServiceSequencesAcitve"."serviceCandidate" AND "sequence"."serviceServiceRequst"="reqServiceSequencesAcitve"."serviceServiceRequst" ORDER BY "serviceId" DESC LIMIT 1)`),
           "currentStation",
         ],
       ],
@@ -1193,13 +1210,25 @@ exports.toDateInterviewList = tryCatch(async (req, res) => {
 
   let totalCount = await reqServiceSequencesAcitve.count({ where });
 
-  if (candidates)
+  if (candidates) {
+    candidates = candidates.map((c) => {
+      c['candidate.candidateInterviewStatus'] = c.serviceStatus == "pending"
+        ? "inprogress"
+        : c.serviceStatus == "done"
+          ? "shorted"
+          : c.serviceStatus;
+
+      c.serviceStatus = c.serviceStatus == "sourced" ? "pending" : c.serviceStatus;
+      return c;
+    });
+
     return res.status(200).json({
       result: true,
       message: "Candidates Found",
       candidates,
       totalCount,
     });
+  }
   return res
     .status(401)
     .json({ result: false, message: "Candidates Not Found" });
@@ -1259,7 +1288,7 @@ exports.candidatesPrgressList = tryCatch(async (req, res) => {
         ],
         [
           sequelize.literal(`(SELECT "stationName"
-                    FROM "reqServiceSequencesAcitves" AS "sequence" INNER JOIN "reqStations" ON "stationId"="serviceStation" WHERE "sequence"."serviceCandidate"="reqServiceSequencesAcitve"."serviceCandidate" ORDER BY "serviceId" DESC LIMIT 1)`),
+                    FROM "reqServiceSequencesAcitves" AS "sequence" INNER JOIN "reqStations" ON "stationId"="serviceStation" WHERE "sequence"."serviceCandidate"="reqServiceSequencesAcitve"."serviceCandidate" AND "sequence"."serviceServiceRequst"="reqServiceSequencesAcitve"."serviceServiceRequst" ORDER BY "serviceId" DESC LIMIT 1)`),
           "currentStation",
         ],
         [
@@ -1300,12 +1329,24 @@ exports.candidatesPrgressList = tryCatch(async (req, res) => {
     order: [["serviceId", "DESC"]],
   });
 
-  if (candidates)
+  if (candidates) {
+    candidates = candidates.map((c) => {
+      c['candidate.candidateInterviewStatus'] = c.serviceStatus == "pending"
+        ? "inprogress"
+        : c.serviceStatus == "done"
+          ? "shorted"
+          : c.serviceStatus;
+
+      c.serviceStatus = c.serviceStatus == "sourced" ? "pending" : c.serviceStatus;
+      return c;
+    });
+
     return res.status(200).json({
       result: true,
       message: "Candidate Deatail Found",
       candidates,
     });
+  }
   return res
     .status(401)
     .json({ result: false, message: "Technical Candidates Not Found" });

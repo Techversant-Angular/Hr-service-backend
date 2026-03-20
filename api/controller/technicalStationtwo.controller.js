@@ -94,7 +94,7 @@ exports.list = tryCatch(async (req, res) => {
         [
           sequelize.literal(`(SELECT "stationName"
                                 FROM "reqServiceSequencesAcitves" AS "sequence" INNER JOIN "reqStations" ON "stationId"="serviceStation" 
-                                WHERE "sequence"."serviceCandidate"="reqServiceSequencesAcitve"."serviceCandidate" ORDER BY "serviceId" DESC LIMIT 1)`),
+                                WHERE "sequence"."serviceCandidate"="reqServiceSequencesAcitve"."serviceCandidate" AND "sequence"."serviceServiceRequst"="reqServiceSequencesAcitve"."serviceServiceRequst" ORDER BY "serviceId" DESC LIMIT 1)`),
           "currentStation",
         ],
       ],
@@ -130,6 +130,20 @@ exports.list = tryCatch(async (req, res) => {
     order: [["serviceId", "DESC"]],
   });
   let totalCount = await reqServiceSequencesAcitve.count({ where });
+
+  if (candidates) {
+    candidates = candidates.map((c) => {
+      c['candidate.candidateInterviewStatus'] = c.serviceStatus == "pending"
+        ? "inprogress"
+        : c.serviceStatus == "done"
+          ? "shorted"
+          : c.serviceStatus;
+
+      c.serviceStatus = c.serviceStatus == "sourced" ? "pending" : c.serviceStatus;
+      return c;
+    });
+  }
+
   if (report == 'true' && candidates) {
     let head = [{ header: "Request Name", key: "requestName", width: 10 },
     { header: "Candidate First Name", key: "candidateFirstName", width: 25 },
@@ -355,7 +369,7 @@ exports.progressDetail = tryCatch(async (req, res) => {
       ],
       [
         sequelize.literal(`(SELECT "stationName" FROM "reqServiceSequences" AS "sequence" INNER JOIN "reqStations" ON "stationId" = "serviceStation" 
-                                                                WHERE "sequence"."serviceCandidate" = "reqServiceSequence"."serviceCandidate" ORDER BY "serviceId" DESC LIMIT 1)`),"currentStation"
+                                                                WHERE "sequence"."serviceCandidate" = "reqServiceSequence"."serviceCandidate" AND "sequence"."serviceServiceRequst" = "reqServiceSequence"."serviceServiceRequst" ORDER BY "serviceId" DESC LIMIT 1)`), "currentStation"
       ],
       [
         Sequelize.literal(`(
@@ -383,7 +397,7 @@ exports.progressDetail = tryCatch(async (req, res) => {
         model: reqServiceRequest,
         as: "serviceRequest",
         required: true,
-         include: [
+        include: [
           {
             model: reqTeam,
             as: "team"

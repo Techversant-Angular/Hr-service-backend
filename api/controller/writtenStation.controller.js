@@ -98,7 +98,7 @@ exports.list = tryCatch(async (req, res) => {
         ],
         [
           sequelize.literal(`(SELECT "stationName"
-                                FROM "reqServiceSequencesAcitves" AS "sequence" INNER JOIN "reqStations" ON "stationId"="serviceStation" WHERE "sequence"."serviceCandidate"="reqServiceSequencesAcitve"."serviceCandidate" ORDER BY "serviceId" DESC LIMIT 1)`),
+                                FROM "reqServiceSequencesAcitves" AS "sequence" INNER JOIN "reqStations" ON "stationId"="serviceStation" WHERE "sequence"."serviceCandidate"="reqServiceSequencesAcitve"."serviceCandidate" AND "sequence"."serviceServiceRequst"="reqServiceSequencesAcitve"."serviceServiceRequst" ORDER BY "serviceId" DESC LIMIT 1)`),
           "currentStation",
         ],
       ],
@@ -128,11 +128,25 @@ exports.list = tryCatch(async (req, res) => {
       },
     ],
     raw: true,
-    ...(report=="true" ? {} : { limit, offset }),
+    ...(report == "true" ? {} : { limit, offset }),
     where,
     order: [["serviceId", "DESC"]],
   });
   let totalCount = await reqServiceSequencesAcitve.count({ where });
+
+  if (candidates) {
+    candidates = candidates.map((c) => {
+      c['candidate.candidateInterviewStatus'] = c.serviceStatus == "pending"
+        ? "inprogress"
+        : c.serviceStatus == "done"
+          ? "shorted"
+          : c.serviceStatus;
+
+      c.serviceStatus = c.serviceStatus == "sourced" ? "pending" : c.serviceStatus;
+      return c;
+    });
+  }
+
   if (report == 'true' && candidates) {
     let head = [{ header: "Request Name", key: "requestName", width: 10 },
     { header: "Candidate First Name", key: "candidateFirstName", width: 25 },
@@ -333,7 +347,7 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
 });
 exports.updateProgressV1 = tryCatch(async (req, res) => {
   const { progressServiceId } = req.params;
- 
+
   let {
     progressAssignee,
     progressSkillTest,
@@ -343,25 +357,25 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
     progressDescription,
     file,
   } = req.body;
- 
+
   if (!progressAssignee)
     return res.status(400).json({
       result: false,
       message: "ProgressAssignee required",
     });
- 
+
   if (!progressServiceId)
     return res.status(400).json({
       result: false,
       message: "ProgressServiceId required",
     });
- 
+
   if (!progressDescription)
     return res.status(400).json({
       result: false,
       message: "ProgressDescription required",
     });
- 
+
   // find existing progress
   let progress = await reqCandidateProgress.findOne({
     where: {
@@ -369,31 +383,31 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
       progressServiceSequence: progressServiceId,
     },
   });
- 
+
   if (!progress) {
     return res.status(404).json({
       result: false,
       message: "Technical 1 Progress not found",
     });
   }
- 
+
   let oldData = {
     progressVerifiedBy: progress.progressVerifiedBy,
     progressDescription: progress.progressDescription,
     progressScore: progress.progressScore,
     progressFile: progress.progressFile,
   };
- 
+
   let updateData = {
     progressVerifiedBy: progressAssignee,
     progressDescription,
     progressScore,
   };
- 
+
   if (file) {
     updateData.progressFile = file;
   }
- 
+
   await reqCandidateProgress.update(updateData, {
     where: {
       progressStation: 2,
@@ -403,13 +417,13 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
 
 
   if (progressSkill && progressSkill.length) {
-      const existingSkills = await reqProgressSkill.findAll({
-    where: { serviceSeqId: progressServiceId },
-    raw: true
-  });
+    const existingSkills = await reqProgressSkill.findAll({
+      where: { serviceSeqId: progressServiceId },
+      raw: true
+    });
 
-  const existingSkillIds = existingSkills.map(s => s.skillId);
-  const incomingSkillIds = progressSkill.map(s => s.skillId);
+    const existingSkillIds = existingSkills.map(s => s.skillId);
+    const incomingSkillIds = progressSkill.map(s => s.skillId);
 
     for (let skill of progressSkill) {
       if (existingSkillIds.includes(skill.skillId)) {
@@ -436,19 +450,19 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
         });
       }
     }
-        // 2️⃣ Delete removed skills
-  const skillsToDelete = existingSkillIds.filter(
-    id => !incomingSkillIds.includes(id)
-  );
+    // 2️⃣ Delete removed skills
+    const skillsToDelete = existingSkillIds.filter(
+      id => !incomingSkillIds.includes(id)
+    );
 
-  if (skillsToDelete.length) {
-    await reqProgressSkill.destroy({
-      where: {
-        serviceSeqId: progressServiceId,
-        skillId: skillsToDelete
-      }
-    });
-  }
+    if (skillsToDelete.length) {
+      await reqProgressSkill.destroy({
+        where: {
+          serviceSeqId: progressServiceId,
+          skillId: skillsToDelete
+        }
+      });
+    }
   }
 
   // update comment instead of creating
@@ -475,25 +489,25 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
       updatedComment: progressComment
     }
   };
- 
+
   await reqAuditLog.create({
     actionBy: progressAssignee,
     action: "UPDATE_PROGRESS",
     endpoint: req.originalUrl || "/api/written-station/update-progress",
     changes: JSON.stringify(changes)
   });
- 
+
   // if (progressSkill.length) {
   //   const formattedSkills = progressSkill.map(skill => ({ ...skill, serviceSeqId: progressServiceId }));
   //   await reqProgressSkill.bulkCreate(formattedSkills);
   // }
- 
+
   // await reqCandidateComments.create({
   //   commentSeqenceId: progressServiceId,
   //   commentComment: progressComment,
   //   commentUserId: progressAssignee,
   // });
- 
+
   let candidate = await reqServiceSequence.findOne({
     attributes: ["serviceCandidate"],
     where: { serviceId: progressServiceId },
@@ -504,7 +518,7 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
     "Scores and Feedback updated in Technical 1",
     2
   );
- 
+
   return res.status(200).json({
     result: true,
     message: "Technical 1 Progress updated successfully",
@@ -533,7 +547,7 @@ exports.progressDetail = tryCatch(async (req, res) => {
       ],
       [
         sequelize.literal(`(SELECT "stationName" FROM "reqServiceSequences" AS "sequence" INNER JOIN "reqStations" ON "stationId" = "serviceStation" 
-                                                                WHERE "sequence"."serviceCandidate" = "reqServiceSequence"."serviceCandidate" ORDER BY "serviceId" DESC LIMIT 1)`),"currentStation"
+                                                                WHERE "sequence"."serviceCandidate" = "reqServiceSequence"."serviceCandidate" AND "sequence"."serviceServiceRequst" = "reqServiceSequence"."serviceServiceRequst" ORDER BY "serviceId" DESC LIMIT 1)`), "currentStation"
       ],
       [
         Sequelize.literal(`(

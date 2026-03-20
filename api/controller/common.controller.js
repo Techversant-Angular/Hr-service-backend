@@ -222,6 +222,13 @@ exports.rejectCandidate = tryCatch(async (req, res, next) => {
       sequence.serviceServiceRequst
     );
     stationId = null;
+    await reqServiceSequence.update({
+      serviceStation: null,
+    }, {
+      where: {
+        serviceId: serviceId,
+      },
+    });
   }
 
   let candidateStaion = await reqServiceSequence.findOne({

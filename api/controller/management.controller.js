@@ -77,7 +77,7 @@ exports.list = tryCatch(async (req, res) => {
             FROM "reqCandidateProgresses" AS "progress" WHERE "progress"."progressServiceSequence"="reqServiceSequence"."serviceId")`), 'progressStatus'
         ], [
           sequelize.literal(`(SELECT "stationName"
-                    FROM "reqServiceSequences" AS "sequence" INNER JOIN "reqStations" ON "stationId"="serviceStation" WHERE "sequence"."serviceCandidate"="reqServiceSequence"."serviceCandidate" ORDER BY "serviceId" DESC LIMIT 1)`),
+            FROM "reqServiceSequences" AS "sequence" INNER JOIN "reqStations" ON "stationId"="serviceStation" WHERE "sequence"."serviceCandidate"="reqServiceSequence"."serviceCandidate" AND "sequence"."serviceServiceRequst"="reqServiceSequence"."serviceServiceRequst" ORDER BY "serviceId" DESC LIMIT 1)`),
           "currentStation",
         ]]
     },
@@ -86,6 +86,19 @@ exports.list = tryCatch(async (req, res) => {
     where, order: [['serviceId', 'DESC']]
   });
   let totalCount = await reqServiceSequence.count({ where, include });
+
+  if (candidates) {
+    candidates = candidates.map((c) => {
+      c['candidate.candidateInterviewStatus'] = c.serviceStatus == "pending"
+        ? "inprogress"
+        : c.serviceStatus == "done"
+          ? "shorted"
+          : c.serviceStatus;
+
+      c.serviceStatus = c.serviceStatus == "sourced" ? "pending" : c.serviceStatus;
+      return c;
+    });
+  }
 
   if (report == 'true' && candidates) {
     let head = [{ header: "Request Name", key: "requestName", width: 10 },
@@ -358,12 +371,12 @@ exports.progressDetail = async (req, res) => {
           model: reqServiceRequest,
           as: "serviceRequest",
           // required: true,
-           include: [
-          {
-            model: reqTeam,
-            as: "team"
-          },
-        ],
+          include: [
+            {
+              model: reqTeam,
+              as: "team"
+            },
+          ],
         },
         { model: reqCandidateComments },
         { model: reqCandidateProgress, as: "progress" },
