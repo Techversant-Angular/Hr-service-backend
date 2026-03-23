@@ -1051,7 +1051,14 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
     candidatesAginstRequest.filter(({ candidateId }) => !existingCandidateIds.includes(candidateId)),
     { raw: true }
   );
-
+//inprogress status update in the first mapping
+  if (insertedItems) {
+    await reqCandidates.update(
+      { candidateInterviewStatus: "inprogress" },
+      { where: { candidateId: { [Op.in]: candidatesIds } } }
+    )
+  }
+ 
   const addCandidateRequirement = [...insertedItems, ...existingCandidateRequestions];
 
   const insertedCandidatesIds = addCandidateRequirement
@@ -1068,7 +1075,7 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
     {
       where: {
         serviceCandidate: { [Op.in]: candidatesIds },
-        serviceStation: 1,
+        // serviceStation: 1,
         serviceServiceRequst: requiementId
       }
     }
