@@ -1243,6 +1243,8 @@ exports.removeAfterMapped = tryCatch(async (req, res) => {
     .status(400)
     .json({ result: false, message: "Candidates Not Found" });
 
+    const requestId = isServiceSquence.serviceServiceRequst;
+
   await reqServiceSequence.update(
     {
       serviceStatus: null,
@@ -1256,6 +1258,7 @@ exports.removeAfterMapped = tryCatch(async (req, res) => {
     { candidatesAddingAgainst: null },
     { where: { candidateId: candidateId } }
   );
+  await reqCandidateRequestion.destroy({ where: { candidateId: candidateId, serviceRequest: requestId } });
 
   if (addCandidateRequirement) return res
     .status(201)
