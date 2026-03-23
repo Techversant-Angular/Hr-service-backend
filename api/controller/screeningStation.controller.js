@@ -987,7 +987,7 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
           [Op.in]: [
             'Candidate Pannel Rejected',
             'Candidate back off',
-            "Candidate Sourced From Indeed",
+            // "Candidate Sourced From Indeed",
             "Interview Scheduled in Screening station",
             "Candidate cancelled"
           ]
@@ -1080,8 +1080,8 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
       }
     }
   );
-
-  if (newMappings.length) {
+if (candidatesIds.length) {
+    if (newMappings.length) {
     await reqServiceSequence.destroy({
       where: {
         serviceCandidate: { [Op.in]: candidatesIds },
@@ -1091,6 +1091,8 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
     });
     await reqServiceSequence.bulkCreate(newMappings);
   }
+}
+
 
   if (insertedCandidatesIds.length) {
     let reSourcesIds = [];
