@@ -1065,33 +1065,53 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
     .filter(item => item.candidateRequestId != null)
     .map(item => item.candidateId);
 
-  await reqServiceSequence.update(
-    {
-      // serviceServiceRequst: requiementId,
-      serviceStatus: "pending",
-      insertOrUpdateDate: today,
-      serviceScheduledBy: candidateCreatedby
-    },
-    {
-      where: {
-        serviceCandidate: { [Op.in]: candidatesIds },
-        // serviceStation: 1,
-        serviceServiceRequst: requiementId
-      }
+  // await reqServiceSequence.update(
+  //   {
+  //     // serviceServiceRequst: requiementId,
+  //     serviceStatus: "pending",
+  //     insertOrUpdateDate: today,
+  //     serviceScheduledBy: candidateCreatedby
+  //   },
+  //   {
+  //     where: {
+  //       serviceCandidate: { [Op.in]: candidatesIds },
+  //       // serviceStation: 1,
+  //       serviceServiceRequst: requiementId
+  //     }
+  //   }
+  // );
+
+  //fix updating same record in the basic info
+  const sequenceData = candidatesIds.map(candidateId => ({
+    serviceCandidate: candidateId,
+    serviceServiceRequst: requiementId,
+    // serviceStation: 1, // uncomment if needed
+    serviceStatus: "pending",
+    insertOrUpdateDate: today,
+    serviceScheduledBy: candidateCreatedby
+  }));
+  await reqServiceSequence.destroy({
+    where: {
+      serviceCandidate: { [Op.in]: candidatesIds },
+      serviceServiceRequst: { [Op.is]: null },
+      serviceStatus: "sourced"
     }
-  );
-if (candidatesIds.length) {
-    if (newMappings.length) {
-    await reqServiceSequence.destroy({
-      where: {
-        serviceCandidate: { [Op.in]: candidatesIds },
-        serviceServiceRequst: { [Op.is]: null },
-        serviceStatus: "sourced"
-      }
-    });
-    await reqServiceSequence.bulkCreate(newMappings);
-  }
-}
+  });
+  await reqServiceSequence.bulkCreate(sequenceData);
+
+
+// if (candidatesIds.length) {
+//     if (newMappings.length) {
+//     await reqServiceSequence.destroy({
+//       where: {
+//         serviceCandidate: { [Op.in]: candidatesIds },
+//         serviceServiceRequst: { [Op.is]: null },
+//         serviceStatus: "sourced"
+//       }
+//     });
+//     await reqServiceSequence.bulkCreate(newMappings);
+//   }
+// }
 
 
   if (insertedCandidatesIds.length) {
