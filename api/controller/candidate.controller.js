@@ -890,42 +890,6 @@ GROUP BY
   let candidateId = data[0]?.candidateId;
   if (!candidateId) return res.status(200).json({ history: data });
 
-  /*
-  GLOBAL HISTORY DETAILS
-  */
-  let [globalHistoryDetail] = await sequelize.query(
-    `
-    SELECT
-        "action" AS "historyType",
-        "date" AS "historyDate",
-        "reqUsers"."userfirstName" AS "historyBy",
-        "stationName" AS "station",
-        "reqServiceRequests"."requestName" AS "positionName"
- 
-    FROM "reqCandidateLogs"
- 
-    INNER JOIN "reqUsers"
-        ON "actionBy"="userId"
- 
-    LEFT JOIN "reqStations"
-        ON "stationId"="station"
-        
-    LEFT JOIN "reqServiceRequests"
-        ON "reqCandidateLogs"."requestId" = "reqServiceRequests"."requestId"
- 
-    WHERE "candidateId"=:candidateId
-      AND "action" != 'Candidate Sourced From Indeed'
- 
-    ORDER BY "date" DESC, "id" DESC
-    `,
-    { replacements: { candidateId } }
-  );
-
-  globalHistoryDetail = globalHistoryDetail.map((el) => {
-    el.station = !el.station ? "screening" : el.station;
-    return el;
-  });
-
   for (let i = 0; i < data.length; i++) {
     let positionId = data[i].positionId;
 
@@ -989,7 +953,39 @@ GROUP BY
 
     data[i].attachedData = attachedData;
 
-    data[i].historyDetail = i === 0 ? globalHistoryDetail : [];
+    /*
+    HISTORY DETAILS
+    */
+
+    let [historyDetail] = await sequelize.query(
+      `
+      SELECT
+          "action" AS "historyType",
+          "date" AS "historyDate",
+          "reqUsers"."userfirstName" AS "historyBy",
+          "stationName" AS "station"
+   
+      FROM "reqCandidateLogs"
+   
+      INNER JOIN "reqUsers"
+          ON "actionBy"="userId"
+   
+      LEFT JOIN "reqStations"
+          ON "stationId"="station"
+   
+      WHERE "candidateId"=:candidateId
+        AND "reqCandidateLogs"."requestId" = :positionId
+        AND "action" != 'Candidate Sourced From Indeed'
+   
+      ORDER BY "id" DESC
+      `,
+      { replacements: { candidateId, positionId } }
+    );
+
+    data[i].historyDetail = historyDetail.map((el) => {
+      el.station = !el.station ? "screening" : el.station;
+      return el;
+    });
 
     /*
     FEEDBACK DETAILS
