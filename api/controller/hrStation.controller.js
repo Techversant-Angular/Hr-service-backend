@@ -510,8 +510,18 @@ exports.addProgress = tryCatch(async (req, res) => {
     commentUserId: progressAssignee,
   });
   if (created) {
-    let candidate = await reqServiceSequence.findOne({ attributes: ['serviceCandidate'], where: { serviceId: progressServiceId } });
-    logFunction(candidate.serviceCandidate, progressAssignee, 'Scores and Feedback added in HR Station', 3);
+    let candidate = await reqServiceSequence.findOne({ attributes: ['serviceCandidate', 'serviceStation', 'serviceServiceRequst'], where: { serviceId: progressServiceId } });
+
+    if (candidate.serviceStation == 5 && progressDescription == 'Selected') {
+      logFunction(candidate.serviceCandidate, progressAssignee, 'Offer Released', 5, candidate.serviceServiceRequst);
+    } else if (candidate.serviceStation == 5 && progressDescription == 'Rejected') {
+      logFunction(candidate.serviceCandidate, progressAssignee, 'Offer Rejected', 5, candidate.serviceServiceRequst);
+    } else if (candidate.serviceStation == 5 && progressDescription == 'Hold') {
+      logFunction(candidate.serviceCandidate, progressAssignee, 'Hold', 5, candidate.serviceServiceRequst);
+    }
+    else {
+      logFunction(candidate.serviceCandidate, progressAssignee, 'Scores and Feedback added in HR Station', 3, candidate.serviceServiceRequst);
+    }
     return res
       .status(200)
       .json({ result: true, message: "Technical Progress added" });
