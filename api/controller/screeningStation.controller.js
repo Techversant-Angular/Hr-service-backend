@@ -273,7 +273,8 @@ exports.acceptCandidateService = tryCatch(async (req, res) => {
 exports.batchCandidates = tryCatch(async (req, res) => {
 
   let requestId = req.params.requestId;
-  let search = req.query.search;
+  let search = req.query.search ? decodeURIComponent(req.query.search) : req.query.search;
+  let status = req.query.status;
   let station = req.query.station || 1;
   let limit = req.query.limit || 10;
   let offset = req.query.page || 0;
@@ -306,7 +307,8 @@ exports.batchCandidates = tryCatch(async (req, res) => {
     where[Op.or] = [{ serviceStation: station }, { serviceStation: { [Op.is]: null } }];
   }
 
-    let normalizedSearch =
+  //Add status filter
+  let normalizedSearch =
     search ? search.toLowerCase().trim() : null;
 
   let statusMap = {
@@ -316,15 +318,28 @@ exports.batchCandidates = tryCatch(async (req, res) => {
     "pannel_rejection": "pannel-rejection",
     "back_off": "back-off"
   };
+  
+  if (status) {
+    let normalizedStatus = status.toLowerCase().trim();
+    if (statusMap[normalizedStatus]) {
+      where.serviceStatus =
+        statusMap[normalizedStatus];
+    }
+  }
+
   if (normalizedSearch && statusMap[normalizedSearch]) {
-
-    where.serviceStatus =
-      statusMap[normalizedSearch];
-
-  } else if (search) {
+    where.serviceStatus = statusMap[normalizedSearch];
+  }
+  
+  if (search && !statusMap[normalizedSearch]) {
     candidateWhere.where = {
       [Op.or]: [
         { candidateFirstName: { [Op.iLike]: `${search}%` } },
+        { candidateLastName: { [Op.iLike]: `${search}%` } },
+        Sequelize.where(
+          Sequelize.fn("concat", Sequelize.col("candidateFirstName"), " ", Sequelize.col("candidateLastName")),
+          { [Op.iLike]: `${search}%` }
+        ),  
         { candidateEmail: { [Op.iLike]: `${search}%` } },
         { candidateMobileNo: { [Op.iLike]: `${search}%` } },
         { candidatePreviousOrg: { [Op.iLike]: `${search}%` } },
