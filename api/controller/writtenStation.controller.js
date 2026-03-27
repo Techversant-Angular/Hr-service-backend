@@ -335,8 +335,8 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
     commentUserId: progressAssignee,
   });
   if (created) {
-    let candidate = await reqServiceSequence.findOne({ attributes: ['serviceCandidate'], where: { serviceId: progressServiceId } });
-    logFunction(candidate.serviceCandidate, progressAssignee, 'Scores and Feedback added in Technical 1', 2);
+    let candidate = await reqServiceSequence.findOne({ attributes: ['serviceCandidate', 'serviceServiceRequst'], where: { serviceId: progressServiceId } });
+    logFunction(candidate.serviceCandidate, progressAssignee, 'Scores and Feedback added in Technical 1', 2, candidate.serviceServiceRequst);
     return res
       .status(200)
       .json({ result: true, message: "Technical 1 Progress added" });
@@ -699,6 +699,35 @@ exports.approve = tryCatch(async (req, res) => {
   await updateReportData('interviewConducted', feedBackBy, serviceSeqence.serviceServiceRequst);
   // await updateReportData('interviewScheduled', feedBackBy, serviceSeqence.serviceServiceRequst);
   await addExperiencInterviewScheduled(serviceSeqence.serviceServiceRequst, 1);
+  let candidate =
+    await reqServiceSequence.findOne({
+      attributes: [
+        'serviceCandidate',
+        'serviceServiceRequst'
+      ],
+      where: {
+        serviceId: serviceSeqId
+      }
+    });
+  if (nextStationSequeence[0].serviceStation == 5) {
+    logFunction(
+      nextStationSequeence[0].serviceCandidate,
+      feedBackBy,
+      'Interview Scheduled in HR station',
+      5,
+      nextStationSequeence[0].serviceServiceRequst,
+    );
+
+  } else {
+    logFunction(
+      candidate.serviceCandidate,
+      feedBackBy,
+      'Interview Scheduled in Technical 2',
+      3,
+      candidate.serviceServiceRequst,
+    );
+  }
+
   return res.status(200).json({
     result: true,
     message: "Candidates Approve and Move to next station",

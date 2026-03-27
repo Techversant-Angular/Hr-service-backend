@@ -336,8 +336,12 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
     commentUserId: progressAssignee,
   });
   if (created) {
-    let candidate = await reqServiceSequence.findOne({ attributes: ['serviceCandidate'], where: { serviceId: progressServiceId } });
-    logFunction(candidate.serviceCandidate, progressAssignee, 'Scores and Feedback added in technical 1', 3);
+    let candidate = await reqServiceSequence.findOne({ attributes: ['serviceCandidate','serviceServiceRequst',"serviceStation"], where: { serviceId: progressServiceId } });
+    if (candidate.serviceStation == 3) {
+      logFunction(candidate.serviceCandidate, progressAssignee, 'Scores and Feedback added in Technical 2', 3,candidate.serviceServiceRequst);
+    }else{
+      logFunction(candidate.serviceCandidate, progressAssignee, 'Scores and Feedback added in Technical 3', 4,candidate.serviceServiceRequst);
+    }
     return res
       .status(200)
       .json({ result: true, message: "Technical Progress added" });
@@ -515,6 +519,52 @@ exports.approve = tryCatch(async (req, res) => {
     );
   await updateReportData('interviewConducted', feedBackBy, serviceSeqence.serviceServiceRequst);
   // await updateReportData('interviewScheduled', feedBackBy, serviceSeqence.serviceServiceRequst);
+  let candidate =
+    await reqServiceSequence.findOne({
+      attributes: [
+        'serviceCandidate',
+        'serviceServiceRequst',
+        'serviceStation'
+      ],
+      where: {
+        serviceId: serviceSeqId
+      }
+    });
+  if (nextStationSequeence[0].serviceStation == 4) {
+    logFunction(
+      nextStationSequeence[0].serviceCandidate,
+      feedBackBy,
+      'Interview Scheduled in Technical 3',
+      4,
+      nextStationSequeence[0].serviceServiceRequst,
+    );
+
+  }else if(nextStationSequeence[0].serviceStation == 5){
+    logFunction(
+      nextStationSequeence[0].serviceCandidate,
+      feedBackBy,
+      'Interview Scheduled in HR station',
+      5,
+      nextStationSequeence[0].serviceServiceRequst,
+    );
+  } else if (candidate.serviceStation == 3) {
+    logFunction(
+      candidate.serviceCandidate,
+      feedBackBy,
+      'Scores and Feedback added in Technical 1',
+      3,
+      candidate.serviceServiceRequst,
+    );
+  } else {
+    logFunction(
+      candidate.serviceCandidate,
+      feedBackBy,
+      'Interview Scheduled in HR Station',
+      5,
+      candidate.serviceServiceRequst,
+    );
+  }
+
   await addExperiencInterviewScheduled(serviceSeqence.serviceServiceRequst, 1);
   return res.status(200).json({
     result: true,
