@@ -305,7 +305,23 @@ exports.batchCandidates = tryCatch(async (req, res) => {
   } else {
     where[Op.or] = [{ serviceStation: station }, { serviceStation: { [Op.is]: null } }];
   }
-  if (search) {
+
+    let normalizedSearch =
+    search ? search.toLowerCase().trim() : null;
+
+  let statusMap = {
+    "shortlisted": "done",
+    "in_progress": "pending",
+    "cancelled": "cancelled",
+    "pannel_rejection": "pannel-rejection",
+    "back_off": "back-off"
+  };
+  if (normalizedSearch && statusMap[normalizedSearch]) {
+
+    where.serviceStatus =
+      statusMap[normalizedSearch];
+
+  } else if (search) {
     candidateWhere.where = {
       [Op.or]: [
         { candidateFirstName: { [Op.iLike]: `${search}%` } },
