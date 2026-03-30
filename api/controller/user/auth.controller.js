@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 let { jwtDecode } = require('jwt-decode');
 let mailFunction = require("../../utils/nodeMail");
 const { Op } = require('sequelize');
+const admin = require("../../../config/firebase");
 
 exports.login = async (req, res, next) => {
     try {
@@ -128,3 +129,58 @@ exports.resetPassword = async (req, res, next) => {
         next(error);
     }
 }
+
+exports.googleLogin = async (req, res) => {
+    try {
+        const { idToken } = req.body;
+        if (!idToken) {
+            return res.status(400).json({ message: "ID token is required" });
+        }
+
+        // Verify Firebase Token
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const { email, name } = decodedToken;
+
+        // Check database for the user using Sequelize
+        let user = await reqUser.findOne({ where: { userEmail: email } });
+
+        if (!user) {
+            // Split name nicely if available
+            const nameParts = (name || "Unknown").split(' ');
+            const firstName = nameParts[0];
+            const lastName = nameParts.slice(1).join(' ');
+
+            user = await reqUser.create({
+                userfirstName: firstName,
+                userlastName: lastName || "User",
+                userEmail: email,
+                userPassword: "sso-login-placeholder", // Required field, SSO handles auth
+                userWorkStation: 1, // Default workstation (replace if needed)
+                userRole: "user", // Default role
+                userStatus: "active"
+            });
+        }
+
+        // Generate JWT token (same as regular login flow)
+        let userData = {
+            userId: user.userId,
+            userFullName: user.userFullName,
+            userEmail: user.userEmail,
+            userDOB: user.userDOB,
+            userType: user.userType,
+            userRole: user.userRole
+        };
+
+        let token = await jwtToken(userData);
+
+        return res.status(200).json({
+            result: true,
+            message: "Google login successful",
+            token,
+            data: user
+        });
+    } catch (err) {
+        console.error("Firebase auth error:", err);
+        return res.status(401).json({ message: "Unauthorized: Invalid or expired token" });
+    }
+};
