@@ -8,6 +8,7 @@ let { reqServiceSequence, reqTask, reqCandidates, reqServiceRequest, reqTeam,
   reqRejectReason, reqFeedbacks, reqProgressSkill
 } = require("../../models");
 const { sendFeedbackAcknowledgement } = require("../utils/commonFunction");
+const admin = require("../../config/firebase");
 
 exports.secondGrafData = async (req, res, next) => {
   try {
@@ -711,5 +712,42 @@ exports.editProgressV1 = tryCatch(async (req, res) => {
 
   return res.status(200).json({ result: true, message: "Technical Progress Edited" });
 
+});
+
+exports.googleLogin = tryCatch(async (req, res) => {
+  const { idToken } = req.body;
+  if (!idToken) {
+    return res.status(400).json({ message: "ID token is required" });
+  }
+
+  // Verify Firebase Token
+  const decodedToken = await admin.auth().verifyIdToken(idToken);
+  const { uid, email, name, picture } = decodedToken;
+
+  // Check database for the user using Sequelize
+  let user = await reqUser.findOne({ where: { userEmail: email } });
+
+  if (!user) {
+    // Split name nicely if available
+    const nameParts = (name || "Unknown").split(' ');
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ');
+
+    user = await reqUser.create({
+      userfirstName: firstName,
+      userlastName: lastName || "User",
+      userEmail: email,
+      userPassword: "sso-login-placeholder", // Required field, SSO handles auth
+      userWorkStation: 1, // Default workstation (replace if needed)
+      userRole: "user", // Default role
+      userStatus: "active"
+    });
+  }
+
+  return res.status(200).json({
+    result: true,
+    message: "Google login successful",
+    data: user
+  });
 });
 
