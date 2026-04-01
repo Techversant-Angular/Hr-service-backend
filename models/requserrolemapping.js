@@ -10,9 +10,23 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+
+      // Each mapping belongs to a user
+      reqUserRoleMapping.belongsTo(models.reqUser, {
+        foreignKey: 'userId',
+        as: 'user'
+      });
+
+      // Each mapping belongs to a role
+      reqUserRoleMapping.belongsTo(models.reqUserRole, {
+        foreignKey: 'roleId',
+        as: 'role'
+      });
+
     }
+
   }
+
   reqUserRoleMapping.init({
     id: {
       allowNull: false,
@@ -20,8 +34,17 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true,
       type: DataTypes.INTEGER
     },
-    userId: DataTypes.INTEGER,
-    roleId: DataTypes.INTEGER
+
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+
+    roleId: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    }
+
   }, {
     sequelize,
     modelName: 'reqUserRoleMapping',

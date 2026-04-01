@@ -141,6 +141,20 @@ exports.googleLogin = async (req, res) => {
         const decodedToken = await admin.auth().verifyIdToken(idToken);
         const { email, name } = decodedToken;
 
+        // Check if email domain is allowed
+        const allowedDomainsStr = process.env.ALLOWED_EMAIL_DOMAINS;
+        if (allowedDomainsStr && email) {
+            const allowedDomains = allowedDomainsStr.split(',').map(d => d.trim().toLowerCase());
+            const emailDomain = email.split('@')[1]?.toLowerCase();
+            
+            if (!emailDomain || !allowedDomains.includes(emailDomain)) {
+                return res.status(403).json({ 
+                    result: false, 
+                    message: "Unauthorized: Your email domain is not permitted." 
+                });
+            }
+        }
+
         // Check database for the user using Sequelize
         let user = await reqUser.findOne({ where: { userEmail: email } });
 
@@ -156,7 +170,7 @@ exports.googleLogin = async (req, res) => {
                 userEmail: email,
                 userPassword: "sso-login-placeholder", // Required field, SSO handles auth
                 userWorkStation: 1, // Default workstation (replace if needed)
-                userRole: "user", // Default role
+                userRole: "employee", // Default role
                 userStatus: "active"
             });
         }
