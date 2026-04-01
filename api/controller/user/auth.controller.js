@@ -158,6 +158,13 @@ exports.googleLogin = async (req, res) => {
         // Check database for the user using Sequelize
         let user = await reqUser.findOne({ where: { userEmail: email } });
 
+        if (user && user.userStatus !== 'active') {
+            return res.status(403).json({
+                result: false,
+                message: "Unauthorized: Your account is inactive. Please contact administrator."
+            });
+        }
+
         if (!user) {
             // Split name nicely if available
             const nameParts = (name || "Unknown").split(' ');
