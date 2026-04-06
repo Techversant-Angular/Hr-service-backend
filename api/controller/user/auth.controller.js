@@ -44,8 +44,7 @@ exports.login = async (req, res, next) => {
             userEmail: user.userEmail,
             userDOB: user.userDOB,
             userType: user.userType,
-            // userRole: user.userRole
-            roles: roleIds
+            userRole: roleIds
         };
 
         let token = await jwtToken(userData);
