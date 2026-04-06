@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { reqUser, reqUserRole, sequelize, Sequelize } = require('../../../models');
+const { reqUser, reqUserRole, reqUserRoleMapping, sequelize, Sequelize } = require('../../../models');
 
 exports.createUser = async (req, res, next) => {
 
@@ -18,17 +18,39 @@ exports.createUser = async (req, res, next) => {
             return res.status(400).send({ status: false, userExit: true, message: 'user already exists with given email' });
         }
 
+        let rolesArray = [];
+        if (Array.isArray(parameter.userRole)) {
+            rolesArray = [...parameter.userRole];
+        } else if (parameter.userRole) {
+            rolesArray.push(parameter.userRole);
+        }
+
+        if (Array.isArray(userMultipleRole)) {
+            rolesArray = [...rolesArray, ...userMultipleRole];
+        } else if (userMultipleRole) {
+            rolesArray.push(userMultipleRole);
+        }
+
+        const uniqueRoles = [...new Set(rolesArray)].filter(Boolean);
+        
+        let dbRoles = [];
+        if (uniqueRoles.length > 0) {
+            dbRoles = await reqUserRole.findAll({
+                where: { roleName: { [Op.in]: uniqueRoles } }
+            });
+            const roleIds = dbRoles.map(role => role.roleId);
+            parameter.userRole = roleIds.join(',');
+        }
+
         const user = await reqUser.create(parameter);
 
-        //code commented because causing 400 error even after user is created 
-
-        // userMultipleRole = [parameter.userRole, ...userMultipleRole];
-
-        // let promise = await userMultipleRole.map(async (eachRole) => {
-        //     await userRole({ roleName: eachRole, roleUserId: user.userId, userType });
-        // });
-
-        /* await Promise.all(promise); */
+        if (dbRoles.length > 0) {
+            const roleMappingsToInsert = dbRoles.map(role => ({
+                userId: user.userId,
+                roleId: role.roleId
+            }));
+            await reqUserRoleMapping.bulkCreate(roleMappingsToInsert);
+        }
 
         const userData = await reqUser.findOne({
             attributes: {

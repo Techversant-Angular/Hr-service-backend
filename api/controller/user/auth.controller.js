@@ -1,4 +1,4 @@
-let { reqUser, reqAccessToken, Sequelize } = require('../../../models');
+let { reqUser, reqAccessToken, Sequelize, reqUserRoleMapping } = require('../../../models');
 let { jwtToken } = require('../../utils/jwt');
 const bcrypt = require('bcryptjs');
 let { jwtDecode } = require('jwt-decode');
@@ -23,13 +23,29 @@ exports.login = async (req, res, next) => {
         if (!await user.validatePassword(userPassword)) return res
             .status(401)
             .json({ status: false, message: 'Invalid password' });
+
+        // 🔹 Get roles from roleMapping table
+        let roles = await reqUserRoleMapping.findAll({
+            where: { userId: user.userId },
+            attributes: ["roleId"]
+        });
+        if (!roles.length) {
+            return res.status(403).json({
+                status: false,
+                message: "User has no assigned roles"
+            });
+        }
+        let roleIds = roles.map(r => r.roleId);
+
+
         let userData = {
             userId: user.userId,
             userFullName: user.userFullName,
             userEmail: user.userEmail,
             userDOB: user.userDOB,
             userType: user.userType,
-            userRole: user.userRole
+            // userRole: user.userRole
+            roles: roleIds
         };
 
         let token = await jwtToken(userData);
