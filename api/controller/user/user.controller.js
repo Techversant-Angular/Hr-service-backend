@@ -63,7 +63,13 @@ exports.createUser = async (req, res, next) => {
                 model: reqUserRole, as: 'userRoles'
             }]
         });
-        return res.status(200).send(userData);
+
+        let responseData = userData.toJSON();
+        if (responseData.userRole && typeof responseData.userRole === 'string') {
+            responseData.userRole = responseData.userRole.split(',').map(role => isNaN(role) ? role : Number(role));
+        }
+
+        return res.status(200).send(responseData);
 
     } catch (error) {
         next(error);
