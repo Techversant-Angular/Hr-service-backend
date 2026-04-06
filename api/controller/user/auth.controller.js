@@ -166,19 +166,9 @@ exports.googleLogin = async (req, res) => {
         }
 
         if (!user) {
-            // Split name nicely if available
-            const nameParts = (name || "Unknown").split(' ');
-            const firstName = nameParts[0];
-            const lastName = nameParts.slice(1).join(' ');
-
-            user = await reqUser.create({
-                userfirstName: firstName,
-                userlastName: lastName || "User",
-                userEmail: email,
-                userPassword: "sso-login-placeholder", // Required field, SSO handles auth
-                userWorkStation: 1, // Default workstation (replace if needed)
-                userRole: "employee", // Default role
-                userStatus: "active"
+            return res.status(404).json({
+                result: false,
+                message: "User not found"
             });
         }
 
