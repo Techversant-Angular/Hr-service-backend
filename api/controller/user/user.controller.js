@@ -200,13 +200,23 @@ exports.listUsers = async (req, res, next) => {
             where,
             ...query
         });
+
+        const formattedUsers = users.map(user => {
+            let userData = user.toJSON();
+            // Convert userRole comma-separated string into an array
+            if (userData.userRole && typeof userData.userRole === 'string') {
+                userData.userRole = userData.userRole.split(',').map(role => isNaN(role) ? role : Number(role));
+            }
+            return userData;
+        });
+
         // Count total users (efficient count query)
         const totalCount = await reqUser.count({ where });
         return res.status(200).json({
             status: true,
             message: 'Data retrieved',
             userCount: totalCount,
-            users
+            users: formattedUsers
         });
     } catch (error) {
         next(error);

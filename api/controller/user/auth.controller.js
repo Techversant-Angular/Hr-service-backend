@@ -48,9 +48,14 @@ exports.login = async (req, res, next) => {
         };
 
         let token = await jwtToken(userData);
+        let responseUser = user.toJSON();
+        if (responseUser.userRole && typeof responseUser.userRole === 'string') {
+            responseUser.userRole = responseUser.userRole.split(',').map(role => isNaN(role) ? role : Number(role));
+        }
+
         return res.status(200).json({
             token,
-            user,
+            user: responseUser,
         });
 
     } catch (error) {
