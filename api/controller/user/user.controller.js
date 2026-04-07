@@ -32,7 +32,6 @@ exports.createUser = async (req, res, next) => {
         }
 
         const uniqueRoles = [...new Set(rolesArray)].filter(Boolean);
-        
         let dbRoles = [];
         if (uniqueRoles.length > 0) {
             dbRoles = await reqUserRole.findAll({
@@ -158,6 +157,36 @@ exports.UpdateUser = async (req, res, next) => {
             where: { userId: userId },
             returning: true,
         });
+
+        // Update reqUserRoleMapping
+        if (userRole) {
+            let rolesArray = Array.isArray(userRole) ? userRole : (typeof userRole === 'string' ? userRole.split(',') : [userRole]);
+            let uniqueRoles = [...new Set(rolesArray)].filter(Boolean);
+            let roleIds = [];
+
+            const isNumeric = uniqueRoles.every(role => !isNaN(role));
+            if (!isNumeric) {
+                const dbRoles = await reqUserRole.findAll({
+                    where: { roleName: { [Op.in]: uniqueRoles } }
+                });
+                roleIds = dbRoles.map(role => role.roleId);
+                // Keep reqUser.userRole consistent with IDs
+                await reqUser.update({ userRole: roleIds.join(',') }, { where: { userId: userId } });
+                data[0].userRole = roleIds.join(',');
+            } else {
+                roleIds = uniqueRoles;
+            }
+
+            await reqUserRoleMapping.destroy({ where: { userId: userId } });
+
+            if (roleIds.length > 0) {
+                const roleMappingsToInsert = roleIds.map(roleId => ({
+                    userId: userId,
+                    roleId: roleId
+                }));
+                await reqUserRoleMapping.bulkCreate(roleMappingsToInsert);
+            }
+        }
 
         data[0].userPassword = null;
 
