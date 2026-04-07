@@ -1,4 +1,4 @@
-let { reqUser, reqAccessToken, Sequelize, reqUserRoleMapping } = require('../../../models');
+let { reqUser, reqAccessToken, Sequelize, reqUserRoleMapping, reqUserRole } = require('../../../models');
 let { jwtToken } = require('../../utils/jwt');
 const bcrypt = require('bcryptjs');
 let { jwtDecode } = require('jwt-decode');
@@ -27,7 +27,12 @@ exports.login = async (req, res, next) => {
         // 🔹 Get roles from roleMapping table
         let roles = await reqUserRoleMapping.findAll({
             where: { userId: user.userId },
-            attributes: ["roleId"]
+
+            include: [{
+                model: reqUserRole,
+                as: 'role',
+                required: true // INNER JOIN
+            }]
         });
         if (!roles.length) {
             return res.status(403).json({
@@ -35,8 +40,10 @@ exports.login = async (req, res, next) => {
                 message: "User has no assigned roles"
             });
         }
-        let roleIds = roles.map(r => r.roleId);
-
+        
+        let formattedRoles = roles.map(r =>
+            r.role ? r.role.roleName : null
+        ).filter(role => role !== null);
 
         let userData = {
             userId: user.userId,
@@ -44,14 +51,12 @@ exports.login = async (req, res, next) => {
             userEmail: user.userEmail,
             userDOB: user.userDOB,
             userType: user.userType,
-            userRole: roleIds
+            userRole: formattedRoles
         };
 
         let token = await jwtToken(userData);
         let responseUser = user.toJSON();
-        if (responseUser.userRole && typeof responseUser.userRole === 'string') {
-            responseUser.userRole = responseUser.userRole.split(',').map(role => isNaN(role) ? role : Number(role));
-        }
+        responseUser.userRole = formattedRoles;
 
         return res.status(200).json({
             token,

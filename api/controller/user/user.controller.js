@@ -64,10 +64,25 @@ exports.createUser = async (req, res, next) => {
             }]
         });
 
+        // 🔹 Get roles from mapping table
+        let roles = await reqUserRoleMapping.findAll({
+            where: { userId: user.userId },
+
+            include: [{
+                model: reqUserRole,
+                as: 'role',
+                required: true
+            }]
+        });
+
+        // Convert roles → ["admin","visitor"]
+        let formattedRoles = roles.map(r =>
+            r.role ? r.role.roleName : null
+        ).filter(role => role !== null);
+
+        // Convert response
         let responseData = userData.toJSON();
-        if (responseData.userRole && typeof responseData.userRole === 'string') {
-            responseData.userRole = responseData.userRole.split(',').map(role => isNaN(role) ? role : Number(role));
-        }
+        responseData.userRole = formattedRoles;
 
         return res.status(200).send(responseData);
 
@@ -201,11 +216,21 @@ exports.listUsers = async (req, res, next) => {
             ...query
         });
 
+        // 🔹 Get all roles to map IDs back to Role Names dynamically
+        const dbRoles = await reqUserRole.findAll({
+            attributes: ['roleId', 'roleName']
+        });
+        const roleMap = {};
+        dbRoles.forEach(role => {
+            roleMap[role.roleId] = role.roleName;
+        });
+
         const formattedUsers = users.map(user => {
             let userData = user.toJSON();
-            // Convert userRole comma-separated string into an array
+            // Convert userRole comma-separated string into an array of resolving roleNames
             if (userData.userRole && typeof userData.userRole === 'string') {
-                userData.userRole = userData.userRole.split(',').map(role => isNaN(role) ? role : Number(role));
+                const mappedRoles = userData.userRole.split(',').map(roleId => roleMap[roleId] || roleId);
+                userData.userRole = mappedRoles;
             }
             return userData;
         });
