@@ -152,17 +152,11 @@ exports.UpdateUser = async (req, res, next) => {
         if (userEmail) userData.userEmail = userEmail;
         if (userDOB) userData.userDOB = userDOB;
         if (userWorkStation) userData.userWorkStation = userWorkStation;
-        if (userRole) userData.userRole = userRole;
-        let [user, data] = await reqUser.update(userData, {
-            where: { userId: userId },
-            returning: true,
-        });
-
-        // Update reqUserRoleMapping
+        
+        let roleIds = [];
         if (userRole) {
             let rolesArray = Array.isArray(userRole) ? userRole : (typeof userRole === 'string' ? userRole.split(',') : [userRole]);
             let uniqueRoles = [...new Set(rolesArray)].filter(Boolean);
-            let roleIds = [];
 
             const isNumeric = uniqueRoles.every(role => !isNaN(role));
             if (!isNumeric) {
@@ -170,13 +164,19 @@ exports.UpdateUser = async (req, res, next) => {
                     where: { roleName: { [Op.in]: uniqueRoles } }
                 });
                 roleIds = dbRoles.map(role => role.roleId);
-                // Keep reqUser.userRole consistent with IDs
-                await reqUser.update({ userRole: roleIds.join(',') }, { where: { userId: userId } });
-                data[0].userRole = roleIds.join(',');
             } else {
                 roleIds = uniqueRoles;
             }
+            userData.userRole = roleIds.join(',');
+        }
 
+        let [user, data] = await reqUser.update(userData, {
+            where: { userId: userId },
+            returning: true,
+        });
+
+        // Update reqUserRoleMapping
+        if (userRole) {
             await reqUserRoleMapping.destroy({ where: { userId: userId } });
 
             if (roleIds.length > 0) {
