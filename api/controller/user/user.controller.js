@@ -224,7 +224,7 @@ exports.listUsers = async (req, res, next) => {
             where.userWorkStation = workStationMap[userRole];
         }
 	    if(userRole==2){
-		    where[Op.or]=[{userRole:'manager'},{userRole:'admin'}];
+		    where[Op.or]=[{userRole:'2'},{userRole:'1'}];
 	    };
         // Apply search on both first name and last name
         if (search) {
