@@ -223,9 +223,17 @@ exports.listUsers = async (req, res, next) => {
         if (userRole && workStationMap[userRole]) {
             where.userWorkStation = workStationMap[userRole];
         }
-	    if(userRole==2){
-		    where[Op.or]=[{userRole:'2'},{userRole:'1'}];
-	    };
+        if (userRole == 2) {
+            where[Op.and] = [
+                ...(where[Op.and] || []),
+                {
+                    [Op.or]: [
+                        { userRole: { [Op.like]: '%2%' } },
+                        { userRole: { [Op.like]: '%1%' } }
+                    ]
+                }
+            ];
+        }
         // Apply search on both first name and last name
         if (search) {
             where[Op.or] = [
