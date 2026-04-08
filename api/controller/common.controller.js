@@ -8,6 +8,9 @@ let { reqServiceSequence, reqTask, reqCandidates, reqServiceRequest, reqTeam,
   reqRejectReason, reqFeedbacks, reqProgressSkill
 } = require("../../models");
 const { sendFeedbackAcknowledgement } = require("../utils/commonFunction");
+const { PutObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+const { s3Client } = require("../../config/config");
 
 exports.secondGrafData = async (req, res, next) => {
   try {
@@ -713,3 +716,41 @@ exports.editProgressV1 = tryCatch(async (req, res) => {
 
 });
 
+exports.generatePresignedUrl = tryCatch(async (req, res, next) => {
+  try {
+
+    const fileName = req.query.fileName;
+    const fileType = req.query.fileType;
+
+    if (!fileName || !fileType) {
+      return res.status(400).json({ result: false, message: "fileName and fileType are required" });
+    }
+
+    // Define unique key to avoid overwrites
+    const key = `uploads/${Date.now()}-${fileName.replace(/\s+/g, '-')}`;
+
+    const command = new PutObjectCommand({
+      Bucket: "my-app-image-storage",
+      Key: key,
+      ContentType: fileType,
+    });
+
+    // Generate URL valid for 5 minutes (300 seconds)
+    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 });
+
+    return res.status(200).json({
+      result: true,
+      message: "Presigned URL generated successfully",
+      data: {
+        uploadUrl: presignedUrl,
+        key: key
+      }
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Error generating upload URL"
+    });
+  }
+});
