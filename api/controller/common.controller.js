@@ -717,8 +717,8 @@ exports.editProgressV1 = tryCatch(async (req, res) => {
 });
 
 exports.generatePresignedUrl = tryCatch(async (req, res, next) => {
+  
   try {
-
     const fileName = req.query.fileName;
     const fileType = req.query.fileType;
 
@@ -730,7 +730,7 @@ exports.generatePresignedUrl = tryCatch(async (req, res, next) => {
     const key = `uploads/${Date.now()}-${fileName.replace(/\s+/g, '-')}`;
 
     const command = new PutObjectCommand({
-      Bucket: "my-app-image-storage",
+      Bucket: "prod-ats-docs",
       Key: key,
       ContentType: fileType,
     });
