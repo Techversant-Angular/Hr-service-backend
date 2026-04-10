@@ -721,29 +721,34 @@ exports.generatePresignedUrl = tryCatch(async (req, res, next) => {
   try {
     const fileName = req.query.fileName;
     const fileType = req.query.fileType;
-
+    const BUCKET_NAME = process.env.AWS_BUCKET_NAME;
+    const region = process.env.AWS_REGION
     if (!fileName || !fileType) {
       return res.status(400).json({ result: false, message: "fileName and fileType are required" });
     }
+        if (!BUCKET_NAME) {
+        return res.status(500).json({ error: 'AWS_S3_BUCKET_NAME is not ACCESS' });
+    }
 
     // Define unique key to avoid overwrites
-    const key = `uploads/${Date.now()}-${fileName.replace(/\s+/g, '-')}`;
+    const key = `${Date.now()}-${fileName.replace(/\s+/g, '-')}`;
 
     const command = new PutObjectCommand({
-      Bucket: "prod-ats-docs",
+      Bucket: BUCKET_NAME,
       Key: key,
       ContentType: fileType,
     });
 
     // Generate URL valid for 5 minutes (300 seconds)
     const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 });
-
+    const publicUrl = `https://${BUCKET_NAME}.s3.${region}.amazonaws.com/${key}`;
     return res.status(200).json({
       result: true,
       message: "Presigned URL generated successfully",
       data: {
         uploadUrl: presignedUrl,
-        key: key
+        publicUrl: publicUrl,
+        fileName:fileName
       }
     });
   } catch (error) {
