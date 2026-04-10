@@ -356,7 +356,7 @@ exports.recruiterList = tryCatch(async (req, res, next) => {
   if (search) {
     where = {
       userStatus: "active",
-      userRole: "talent",
+      userRole: "6",
       [Op.or]: [
         { userfirstName: { [Op.startsWith]: `${search}` } },
         { userEmail: { [Op.startsWith]: `${search}` } },
@@ -365,7 +365,7 @@ exports.recruiterList = tryCatch(async (req, res, next) => {
   } else {
     where = {
       userStatus: "active",
-      userRole: "talent",
+      userRole: "6",
     };
   }
   let recruiterList = await reqUser.findAll({

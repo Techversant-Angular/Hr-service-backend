@@ -23,6 +23,12 @@ module.exports = (sequelize, DataTypes) => {
         as: 'role'
       });
 
+      // Association with reqUserRoles
+      reqUserRoleMapping.belongsTo(models.reqUserRole, {
+        foreignKey: 'roleId',      // rurm.roleId
+        targetKey: 'roleUserId',   // rur.roleUserId
+        as: 'role'
+      });
     }
 
   }
