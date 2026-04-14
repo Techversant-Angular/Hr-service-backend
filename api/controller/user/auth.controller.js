@@ -171,11 +171,11 @@ exports.googleLogin = async (req, res) => {
         if (allowedDomainsStr && email) {
             const allowedDomains = allowedDomainsStr.split(',').map(d => d.trim().toLowerCase());
             const emailDomain = email.split('@')[1]?.toLowerCase();
-            
+
             if (!emailDomain || !allowedDomains.includes(emailDomain)) {
-                return res.status(403).json({ 
-                    result: false, 
-                    message: "Unauthorized: Your email domain is not permitted." 
+                return res.status(403).json({
+                    result: false,
+                    message: "Unauthorized: Your email domain is not permitted."
                 });
             }
         }
@@ -196,6 +196,26 @@ exports.googleLogin = async (req, res) => {
                 message: "User not found"
             });
         }
+        let roles = await reqUserRoleMapping.findAll({
+            where: { userId: user.userId },
+
+            include: [{
+                model: reqUserRole,
+                as: 'role',
+                required: true // INNER JOIN
+            }]
+        });
+        if (!roles.length) {
+            return res.status(403).json({
+                status: false,
+                message: "User has no assigned roles"
+            });
+        }
+
+        let formattedRoles = roles.map(r =>
+            r.role ? r.role.roleName : null
+        ).filter(role => role !== null);
+
 
         // Generate JWT token (same as regular login flow)
         let userData = {
@@ -204,16 +224,17 @@ exports.googleLogin = async (req, res) => {
             userEmail: user.userEmail,
             userDOB: user.userDOB,
             userType: user.userType,
-            userRole: user.userRole
+            userRole: formattedRoles
         };
 
         let token = await jwtToken(userData);
-
+        const responseUser = user.toJSON();
+        responseUser.userRole = formattedRoles;
         return res.status(200).json({
             result: true,
             message: "Google login successful",
             token,
-            data: user
+            data: responseUser
         });
     } catch (err) {
         console.error("Firebase auth error:", err);
