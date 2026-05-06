@@ -1,9 +1,10 @@
-let { reqUser, reqAccessToken, Sequelize } = require('../../../models');
+let { reqUser, reqAccessToken, Sequelize, reqUserRoleMapping, reqUserRole } = require('../../../models');
 let { jwtToken } = require('../../utils/jwt');
 const bcrypt = require('bcryptjs');
 let { jwtDecode } = require('jwt-decode');
 let mailFunction = require("../../utils/nodeMail");
 const { Op } = require('sequelize');
+const admin = require("../../../config/firebase");
 
 exports.login = async (req, res, next) => {
     try {
@@ -23,19 +24,44 @@ exports.login = async (req, res, next) => {
         if (!await user.validatePassword(userPassword)) return res
             .status(401)
             .json({ status: false, message: 'Invalid password' });
+
+        // 🔹 Get roles from roleMapping table
+        let roles = await reqUserRoleMapping.findAll({
+            where: { userId: user.userId },
+
+            include: [{
+                model: reqUserRole,
+                as: 'role',
+                required: true // INNER JOIN
+            }]
+        });
+        if (!roles.length) {
+            return res.status(403).json({
+                status: false,
+                message: "User has no assigned roles"
+            });
+        }
+        
+        let formattedRoles = roles.map(r =>
+            r.role ? r.role.roleName : null
+        ).filter(role => role !== null);
+
         let userData = {
             userId: user.userId,
             userFullName: user.userFullName,
             userEmail: user.userEmail,
             userDOB: user.userDOB,
             userType: user.userType,
-            userRole: user.userRole
+            userRole: formattedRoles
         };
 
         let token = await jwtToken(userData);
+        let responseUser = user.toJSON();
+        responseUser.userRole = formattedRoles;
+
         return res.status(200).json({
             token,
-            user,
+            user: responseUser,
         });
 
     } catch (error) {
@@ -128,3 +154,90 @@ exports.resetPassword = async (req, res, next) => {
         next(error);
     }
 }
+
+exports.googleLogin = async (req, res) => {
+    try {
+        const { idToken } = req.body;
+        if (!idToken) {
+            return res.status(400).json({ message: "ID token is required" });
+        }
+
+        // Verify Firebase Token
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const { email, name } = decodedToken;
+
+        // Check if email domain is allowed
+        const allowedDomainsStr = process.env.ALLOWED_EMAIL_DOMAINS;
+        if (allowedDomainsStr && email) {
+            const allowedDomains = allowedDomainsStr.split(',').map(d => d.trim().toLowerCase());
+            const emailDomain = email.split('@')[1]?.toLowerCase();
+
+            if (!emailDomain || !allowedDomains.includes(emailDomain)) {
+                return res.status(403).json({
+                    result: false,
+                    message: "Unauthorized: Your email domain is not permitted."
+                });
+            }
+        }
+
+        // Check database for the user using Sequelize
+        let user = await reqUser.findOne({ where: { userEmail: email } });
+
+        if (user && user.userStatus !== 'active') {
+            return res.status(403).json({
+                result: false,
+                message: "Unauthorized: Your account is inactive. Please contact administrator."
+            });
+        }
+
+        if (!user) {
+            return res.status(404).json({
+                result: false,
+                message: "User not found"
+            });
+        }
+        let roles = await reqUserRoleMapping.findAll({
+            where: { userId: user.userId },
+
+            include: [{
+                model: reqUserRole,
+                as: 'role',
+                required: true // INNER JOIN
+            }]
+        });
+        if (!roles.length) {
+            return res.status(403).json({
+                status: false,
+                message: "User has no assigned roles"
+            });
+        }
+
+        let formattedRoles = roles.map(r =>
+            r.role ? r.role.roleName : null
+        ).filter(role => role !== null);
+
+
+        // Generate JWT token (same as regular login flow)
+        let userData = {
+            userId: user.userId,
+            userFullName: user.userFullName,
+            userEmail: user.userEmail,
+            userDOB: user.userDOB,
+            userType: user.userType,
+            userRole: formattedRoles
+        };
+
+        let token = await jwtToken(userData);
+        const responseUser = user.toJSON();
+        responseUser.userRole = formattedRoles;
+        return res.status(200).json({
+            result: true,
+            message: "Google login successful",
+            token,
+            data: responseUser
+        });
+    } catch (err) {
+        console.error("Firebase auth error:", err);
+        return res.status(401).json({ message: "Unauthorized: Invalid or expired token" });
+    }
+};

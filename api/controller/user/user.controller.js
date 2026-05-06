@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { reqUser, reqUserRole, sequelize, Sequelize } = require('../../../models');
+const { reqUser, reqUserRole, reqUserRoleMapping, sequelize, Sequelize } = require('../../../models');
 
 exports.createUser = async (req, res, next) => {
 
@@ -18,17 +18,38 @@ exports.createUser = async (req, res, next) => {
             return res.status(400).send({ status: false, userExit: true, message: 'user already exists with given email' });
         }
 
+        let rolesArray = [];
+        if (Array.isArray(parameter.userRole)) {
+            rolesArray = [...parameter.userRole];
+        } else if (parameter.userRole) {
+            rolesArray.push(parameter.userRole);
+        }
+
+        if (Array.isArray(userMultipleRole)) {
+            rolesArray = [...rolesArray, ...userMultipleRole];
+        } else if (userMultipleRole) {
+            rolesArray.push(userMultipleRole);
+        }
+
+        const uniqueRoles = [...new Set(rolesArray)].filter(Boolean);
+        let dbRoles = [];
+        if (uniqueRoles.length > 0) {
+            dbRoles = await reqUserRole.findAll({
+                where: { roleName: { [Op.in]: uniqueRoles } }
+            });
+            const roleIds = dbRoles.map(role => role.roleId);
+            parameter.userRole = roleIds.join(',');
+        }
+
         const user = await reqUser.create(parameter);
 
-        //code commented because causing 400 error even after user is created 
-
-        // userMultipleRole = [parameter.userRole, ...userMultipleRole];
-
-        // let promise = await userMultipleRole.map(async (eachRole) => {
-        //     await userRole({ roleName: eachRole, roleUserId: user.userId, userType });
-        // });
-
-        /* await Promise.all(promise); */
+        if (dbRoles.length > 0) {
+            const roleMappingsToInsert = dbRoles.map(role => ({
+                userId: user.userId,
+                roleId: role.roleId
+            }));
+            await reqUserRoleMapping.bulkCreate(roleMappingsToInsert);
+        }
 
         const userData = await reqUser.findOne({
             attributes: {
@@ -41,7 +62,28 @@ exports.createUser = async (req, res, next) => {
                 model: reqUserRole, as: 'userRoles'
             }]
         });
-        return res.status(200).send(userData);
+
+        // 🔹 Get roles from mapping table
+        let roles = await reqUserRoleMapping.findAll({
+            where: { userId: user.userId },
+
+            include: [{
+                model: reqUserRole,
+                as: 'role',
+                required: true
+            }]
+        });
+
+        // Convert roles → ["admin","visitor"]
+        let formattedRoles = roles.map(r =>
+            r.role ? r.role.roleName : null
+        ).filter(role => role !== null);
+
+        // Convert response
+        let responseData = userData.toJSON();
+        responseData.userRole = formattedRoles;
+
+        return res.status(200).send(responseData);
 
     } catch (error) {
         next(error);
@@ -110,11 +152,41 @@ exports.UpdateUser = async (req, res, next) => {
         if (userEmail) userData.userEmail = userEmail;
         if (userDOB) userData.userDOB = userDOB;
         if (userWorkStation) userData.userWorkStation = userWorkStation;
-        if (userRole) userData.userRole = userRole;
+        
+        let roleIds = [];
+        if (userRole) {
+            let rolesArray = Array.isArray(userRole) ? userRole : (typeof userRole === 'string' ? userRole.split(',') : [userRole]);
+            let uniqueRoles = [...new Set(rolesArray)].filter(Boolean);
+
+            const isNumeric = uniqueRoles.every(role => !isNaN(role));
+            if (!isNumeric) {
+                const dbRoles = await reqUserRole.findAll({
+                    where: { roleName: { [Op.in]: uniqueRoles } }
+                });
+                roleIds = dbRoles.map(role => role.roleId);
+            } else {
+                roleIds = uniqueRoles;
+            }
+            userData.userRole = roleIds.join(',');
+        }
+
         let [user, data] = await reqUser.update(userData, {
             where: { userId: userId },
             returning: true,
         });
+
+        // Update reqUserRoleMapping
+        if (userRole) {
+            await reqUserRoleMapping.destroy({ where: { userId: userId } });
+
+            if (roleIds.length > 0) {
+                const roleMappingsToInsert = roleIds.map(roleId => ({
+                    userId: userId,
+                    roleId: roleId
+                }));
+                await reqUserRoleMapping.bulkCreate(roleMappingsToInsert);
+            }
+        }
 
         data[0].userPassword = null;
 
@@ -151,9 +223,17 @@ exports.listUsers = async (req, res, next) => {
         if (userRole && workStationMap[userRole]) {
             where.userWorkStation = workStationMap[userRole];
         }
-	    if(userRole==2){
-		    where[Op.or]=[{userRole:'manager'},{userRole:'admin'}];
-	    };
+        if (userRole == 2) {
+            where[Op.and] = [
+                ...(where[Op.and] || []),
+                {
+                    [Op.or]: [
+                        { userRole: { [Op.like]: '%2%' } },
+                        { userRole: { [Op.like]: '%1%' } }
+                    ]
+                }
+            ];
+        }
         // Apply search on both first name and last name
         if (search) {
             where[Op.or] = [
@@ -172,13 +252,33 @@ exports.listUsers = async (req, res, next) => {
             where,
             ...query
         });
+
+        // 🔹 Get all roles to map IDs back to Role Names dynamically
+        const dbRoles = await reqUserRole.findAll({
+            attributes: ['roleId', 'roleName']
+        });
+        const roleMap = {};
+        dbRoles.forEach(role => {
+            roleMap[role.roleId] = role.roleName;
+        });
+
+        const formattedUsers = users.map(user => {
+            let userData = user.toJSON();
+            // Convert userRole comma-separated string into an array of resolving roleNames
+            if (userData.userRole && typeof userData.userRole === 'string') {
+                const mappedRoles = userData.userRole.split(',').map(roleId => roleMap[roleId] || roleId);
+                userData.userRole = mappedRoles;
+            }
+            return userData;
+        });
+
         // Count total users (efficient count query)
         const totalCount = await reqUser.count({ where });
         return res.status(200).json({
             status: true,
             message: 'Data retrieved',
             userCount: totalCount,
-            users
+            users: formattedUsers
         });
     } catch (error) {
         next(error);

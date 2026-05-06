@@ -10,7 +10,12 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      // Association with reqUserRoles
+      reqUserRoleMapping.belongsTo(models.reqUserRole, {
+        foreignKey: 'roleId',      // rurm.roleId
+        targetKey: 'roleUserId',   // rur.roleUserId
+        as: 'role'
+      });
     }
   }
   reqUserRoleMapping.init({
