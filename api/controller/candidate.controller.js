@@ -1030,3 +1030,79 @@ GROUP BY
 
   return res.status(200).json({ history: data });
 });
+
+exports.submitApplication = tryCatch(async (req, res) => {
+  const { candidateFirstName, candidateLastName, candidateEmail, candidateMobileNo, candidatesAddingAgainst, candidateCoverLetter } = req.body;
+
+  // Resolve position: accept either requestId (number) or requestName (string)
+  let positionId = candidatesAddingAgainst;
+  if (isNaN(candidatesAddingAgainst)) {
+    const position = await reqServiceRequest.findOne({
+      where: { requestName: candidatesAddingAgainst },
+      attributes: ['requestId'],
+    });
+    if (!position) {
+      return res.status(400).json({ status: false, message: "Invalid position. Please select a valid job position." });
+    }
+    positionId = position.requestId;
+  }
+
+  // Get the uploaded resume file path
+  if (!req.file) {
+    return res.status(400).json({ status: false, message: "CV/Resume file is required" });
+  }
+  const candidateResume = `/uploads/resumes/${req.file.filename}`;
+
+  // Check if candidate already applied with same email for the same position
+  const existingCandidate = await reqCandidates.findOne({
+    where: {
+      candidateEmail,
+      candidatesAddingAgainst: positionId,
+      candidateStatus: "active",
+    },
+  });
+
+  if (existingCandidate) {
+    return res.status(409).json({
+      status: false,
+      message: "You have already applied for this position",
+    });
+  }
+
+  // Check if email already exists
+  const emailExists = await reqCandidates.findOne({
+    where: {
+      candidateEmail,
+      candidateStatus: "active",
+    },
+  });
+
+  if (emailExists) {
+    return res.status(409).json({
+      status: false,
+      message: "Email already exists",
+    });
+  }
+
+  // Create the candidate record
+  const candidate = await reqCandidates.create({
+    candidateFirstName,
+    candidateLastName,
+    candidateEmail,
+    candidateMobileNo,
+    candidatesAddingAgainst: positionId,
+    candidateCoverLetter,
+    candidateResume,
+  });
+
+  return res.status(201).json({
+    status: true,
+    message: "Application submitted successfully",
+    data: {
+      candidateId: candidate.candidateId,
+      name: `${candidateFirstName} ${candidateLastName}`,
+      email: candidateEmail,
+      position: positionId,
+    },
+  });
+});
