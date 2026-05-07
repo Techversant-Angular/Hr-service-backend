@@ -4,7 +4,7 @@ const fs = require('fs');
 const moment = require('moment');
 
 // Ensure the uploads/resumes directory exists
-const uploadDir = path.resolve(__dirname, '../../uploads/resumes');
+const uploadDir = path.resolve(__dirname, '../../../qa_uploads_docs');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }

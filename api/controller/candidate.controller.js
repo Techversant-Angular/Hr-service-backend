@@ -1106,3 +1106,39 @@ exports.submitApplication = tryCatch(async (req, res) => {
     },
   });
 });
+
+exports.uploadCandidateCV = tryCatch(async (req, res) => {
+  const { candidateId } = req.body;
+
+  if (!candidateId) {
+    return res.status(400).json({ status: false, message: "candidateId is required" });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ status: false, message: "Image file is required" });
+  }
+
+  const candidate = await reqCandidates.findOne({
+    where: { candidateId, candidateStatus: "active" },
+  });
+
+  if (!candidate) {
+    return res.status(404).json({ status: false, message: "Candidate not found" });
+  }
+
+  const imagePath = `/uploads/images/${req.file.filename}`;
+
+  await reqCandidates.update(
+    { candidateResume: imagePath },
+    { where: { candidateId } }
+  );
+
+  return res.status(200).json({
+    status: true,
+    message: "CV uploaded successfully",
+    data: {
+      candidateId,
+      imagePath,
+    },
+  });
+});

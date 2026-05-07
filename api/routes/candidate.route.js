@@ -34,6 +34,8 @@ router.post('/send-mail', authenticate, commonFunction.sendMail);
 
 router.get('/candidate-history', authenticate,candidateHistoryFetch, controller.candidateHistory);
 
+router.post('/upload-cv', authenticate, uploadResume.single('candidateCV'), controller.uploadCandidateCV);
+
 router.post('/submit-application', uploadResume.single('candidateResume'), submitApplicationValidate, controller.submitApplication);
 
 module.exports = router;
