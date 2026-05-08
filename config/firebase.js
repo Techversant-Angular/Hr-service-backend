@@ -4,7 +4,12 @@ const path = require("path");
 // TODO: Add your serviceAccountKey.json file to this backend folder to securely verify Firebase tokens
 try {
     // const serviceAccount = require(path.join(__dirname, "serviceAccountKey.json"));
-    const serviceAccount = require("./deployement-ca1e2-firebase-adminsdk-fbsvc-bd5ce8e28f.json");
+        const firebaseConfig = {
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        // Replace literal \n with actual newlines
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    };
 
 
     // if (!admin.apps.length) {
@@ -14,7 +19,7 @@ try {
     // }
     admin.initializeApp({
   credential:
-    admin.credential.cert(serviceAccount)
+    admin.credential.cert(firebaseConfig)
 });
 } catch (error) {
     console.warn("⚠️ Firebase Admin initialization failed. Make sure you placed your 'serviceAccountKey.json' in the same folder as this file.", error.message);
