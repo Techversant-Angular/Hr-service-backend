@@ -111,7 +111,8 @@ module.exports = (sequelize, DataTypes) => {
     candidateState: DataTypes.STRING,
     candidatePreferlocation: DataTypes.STRING,
     candidateRevlentExperience: DataTypes.STRING,
-    candidateTotalExperience: DataTypes.STRING
+    candidateTotalExperience: DataTypes.STRING,
+    candidateCoverLetter: DataTypes.TEXT
 
   }, {
     sequelize,
