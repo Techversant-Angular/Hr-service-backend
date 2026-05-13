@@ -1116,25 +1116,3 @@ exports.submitApplication = tryCatch(async (req, res) => {
     },
   });
 });
-
-exports.uploadCandidateCV = tryCatch(async (req, res) => {
-
-  if (!req.file) {
-    return res.status(400).json({ status: false, message: "Image file is required" });
-  }
-
-  const imagePath = `/uploads/images/${req.file.filename}`;
-
-  // await reqCandidates.update(
-  //   { candidateResume: imagePath },
-  //   { where: { candidateId } }
-  // );
-
-  return res.status(200).json({
-    status: true,
-    message: "CV uploaded successfully",
-    data: {
-      imagePath,
-    },
-  });
-});
