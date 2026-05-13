@@ -3,8 +3,8 @@ const path = require('path');
 const fs = require('fs');
 const moment = require('moment');
 
-// Ensure the uploads/resumes directory exists
-const uploadDir = path.resolve(__dirname, '../../../qa_uploads_docs');
+// Ensure the uploads/images directory exists
+const uploadDir = path.resolve(__dirname, '../../uploads/images');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }

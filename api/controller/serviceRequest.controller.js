@@ -458,3 +458,49 @@ exports.requestActive = tryCatch(async (req, res) => {
   });
 });
 
+exports.activeServicesList = tryCatch(async (req, res) => {
+  let search = req.query.search;
+  const toDate = new Date();
+  const fromDate = new Date();
+  fromDate.setMonth(fromDate.getMonth() - 3);
+  let where = {
+    requestStatus: {
+        [Op.in]: ["active"]
+    },
+    requestDate: {
+        [Op.between]: [fromDate, toDate],
+      },
+};
+  if (search)
+    where = {
+      [Op.or]: [
+        { requestName: { [Op.iLike]: `${search}%` } },
+        // { requestCode: { [Op.iLike]: `${search}%` } },
+      ],
+    };
+  let services = await reqServiceRequest.findAll({
+    where,
+    include: [{ model: reqTeam, as: "team" }],
+    raw: true,
+    order: [["requestId", "DESC"]],
+  });
+  if (services.length > 0) {
+    services = services.map((service) => ({
+      ...service,
+      requestSalaryType:
+        service.requestSalaryType === 1
+          ? "month"
+          : service.requestSalaryType === 2
+          ? "year"
+          : service.requestSalaryType,
+    }));
+    return res.status(200).json({
+      status: true,
+      message: "Service Request Retrived",
+      data: services,
+    });
+  }
+  return res
+    .status(401)
+    .json({ result: false, message: "data not found", data: services });
+});

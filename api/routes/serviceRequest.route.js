@@ -22,6 +22,8 @@ router.get('/exp-year/list', authenticate, controller.yearList);
 
 router.get('/team', authenticate, commonController.teamList);
 
+router.get('/active/list', controller.activeServicesList);
+
 router.get('/services', authenticate, controller.servicesList);
 
 router.get('/designation/list', authenticate, commonController.designationList);

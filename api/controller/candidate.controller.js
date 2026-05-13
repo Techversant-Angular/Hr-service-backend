@@ -1,3 +1,4 @@
+const fs = require('fs');
 let {
   reqCandidates, reqCandidateResumeSource, reqUser,
   reqCandidateSkill, sequelize, Sequelize,
@@ -1032,16 +1033,19 @@ GROUP BY
 });
 
 exports.submitApplication = tryCatch(async (req, res) => {
-  const { candidateFirstName, candidateLastName, candidateEmail, candidateMobileNo, candidatesAddingAgainst, candidateCoverLetter } = req.body;
+  const { candidateFirstName, candidateLastName, candidateEmail, candidateMobileNo, appliedPosition, candidateCoverLetter } = req.body;
 
   // Resolve position: accept either requestId (number) or requestName (string)
-  let positionId = candidatesAddingAgainst;
-  if (isNaN(candidatesAddingAgainst)) {
+  let positionId = appliedPosition;
+  if (isNaN(appliedPosition)) {
     const position = await reqServiceRequest.findOne({
-      where: { requestName: candidatesAddingAgainst },
+      where: { requestName: appliedPosition },
       attributes: ['requestId'],
     });
     if (!position) {
+      if (req.file) {
+        fs.unlinkSync(req.file.path);
+      }
       return res.status(400).json({ status: false, message: "Invalid position. Please select a valid job position." });
     }
     positionId = position.requestId;
@@ -1051,7 +1055,7 @@ exports.submitApplication = tryCatch(async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ status: false, message: "CV/Resume file is required" });
   }
-  const candidateResume = `/uploads/resumes/${req.file.filename}`;
+  const candidateResume = `/uploads/images/${req.file.filename}`;
 
   // Check if candidate already applied with same email for the same position
   const existingCandidate = await reqCandidates.findOne({
@@ -1063,6 +1067,9 @@ exports.submitApplication = tryCatch(async (req, res) => {
   });
 
   if (existingCandidate) {
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
     return res.status(409).json({
       status: false,
       message: "You have already applied for this position",
@@ -1078,6 +1085,9 @@ exports.submitApplication = tryCatch(async (req, res) => {
   });
 
   if (emailExists) {
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
     return res.status(409).json({
       status: false,
       message: "Email already exists",
@@ -1108,36 +1118,22 @@ exports.submitApplication = tryCatch(async (req, res) => {
 });
 
 exports.uploadCandidateCV = tryCatch(async (req, res) => {
-  const { candidateId } = req.body;
-
-  if (!candidateId) {
-    return res.status(400).json({ status: false, message: "candidateId is required" });
-  }
 
   if (!req.file) {
     return res.status(400).json({ status: false, message: "Image file is required" });
   }
 
-  const candidate = await reqCandidates.findOne({
-    where: { candidateId, candidateStatus: "active" },
-  });
-
-  if (!candidate) {
-    return res.status(404).json({ status: false, message: "Candidate not found" });
-  }
-
   const imagePath = `/uploads/images/${req.file.filename}`;
 
-  await reqCandidates.update(
-    { candidateResume: imagePath },
-    { where: { candidateId } }
-  );
+  // await reqCandidates.update(
+  //   { candidateResume: imagePath },
+  //   { where: { candidateId } }
+  // );
 
   return res.status(200).json({
     status: true,
     message: "CV uploaded successfully",
     data: {
-      candidateId,
       imagePath,
     },
   });
