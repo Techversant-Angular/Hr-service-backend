@@ -186,7 +186,7 @@ exports.googleLogin = async (req, res) => {
         if (user && user.userStatus !== 'active') {
             return res.status(403).json({
                 result: false,
-                message: "Unauthorized: Your account is inactive. Please contact administrator."
+                message: "No account is associated with this Google email address."
             });
         }
 

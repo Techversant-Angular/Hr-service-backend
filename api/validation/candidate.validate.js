@@ -82,7 +82,7 @@ exports.submitApplicationValidate = [
     body('candidateLastName').notEmpty().withMessage('Last Name is required').isString().withMessage('Last Name must be a string'),
     body('candidateEmail').notEmpty().withMessage('Email is required').isEmail().withMessage('Invalid email address'),
     body('candidateMobileNo').notEmpty().withMessage('Phone number is required').isMobilePhone().withMessage('Invalid phone number'),
-    body('candidatesAddingAgainst').notEmpty().withMessage('Please select a job position'),
+    body('appliedPosition').notEmpty().withMessage('Please select a job position'),
     body('candidateCoverLetter').notEmpty().withMessage('Cover letter is required').isLength({ min: 50 }).withMessage('Cover letter must be at least 50 characters'),
     (req, res, next) => {
         const errors = validationResult(req);

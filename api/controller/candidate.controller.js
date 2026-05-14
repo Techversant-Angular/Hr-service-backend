@@ -1,3 +1,4 @@
+const fs = require('fs');
 let {
   reqCandidates, reqCandidateResumeSource, reqUser,
   reqCandidateSkill, sequelize, Sequelize,
@@ -7,7 +8,7 @@ let {
 const moment = require("moment");
 const { Op, where } = require("sequelize");
 let { excelGenerator } = require("../utils/excelGenerator");
-let { logFunction, profileSourceReport } = require("../utils/commonFunction");
+let { logFunction, profileSourceReport, reqcuriterReport } = require("../utils/commonFunction");
 let jsonData = require("../utils/userRignts.json");
 const { tryCatch } = require("../utils/trycatch");
 
@@ -139,16 +140,17 @@ exports.listCandidates = tryCatch(async (req, res) => {
     where.candidateId = { [Op.in]: ids };
   }
   if (search) {
+    const searchLower = search.toLowerCase();
     where[Op.or] = [
-      { candidateFirstName: { [Op.iLike]: `${search}%` } },
-      { candidateLastName: { [Op.iLike]: `${search}%` } },
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateFirstName')), { [Op.like]: `%${searchLower}%` }),
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateLastName')), { [Op.like]: `%${searchLower}%` }),
       Sequelize.where(
-        Sequelize.fn("concat", Sequelize.col("candidateFirstName"), " ", Sequelize.col("candidateLastName")),
-        { [Op.iLike]: `${search}%` }
+        Sequelize.fn('LOWER', Sequelize.fn("concat", Sequelize.col("candidateFirstName"), " ", Sequelize.col("candidateLastName"))),
+        { [Op.like]: `%${searchLower}%` }
       ),
-      { candidateEmail: { [Op.iLike]: `${search}%` } },
-      { candidateMobileNo: { [Op.iLike]: `${search}%` } },
-      { candidatePreviousOrg: { [Op.iLike]: `${search}%` } },
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateEmail')), { [Op.like]: `%${searchLower}%` }),
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateMobileNo')), { [Op.like]: `%${searchLower}%` }),
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidatePreviousOrg')), { [Op.like]: `%${searchLower}%` }),
     ];
   }
   let recuriterCondition = { where: {} };
@@ -205,7 +207,7 @@ exports.listCandidates = tryCatch(async (req, res) => {
       offset: offset
     }),
     distinct: true,
-    order: [[Sequelize.literal('"candidatesAddingAgainst" IS NULL'), 'DESC'], ["candidateId", "DESC"]],
+    order: [["candidateId", "DESC"]],
   });
 
   if (report == "true" && candidates) {
@@ -689,16 +691,17 @@ exports.candiateMailList = tryCatch(async (req, res, next) => {
   let search = req.query.search ? decodeURIComponent(req.query.search) : req.query.search;
   let where = { candidateStatus: "active" };
   if (search) {
+    const searchLower = search.toLowerCase();
     where[Op.or] = [
-      { candidateFirstName: { [Op.iLike]: `${search}%` } },
-      { candidateLastName: { [Op.iLike]: `${search}%` } },
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateFirstName')), { [Op.like]: `%${searchLower}%` }),
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateLastName')), { [Op.like]: `%${searchLower}%` }),
       Sequelize.where(
-        Sequelize.fn("concat", Sequelize.col("candidateFirstName"), " ", Sequelize.col("candidateLastName")),
-        { [Op.iLike]: `${search}%` }
+        Sequelize.fn('LOWER', Sequelize.fn("concat", Sequelize.col("candidateFirstName"), " ", Sequelize.col("candidateLastName"))),
+        { [Op.like]: `%${searchLower}%` }
       ),
-      { candidateEmail: { [Op.iLike]: `${search}%` } },
-      { candidateMobileNo: { [Op.iLike]: `${search}%` } },
-      { candidatePreviousOrg: { [Op.iLike]: `${search}%` } },
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateEmail')), { [Op.like]: `%${searchLower}%` }),
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateMobileNo')), { [Op.like]: `%${searchLower}%` }),
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidatePreviousOrg')), { [Op.like]: `%${searchLower}%` }),
     ];
   }
 
@@ -1032,16 +1035,19 @@ GROUP BY
 });
 
 exports.submitApplication = tryCatch(async (req, res) => {
-  const { candidateFirstName, candidateLastName, candidateEmail, candidateMobileNo, candidatesAddingAgainst, candidateCoverLetter } = req.body;
+  const { candidateFirstName, candidateLastName, candidateEmail, candidateMobileNo, appliedPosition, candidateCoverLetter } = req.body;
 
   // Resolve position: accept either requestId (number) or requestName (string)
-  let positionId = candidatesAddingAgainst;
-  if (isNaN(candidatesAddingAgainst)) {
+  let positionId = appliedPosition;
+  if (isNaN(appliedPosition)) {
     const position = await reqServiceRequest.findOne({
-      where: { requestName: candidatesAddingAgainst },
+      where: { requestName: appliedPosition },
       attributes: ['requestId'],
     });
     if (!position) {
+      if (req.file) {
+        fs.unlinkSync(req.file.path);
+      }
       return res.status(400).json({ status: false, message: "Invalid position. Please select a valid job position." });
     }
     positionId = position.requestId;
@@ -1051,7 +1057,7 @@ exports.submitApplication = tryCatch(async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ status: false, message: "CV/Resume file is required" });
   }
-  const candidateResume = `/uploads/resumes/${req.file.filename}`;
+  const candidateResume = `/uploads/images/${req.file.filename}`;
 
   // Check if candidate already applied with same email for the same position
   const existingCandidate = await reqCandidates.findOne({
@@ -1063,6 +1069,9 @@ exports.submitApplication = tryCatch(async (req, res) => {
   });
 
   if (existingCandidate) {
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
     return res.status(409).json({
       status: false,
       message: "You have already applied for this position",
@@ -1078,6 +1087,9 @@ exports.submitApplication = tryCatch(async (req, res) => {
   });
 
   if (emailExists) {
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
     return res.status(409).json({
       status: false,
       message: "Email already exists",
@@ -1093,7 +1105,44 @@ exports.submitApplication = tryCatch(async (req, res) => {
     candidatesAddingAgainst: positionId,
     candidateCoverLetter,
     candidateResume,
+    candidateStatus: "active",
+    candidateInterviewStatus: "inprogress"
   });
+
+  const candidateId = candidate.candidateId;
+  const today = moment().format("YYYY-MM-DD");
+
+  // Add to candidate requestion table for visibility in list API
+  await reqCandidateRequestion.create({
+    candidateId: candidateId,
+    serviceRequest: positionId,
+    interviewStatus: "inprogress"
+  });
+
+  // Create the sequence entry for station 1 (Screening)
+  const sequenceData = {
+    serviceCandidate: candidateId,
+    serviceServiceRequst: positionId,
+    serviceStatus: "pending",
+    insertOrUpdateDate: today,
+    serviceScheduledBy: null // Since it's a website application
+  };
+  await reqServiceSequence.create(sequenceData);
+
+  const sourcedString = "Candidate Applied via Website";
+  // Log the application
+  logFunction(candidateId, null, sourcedString, 1, positionId);
+
+  // Update reports
+  await profileSourceReport(null, positionId, [4], today);
+
+  reqcuriterReport(
+    positionId,
+    today,
+    null,
+    "totalSourced",
+    1
+  );
 
   return res.status(201).json({
     status: true,
@@ -1103,42 +1152,6 @@ exports.submitApplication = tryCatch(async (req, res) => {
       name: `${candidateFirstName} ${candidateLastName}`,
       email: candidateEmail,
       position: positionId,
-    },
-  });
-});
-
-exports.uploadCandidateCV = tryCatch(async (req, res) => {
-  const { candidateId } = req.body;
-
-  if (!candidateId) {
-    return res.status(400).json({ status: false, message: "candidateId is required" });
-  }
-
-  if (!req.file) {
-    return res.status(400).json({ status: false, message: "Image file is required" });
-  }
-
-  const candidate = await reqCandidates.findOne({
-    where: { candidateId, candidateStatus: "active" },
-  });
-
-  if (!candidate) {
-    return res.status(404).json({ status: false, message: "Candidate not found" });
-  }
-
-  const imagePath = `/uploads/images/${req.file.filename}`;
-
-  await reqCandidates.update(
-    { candidateResume: imagePath },
-    { where: { candidateId } }
-  );
-
-  return res.status(200).json({
-    status: true,
-    message: "CV uploaded successfully",
-    data: {
-      candidateId,
-      imagePath,
     },
   });
 });
