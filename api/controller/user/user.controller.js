@@ -168,6 +168,8 @@ exports.UpdateUser = async (req, res, next) => {
                 roleIds = uniqueRoles;
             }
             userData.userRole = roleIds.join(',');
+            userData.userType = (userRole == 'admin' || uniqueRoles.includes('admin')) ? 'admin' : 'user';
+
         }
 
         let [user, data] = await reqUser.update(userData, {
