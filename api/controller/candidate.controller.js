@@ -8,7 +8,7 @@ let {
 const moment = require("moment");
 const { Op, where } = require("sequelize");
 let { excelGenerator } = require("../utils/excelGenerator");
-let { logFunction, profileSourceReport } = require("../utils/commonFunction");
+let { logFunction, profileSourceReport, reqcuriterReport } = require("../utils/commonFunction");
 let jsonData = require("../utils/userRignts.json");
 const { tryCatch } = require("../utils/trycatch");
 
@@ -1103,7 +1103,44 @@ exports.submitApplication = tryCatch(async (req, res) => {
     candidatesAddingAgainst: positionId,
     candidateCoverLetter,
     candidateResume,
+    candidateStatus: "active",
+    candidateInterviewStatus: "inprogress"
   });
+
+  const candidateId = candidate.candidateId;
+  const today = moment().format("YYYY-MM-DD");
+
+  // Add to candidate requestion table for visibility in list API
+  await reqCandidateRequestion.create({
+    candidateId: candidateId,
+    serviceRequest: positionId,
+    interviewStatus: "inprogress"
+  });
+
+  // Create the sequence entry for station 1 (Screening)
+  const sequenceData = {
+    serviceCandidate: candidateId,
+    serviceServiceRequst: positionId,
+    serviceStatus: "pending",
+    insertOrUpdateDate: today,
+    serviceScheduledBy: null // Since it's a website application
+  };
+  await reqServiceSequence.create(sequenceData);
+
+  const sourcedString = "Candidate Applied via Website";
+  // Log the application
+  logFunction(candidateId, null, sourcedString, 1, positionId);
+
+  // Update reports
+  await profileSourceReport(null, positionId, [4], today);
+
+  reqcuriterReport(
+    positionId,
+    today,
+    null,
+    "totalSourced",
+    1
+  );
 
   return res.status(201).json({
     status: true,
