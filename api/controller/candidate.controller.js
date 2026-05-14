@@ -206,7 +206,7 @@ exports.listCandidates = tryCatch(async (req, res) => {
       offset: offset
     }),
     distinct: true,
-    order: [[Sequelize.literal('"candidatesAddingAgainst" IS NULL'), 'DESC'], ["candidateId", "DESC"]],
+    order: [["candidateId", "DESC"]],
   });
 
   if (report == "true" && candidates) {
