@@ -140,16 +140,17 @@ exports.listCandidates = tryCatch(async (req, res) => {
     where.candidateId = { [Op.in]: ids };
   }
   if (search) {
+    const searchLower = search.toLowerCase();
     where[Op.or] = [
-      { candidateFirstName: { [Op.iLike]: `${search}%` } },
-      { candidateLastName: { [Op.iLike]: `${search}%` } },
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateFirstName')), { [Op.like]: `%${searchLower}%` }),
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateLastName')), { [Op.like]: `%${searchLower}%` }),
       Sequelize.where(
-        Sequelize.fn("concat", Sequelize.col("candidateFirstName"), " ", Sequelize.col("candidateLastName")),
-        { [Op.iLike]: `${search}%` }
+        Sequelize.fn('LOWER', Sequelize.fn("concat", Sequelize.col("candidateFirstName"), " ", Sequelize.col("candidateLastName"))),
+        { [Op.like]: `%${searchLower}%` }
       ),
-      { candidateEmail: { [Op.iLike]: `${search}%` } },
-      { candidateMobileNo: { [Op.iLike]: `${search}%` } },
-      { candidatePreviousOrg: { [Op.iLike]: `${search}%` } },
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateEmail')), { [Op.like]: `%${searchLower}%` }),
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateMobileNo')), { [Op.like]: `%${searchLower}%` }),
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidatePreviousOrg')), { [Op.like]: `%${searchLower}%` }),
     ];
   }
   let recuriterCondition = { where: {} };
@@ -690,16 +691,17 @@ exports.candiateMailList = tryCatch(async (req, res, next) => {
   let search = req.query.search ? decodeURIComponent(req.query.search) : req.query.search;
   let where = { candidateStatus: "active" };
   if (search) {
+    const searchLower = search.toLowerCase();
     where[Op.or] = [
-      { candidateFirstName: { [Op.iLike]: `${search}%` } },
-      { candidateLastName: { [Op.iLike]: `${search}%` } },
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateFirstName')), { [Op.like]: `%${searchLower}%` }),
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateLastName')), { [Op.like]: `%${searchLower}%` }),
       Sequelize.where(
-        Sequelize.fn("concat", Sequelize.col("candidateFirstName"), " ", Sequelize.col("candidateLastName")),
-        { [Op.iLike]: `${search}%` }
+        Sequelize.fn('LOWER', Sequelize.fn("concat", Sequelize.col("candidateFirstName"), " ", Sequelize.col("candidateLastName"))),
+        { [Op.like]: `%${searchLower}%` }
       ),
-      { candidateEmail: { [Op.iLike]: `${search}%` } },
-      { candidateMobileNo: { [Op.iLike]: `${search}%` } },
-      { candidatePreviousOrg: { [Op.iLike]: `${search}%` } },
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateEmail')), { [Op.like]: `%${searchLower}%` }),
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateMobileNo')), { [Op.like]: `%${searchLower}%` }),
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidatePreviousOrg')), { [Op.like]: `%${searchLower}%` }),
     ];
   }
 
