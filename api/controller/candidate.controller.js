@@ -1095,6 +1095,22 @@ exports.submitApplication = tryCatch(async (req, res) => {
       message: "Email already exists",
     });
   }
+    const phNumberExists = await reqCandidates.findOne({
+    where: {
+      candidateMobileNo,
+      candidateStatus: "active",
+    },
+  });
+
+  if (phNumberExists) {
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
+    return res.status(409).json({
+      status: false,
+      message: "Phone number already exists",
+    });
+  }
 
   // Create the candidate record
   const candidate = await reqCandidates.create({
