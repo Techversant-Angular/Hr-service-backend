@@ -837,6 +837,7 @@ exports.deleteSkill = tryCatch(async (req, res, next) => {
 exports.candidateHistory = tryCatch(async (req, res) => {
 
   let email = req.query.email;
+  let userRole = req.userRole
 
   let query = `
 SELECT  
@@ -995,7 +996,7 @@ GROUP BY
     FEEDBACK DETAILS
     */
 
-    if (req.userRole !== "panel" && req.userRole !== "manager") {
+    if (req.userRole !== 4 && req.userRole !== 2) {
       let [feedbackDetail] = await sequelize.query(
         `
         SELECT
@@ -1026,6 +1027,11 @@ GROUP BY
       data[i].feedbackDetail = feedbackDetail.map((el) => {
         el.station = !el.station ? "screening" : el.station;
         return el;
+      }).filter((el) => {
+        if ([3, 4, 8].includes(Number(userRole)) && el.station === "HR Manager") {
+          return false;
+        }
+        return true;
       });
     } else {
       data[i].feedbackDetail = [];
