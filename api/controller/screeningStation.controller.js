@@ -131,7 +131,7 @@ exports.groupListsv1 = tryCatch(async (req, res) => {
       "requestName" ILIKE :search OR 
       "requestCode" ILIKE :search
     )`);
-    replacements.search = `%${search}%`;
+    replacements.search = `%${search.trim().replace(/\s+/g, "%")}%`;
   }
 
   const orderBy = date === "false"

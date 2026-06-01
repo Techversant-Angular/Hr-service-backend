@@ -712,6 +712,7 @@ exports.candiateMailList = tryCatch(async (req, res, next) => {
       "candidateLastName",
       "candidateEmail",
       "candidateMobileNo",
+      "candidatePreviousOrg",
     ],
     where,
   });
