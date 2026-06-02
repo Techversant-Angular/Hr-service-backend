@@ -5,10 +5,14 @@ const jwt = require("jsonwebtoken");
 let secret = 'xxx';
 
 // Generate short-lived access token
+// exports.jwtToken = async (userObj) => {
+//     const token = jwt.sign(userObj, dotenv.TOKEN_SECRET, {
+//         expiresIn: dotenv.TOKEN_EXPIRY || '1h'
+//     });
+//     return token;
+// }
 exports.jwtToken = async (userObj) => {
-    const token = jwt.sign(userObj, dotenv.TOKEN_SECRET, {
-        expiresIn: dotenv.TOKEN_EXPIRY || '1h'
-    });
+    const token = jwt.sign(userObj, dotenv.TOKEN_SECRET);
     return token;
 }
 
