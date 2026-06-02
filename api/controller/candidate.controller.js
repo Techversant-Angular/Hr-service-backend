@@ -1027,14 +1027,7 @@ GROUP BY
       data[i].feedbackDetail = feedbackDetail.map((el) => {
         el.station = !el.station ? "screening" : el.station;
         return el;
-      }).filter((el) => {
-        if ([3, 4, 8].includes(Number(userRole)) && el.station === "HR Manager") {
-          return false;
-        }
-        return true;
-      });
-    } else {
-      data[i].feedbackDetail = [];
+      })
     }
   }
 
