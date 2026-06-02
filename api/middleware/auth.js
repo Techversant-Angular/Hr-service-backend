@@ -35,6 +35,12 @@ exports.authenticate = async (req, res, next) => {
         req.userRole = user.userRole;
         next();
     } catch (error) {
+        if (error.code === 'TOKEN_EXPIRED') {
+            return res.status(401).json({ result: false, message: error.message, code: 'TOKEN_EXPIRED' });
+        }
+        if (error.code === 'INVALID_TOKEN') {
+            return res.status(403).json({ result: false, message: error.message, code: 'INVALID_TOKEN' });
+        }
         next(error);
     }
 };
@@ -53,6 +59,12 @@ exports.verifyAdmin = async (req, res, next) => {
         if (existToken.userType !== 'admin') return res.status(403).send({ result: false, message: 'Not an Admin' });
         next();
     } catch (error) {
+        if (error.code === 'TOKEN_EXPIRED') {
+            return res.status(401).json({ result: false, message: error.message, code: 'TOKEN_EXPIRED' });
+        }
+        if (error.code === 'INVALID_TOKEN') {
+            return res.status(403).json({ result: false, message: error.message, code: 'INVALID_TOKEN' });
+        }
         return next(error)
     }
 }
@@ -70,6 +82,9 @@ exports.verifyTalentTeam = async (req, res, next) => {
         if (existToken.userType !== 'talent') return res.status(403).send({ result: false, message: 'You Are Not From Talent Team, Only Talent Team can have rights to approve to Next Station' });
         return res.status(403).send({ result: false, message: 'You Are Not From Talent Team, Only Talent Team can have rights to approve to Next Station' });
     } catch (error) {
+        if (error.code === 'TOKEN_EXPIRED') {
+            return res.status(401).json({ result: false, message: error.message, code: 'TOKEN_EXPIRED' });
+        }
         return next(error)
     }
 }
