@@ -51,7 +51,7 @@ exports.reportDailyReport = tryCatch(async (req, res) => {
     include,
     where,
     attributes: [['positionHc', 'Vacancy'], [sequelize.fn('SUM', sequelize.col('naukriResume')), 'Naukri Resume'], [sequelize.fn('SUM', sequelize.col('linkedinResume')), 'Linkedin Resume'],
-    [sequelize.fn('SUM', sequelize.col('sourcedScreened')), 'Sourced Screened'], [sequelize.fn('SUM', sequelize.col('candidateContacted')), 'Candidate Contacted'], [sequelize.fn('SUM', sequelize.col('candidatesIntrested')), 'Candidates Intrested'],
+    [sequelize.fn('SUM', sequelize.col('sourcedScreened')), 'Sourced Screened'], [sequelize.fn('SUM', sequelize.col('candidateContacted')), 'Candidate Contacted'], [sequelize.fn('SUM', sequelize.col('candidatesIntrested')), 'Candidates Interested'],
     [sequelize.fn('SUM', sequelize.col('interviewScheduled')), 'Interview Scheduled'], [sequelize.fn('SUM', sequelize.col('offerReleased')), 'Offer Released'], [sequelize.fn('SUM', sequelize.col('interviewConducted')), 'Interview Conducted'],
     ['date', 'Date']], group: ['Vacancy', 'Date', "recruiterName.userfirstName", "recruiterName.userlastName", "recruiterName.userId", "positionName.requestName", "reqReport.id"],
     order: [["id", "DESC"]],

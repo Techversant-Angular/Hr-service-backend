@@ -1351,18 +1351,12 @@ exports.candidatesPrgressList = tryCatch(async (req, res) => {
         ],
         [
           sequelize.literal(`(SELECT "stationName"
-                    FROM "reqServiceSequencesAcitves" AS "sequence" INNER JOIN "reqStations" ON "stationId"="serviceStation" WHERE "sequence"."serviceCandidate"="reqServiceSequencesAcitve"."serviceCandidate" AND "sequence"."serviceServiceRequst"="reqServiceSequencesAcitve"."serviceServiceRequst" ORDER BY "serviceId" DESC LIMIT 1)`),
+                    FROM "reqServiceSequencesAcitves" AS "sequence" INNER JOIN "reqStations" ON "stationId"="serviceStation" WHERE "sequence"."serviceCandidate"="reqServiceSequencesAcitve"."serviceCandidate" ORDER BY "serviceId" DESC LIMIT 1)`),
           "currentStation",
         ],
         [
-          sequelize.literal(`(
-      SELECT "stationName" AS "stationNam"
-      FROM "reqStations"
-      INNER JOIN "reqServiceSequencesAcitves" seq
-        ON seq."serviceStation" = "reqStations"."stationId"
-      WHERE seq."serviceId" = "reqServiceSequencesAcitve"."serviceId"
-      LIMIT 1
-  )`),
+          sequelize.literal(`(SELECT "stationName" AS "name"
+                    FROM "reqStations" INNER JOIN "reqServiceSequencesAcitves" ON "stationId"="serviceStation" WHERE "reqServiceSequencesAcitve"."serviceId"="serviceId" LIMIT 1)`),
           "stationNam",
         ],
         [
