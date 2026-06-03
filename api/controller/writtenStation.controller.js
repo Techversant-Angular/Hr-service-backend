@@ -355,6 +355,7 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
     progressSkill,
     progressScore,
     progressDescription,
+    commentId,
     file,
   } = req.body;
 
@@ -475,6 +476,7 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
       {
         where: {
           commentSeqenceId: progressServiceId,
+          commentId
         },
       }
     );
