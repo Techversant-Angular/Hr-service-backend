@@ -249,7 +249,10 @@ exports.fetchFinalCandidte = tryCatch(async (req, res) => {
   //here we have to add last station review also----------------------------------
 
   if (candidates) {
-    let candidateComments = await reqCandidateComments.findOne({ where: { offerReleaseReject: 1, commentSeqenceId: serviceId } });
+    let candidateComments = await reqCandidateComments.findOne({
+      where: { commentSeqenceId: serviceId },
+      order: [['commentId', 'DESC']]
+    });
     const [skills] = await sequelize.query(
       `SELECT * FROM "reqCandidateSkills"
        INNER JOIN "reqSkills" ON "candidateSkillId"="reqSkills"."id"
