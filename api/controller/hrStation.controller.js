@@ -458,6 +458,7 @@ exports.addProgress = tryCatch(async (req, res) => {
     progressServiceId,
     progressScore,
     progressDescription,
+    progressComment,
     file,
   } = req.body;
   if (!progressAssignee)
@@ -509,7 +510,7 @@ exports.addProgress = tryCatch(async (req, res) => {
 
   await reqCandidateComments.create({
     commentSeqenceId: progressServiceId,
-    commentComment: progressDescription,
+    commentComment: progressComment,
     commentUserId: progressAssignee,
   });
   if (created) {
