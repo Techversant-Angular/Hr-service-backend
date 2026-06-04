@@ -610,6 +610,9 @@ exports.progressDetail = tryCatch(async (req, res) => {
       }
     ],
     where: { serviceStation: 5, serviceId },
+    order: [
+      [reqCandidateComments, 'commentId', 'DESC']
+    ],
     raw: true
   });
 

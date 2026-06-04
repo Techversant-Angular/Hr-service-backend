@@ -394,6 +394,9 @@ exports.progressDetail = async (req, res) => {
           required: true,
         },
       ],
+      order: [
+        [reqCandidateComments, 'commentId', 'DESC']
+      ],
       raw: true,
       where: { serviceStation: 6, serviceId },
     });
