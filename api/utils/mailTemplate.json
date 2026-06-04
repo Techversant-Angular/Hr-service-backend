@@ -1,0 +1,23 @@
+{
+    "rejection":{
+
+        "message":"Thank you for taking the time to meet with us to discuss your interest in the Flutter Position at Techversant Infotech. We'd like to let you know that this is a very competitive position and, after careful consideration, our hiring team has decided not to select your application for further consideration.\n\nWe enjoyed meeting you and will keep your resume on file if any opportunities come up that are a better match for your experience and skills.\n\nWe apologize for the late response and wish you all the best in your job search."
+    },
+
+    "offer":{
+
+        "message":"Congratulations! We were all very excited to meet and get to know you over the past few days. We have been impressed with your background and we are pleased to formally offer you the position of Associate Software Engineer Trainee. This is a \"Trainee\" position with the company.\n\nWe offer you a stipend of INR xxxxx/-\nYour expected start date is on 08 May 2024.\n\nWe would like to have your response on or before 01 May 2024, 4 PM. You are also requested to share the documents as per Annexure 1 for verification before 02 May 2024, 4 PM.\n\nIn the meantime, please feel free to contact me via email or phone, should you have any questions.\n\nWe all look forward to have you in our team."
+    },
+    "approve":{
+
+        "message":"Congratulations! We were all very excited to meet and get to know you over the past few days. We have been impressed with your Previous Interview\n\nWe have conducted Next round Interview on 13 May, 2023. We would like to have your response on or before 01 May 2024, 4 PM. Y\n\nIn the meantime, please feel free to contact me via email or phone, should you have any questions.\n\nWe all look forward to have you in our team."
+    },
+    "screening":{
+
+        "message":"Greetings from Techversant ! As a result of your application for the position ' Software Engineer - Odoo', I would like to invite you to attend the First round of  interview on 11th June, 2024 at 03.00 PM. You are requested to join the online google meet link at the specified time. You will have a discussion with  Mr. Mohammed Ajmal.\n\nIf the date or time of the interview is inconvenient, please contact me by phone or email (parvathy.m@technversantinfo.com) in order to arrange another appointment.\n\nWe look forward to hear from you,\n\nFor more details visit : https://www.techversantinfotech.com"
+    },
+    "re-schedule":{
+
+        "message":"I hope this message finds you well.I am writing to inform you that the [meeting/appointment/event] scheduled for [original date and time] needs to be rescheduled due to [reason for rescheduling, if appropriate]. I apologize for any inconvenience this may cause.\n\nThe new date and time for the [meeting/appointment/event] is [new date and time]. Please confirm your availability for the rescheduled [meeting/appointment/event]. If this new time does not work for you, kindly let me know your availability so that we can find a suitable alternative.\n\nThank you for your understanding and flexibility."
+    }
+}
