@@ -136,7 +136,7 @@ module.exports = (sequelize, DataTypes) => {
   reqUser.prototype.validatePassword = async function (password) {
     const valid = await bcrypt.compare(password, this.userPassword);
     if (valid) {
-      return valid;
+      return true;
     } else {
       return false;
     }
