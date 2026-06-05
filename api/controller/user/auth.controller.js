@@ -186,7 +186,10 @@ exports.googleLogin = async (req, res) => {
         }
 
         // Check database for the user using Sequelize
-        let user = await reqUser.findOne({ where: { userEmail: email } });
+        let user = await reqUser.findOne({
+            where: { userEmail: email },
+            order: [['createdAt', 'DESC']]
+        });
 
         if (user && user.userStatus !== 'active') {
             return res.status(403).json({
