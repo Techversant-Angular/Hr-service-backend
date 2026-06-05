@@ -1035,7 +1035,7 @@ GROUP BY
 });
 
 exports.submitApplication = tryCatch(async (req, res) => {
-  const { candidateFirstName, candidateLastName, candidateEmail, candidateMobileNo, appliedPosition, candidateCoverLetter } = req.body;
+  const { candidateFirstName, candidateLastName, candidateEmail, candidateMobileNo, appliedPosition } = req.body;
 
   // Resolve position: accept either requestId (number) or requestName (string)
   let positionId = appliedPosition;
@@ -1119,7 +1119,7 @@ exports.submitApplication = tryCatch(async (req, res) => {
     candidateEmail,
     candidateMobileNo,
     candidatesAddingAgainst: positionId,
-    candidateCoverLetter,
+    // candidateCoverLetter,
     candidateResume,
     candidateStatus: "active",
     candidateInterviewStatus: "inprogress"
