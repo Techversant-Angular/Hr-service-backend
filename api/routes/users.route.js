@@ -14,7 +14,7 @@ router.post("/forgotPassword", authController.forgotPassword);
 
 router.post("/resetPassword", authController.resetPassword);
 
-router.post('/refresh-token', authController.refreshToken);
+// router.post('/refresh-token', authController.refreshToken);
 
 router.post('/create', authenticate, verifyAdmin, controller.createUser);
 

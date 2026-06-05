@@ -1,5 +1,5 @@
-let { reqUser, reqAccessToken, Sequelize, reqUserRoleMapping, reqUserRole } = require('../../../models');
-let { jwtToken, jwtRefreshToken, jwtVerifyRefreshToken } = require('../../utils/jwt');
+let { reqUser, Sequelize, reqUserRoleMapping, reqUserRole } = require('../../../models');
+let { jwtToken } = require('../../utils/jwt');
 const bcrypt = require('bcryptjs');
 let { jwtDecode } = require('jwt-decode');
 let mailFunction = require("../../utils/nodeMail");
@@ -56,17 +56,16 @@ exports.login = async (req, res, next) => {
         };
 
         let token = await jwtToken(userData);
-        let refreshToken = await jwtRefreshToken(userData);
+        // let refreshToken = await jwtRefreshToken(userData);
 
         // Store refresh token in database
-        await reqAccessToken.create({ accessToken: refreshToken });
+        // await reqAccessToken.create({ accessToken: refreshToken });
 
         let responseUser = user.toJSON();
         responseUser.userRole = formattedRoles;
 
         return res.status(200).json({
             token,
-            refreshToken,
             user: responseUser,
         });
 
@@ -234,10 +233,10 @@ exports.googleLogin = async (req, res) => {
         };
 
         let token = await jwtToken(userData);
-        let refreshToken = await jwtRefreshToken(userData);
+        // let refreshToken = await jwtRefreshToken(userData);
 
         // Store refresh token in database
-        await reqAccessToken.create({ accessToken: refreshToken });
+        // await reqAccessToken.create({ accessToken: refreshToken });
 
         const responseUser = user.toJSON();
         responseUser.userRole = formattedRoles;
@@ -245,7 +244,7 @@ exports.googleLogin = async (req, res) => {
             result: true,
             message: "Google login successful",
             token,
-            refreshToken,
+            // refreshToken,
             data: responseUser
         });
     } catch (err) {
@@ -254,85 +253,85 @@ exports.googleLogin = async (req, res) => {
     }
 };
 
-exports.refreshToken = async (req, res, next) => {
-    try {
-        let { refreshToken } = req.body;
-        if (!refreshToken) {
-            return res.status(400).json({ status: false, message: 'Refresh token is required' });
-        }
+// exports.refreshToken = async (req, res, next) => {
+//     try {
+//         let { refreshToken } = req.body;
+//         if (!refreshToken) {
+//             return res.status(400).json({ status: false, message: 'Refresh token is required' });
+//         }
 
-        const decoded = await jwtVerifyRefreshToken(refreshToken);
+//         const decoded = await jwtVerifyRefreshToken(refreshToken);
         
-        // Check if token exists in database (not revoked)
-        const storedToken = await reqAccessToken.findOne({
-            where: { accessToken: refreshToken }
-        });
-        if (!storedToken) {
-            return res.status(401).json({
-                status: false,
-                code: 'REVOKED_REFRESH_TOKEN',
-                message: 'Refresh token has been revoked or logged out.'
-            });
-        }
+//         // Check if token exists in database (not revoked)
+//         const storedToken = await reqAccessToken.findOne({
+//             where: { accessToken: refreshToken }
+//         });
+//         if (!storedToken) {
+//             return res.status(401).json({
+//                 status: false,
+//                 code: 'REVOKED_REFRESH_TOKEN',
+//                 message: 'Refresh token has been revoked or logged out.'
+//             });
+//         }
 
-        // Fetch the user information to generate a new access token
-        const user = await reqUser.findOne({
-            where: { userId: decoded.userId }
-        });
-        if (!user || user.userStatus !== 'active') {
-            return res.status(401).json({
-                status: false,
-                message: 'User is inactive or not found.'
-            });
-        }
+//         // Fetch the user information to generate a new access token
+//         const user = await reqUser.findOne({
+//             where: { userId: decoded.userId }
+//         });
+//         if (!user || user.userStatus !== 'active') {
+//             return res.status(401).json({
+//                 status: false,
+//                 message: 'User is inactive or not found.'
+//             });
+//         }
 
-        // Get roles from roleMapping table
-        let roles = await reqUserRoleMapping.findAll({
-            where: { userId: user.userId },
-            include: [{
-                model: reqUserRole,
-                as: 'role',
-                required: true // INNER JOIN
-            }]
-        });
+//         // Get roles from roleMapping table
+//         let roles = await reqUserRoleMapping.findAll({
+//             where: { userId: user.userId },
+//             include: [{
+//                 model: reqUserRole,
+//                 as: 'role',
+//                 required: true // INNER JOIN
+//             }]
+//         });
 
-        let formattedRoles = roles.map(r =>
-            r.role ? r.role.roleName : null
-        ).filter(role => role !== null);
+//         let formattedRoles = roles.map(r =>
+//             r.role ? r.role.roleName : null
+//         ).filter(role => role !== null);
 
-        let userData = {
-            userId: user.userId,
-            userFullName: user.userFullName,
-            userEmail: user.userEmail,
-            userDOB: user.userDOB,
-            userType: user.userType,
-            userRole: formattedRoles
-        };
+//         let userData = {
+//             userId: user.userId,
+//             userFullName: user.userFullName,
+//             userEmail: user.userEmail,
+//             userDOB: user.userDOB,
+//             userType: user.userType,
+//             userRole: formattedRoles
+//         };
 
-        // Generate new access token
-        let newAccessToken = await jwtToken(userData);
+//         // Generate new access token
+//         let newAccessToken = await jwtToken(userData);
 
-        // Security feature: Refresh Token Rotation
-        // Generate new refresh token
-        let newRefreshToken = await jwtRefreshToken(userData);
+//         // Security feature: Refresh Token Rotation
+//         // Generate new refresh token
+//         let newRefreshToken = await jwtRefreshToken(userData);
 
-        // Delete old refresh token first, then save new refresh token
-        await reqAccessToken.destroy({ where: { accessToken: refreshToken } });
-        await reqAccessToken.create({ accessToken: newRefreshToken });
+//         // Delete old refresh token first, then save new refresh token
+//         await reqAccessToken.destroy({ where: { accessToken: refreshToken } });
+//         await reqAccessToken.create({ accessToken: newRefreshToken });
 
-        return res.status(200).json({
-            status: true,
-            token: newAccessToken,
-            refreshToken: newRefreshToken
-        });
+//         return res.status(200).json({
+//             status: true,
+//             token: newAccessToken,
+//             refreshToken: newRefreshToken
+//         });
 
-    } catch (error) {
-        if (error.code === 'REFRESH_TOKEN_EXPIRED') {
-            return res.status(401).json({ status: false, code: error.code, message: error.message });
-        }
-        if (error.code === 'INVALID_REFRESH_TOKEN') {
-            return res.status(403).json({ status: false, code: error.code, message: error.message });
-        }
-        return res.status(500).json({ status: false, message: error.message || 'Internal Server Error' });
-    }
-};
+//     } catch (error) {
+//         if (error.code === 'REFRESH_TOKEN_EXPIRED') {
+//             return res.status(401).json({ status: false, code: error.code, message: error.message });
+//         }
+//         if (error.code === 'INVALID_REFRESH_TOKEN') {
+//             return res.status(403).json({ status: false, code: error.code, message: error.message });
+//         }
+//         return res.status(500).json({ status: false, message: error.message || 'Internal Server Error' });
+//     }
+// };
