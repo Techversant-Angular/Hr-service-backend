@@ -6,6 +6,7 @@ let { getLastSixMonths } = require("../utils/commonFunction");
 let { reqCandidates, reqTeam, sequelize, reqUser, reqReport,
   reqServices, reqServiceSequence, reqServiceRequest } = require("../../models");
 let { sendFeedbackReminder } = require("../utils/commonFunction");
+const response = require("../../api/utils/responseMessages");
 
 exports.resumeSourceData = tryCatch(async (req, res) => {
   let request = req.query.requestId
@@ -27,7 +28,7 @@ exports.resumeSourceData = tryCatch(async (req, res) => {
       GROUP BY  "sourceId", "sourceName";`);
   return res
     .status(200)
-    .json({ result: true, message: "data retrived", data: results });
+    .json({ result: true, message: response.DATA_RETRIEVED, data: results });
 });
 
 
@@ -120,7 +121,7 @@ exports.interViewCounts = tryCatch(async (req, res) => {
       };
     })
   );
-  return res.status(200).json({ result: true, message: "data retrived", data: interviewCounts, totalCount, });
+  return res.status(200).json({ result: true, message: response.DATA_RETRIEVED, data: interviewCounts, totalCount, });
 });
 
 exports.sixMonthDepartmentCount = tryCatch(async (req, res) => {
@@ -145,7 +146,7 @@ exports.sixMonthDepartmentCount = tryCatch(async (req, res) => {
   let [departmentReport, metaData] = await sequelize.query(sqlQuery);
   return res
     .status(200)
-    .json({ result: true, message: "data retrived", data: departmentReport });
+    .json({ result: true, message: response.DATA_RETRIEVED, data: departmentReport });
 });
 
 exports.dailyApplicationDepartment = tryCatch(async (req, res) => {
@@ -180,7 +181,7 @@ exports.dailyApplicationDepartment = tryCatch(async (req, res) => {
   );
   return res.status(200).json({
     result: true,
-    message: "data retrived",
+    message: response.DATA_RETRIEVED,
     data: dailyReportDepartmentAppli,
     dataCount: metadataCount.rowCount,
   });
@@ -317,7 +318,7 @@ exports.myRequirementReport = tryCatch(async (req, res) => {
   }
   return res.status(200).json({
     status: true,
-    message: "Data retrived",
+    message: response.DATA_RETRIEVED,
     requirementCount: userRequirementCount,
     userRequirementReport,
   });
@@ -540,7 +541,7 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
   // res.send(reqReportData);
   return res.status(200).json({
     result: true,
-    message: "data retrived",
+    message: response.DATA_RETRIEVED,
     data: reqReportData,
     total: countMetaData.rowCount,
   });
@@ -635,8 +636,8 @@ exports.dashBoardCard = tryCatch(async (req, res) => {
   if (data)
     return res
       .status(200)
-      .json({ result: true, message: "data retrived", data: data });
-  return res.status(401).json({ result: false, message: "data not found" });
+      .json({ result: true, message: response.DATA_RETRIEVED, data: data });
+  return res.status(401).json({ result: false, message: response.DATA_NOT_FOUND });
 });
 
 
@@ -720,7 +721,7 @@ exports.recruiterChart = tryCatch(async (req, res) => {
 
   return res
     .status(200)
-    .json({ result: true, message: "data retrieved", data: result });
+    .json({ result: true, message: response.DATA_RETRIEVED, data: result });
 });
 
 
@@ -816,7 +817,7 @@ exports.sendFeedbackReminder = tryCatch(async (req, res) => {
       { where: { candidateId } }
     );
     if (!candidate) {
-      return res.status(404).json({ message: 'Candidate not found' });
+      return res.status(404).json({ message: response.CANDIDATE_NOT_FOUND });
     }
 
     await sendFeedbackReminder(user.userEmail, user.userfirstName, candidate.candidateFirstName);

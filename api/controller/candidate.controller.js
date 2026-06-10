@@ -5,6 +5,7 @@ let {
   reqSkill, reqStation, reqServiceRequest,
   reqCandidateComments, reqServiceSequence, reqCandidateRequestion
 } = require("../../models");
+const response = require("../../api/utils/responseMessages");
 const moment = require("moment");
 const { Op, where } = require("sequelize");
 let { excelGenerator } = require("../utils/excelGenerator");
@@ -86,7 +87,7 @@ exports.editCandidate = tryCatch(async (req, res) => {
   if (!candidateIspresent)
     return res
       .status(401)
-      .json({ status: false, message: "Candidate not found" });
+      .json({ status: false, message: response.CANDIDATE_NOT_FOUND });
   let updatedCandidate = await reqCandidates.update(parameter, {
     where: { candidateId },
   });
@@ -286,7 +287,7 @@ exports.listCandidates = tryCatch(async (req, res) => {
         };
       }),
     });
-  throw new Error("Candidates not found");
+  throw new Error(response.CANDIDATES_NOTFOUND);
 });
 
 exports.candidateCompareList = tryCatch(async (req, res) => {
@@ -441,7 +442,7 @@ exports.candidateCompareList = tryCatch(async (req, res) => {
       candidateCount,
       candidates,
     });
-  throw new Error("Candidates not found");
+  throw new Error(response.CANDIDATES_NOTFOUND);
 });
 
 exports.viewCandidate = tryCatch(async (req, res) => {
@@ -585,7 +586,7 @@ exports.viewCandidate = tryCatch(async (req, res) => {
   if (candidate[0].length == 0) {
     return res
       .status(401)
-      .json({ result: false, message: "Candidate not found" });
+      .json({ result: false, message: response.CANDIDATE_NOT_FOUND });
   }
 
   let candidateData = await Promise.all(
@@ -611,7 +612,7 @@ exports.viewCandidate = tryCatch(async (req, res) => {
 
   return res.send({
     result: true,
-    message: "data retrived",
+    message: response.DATA_RETRIEVED,
     data: candidateData,
     comments,
   });
@@ -666,7 +667,7 @@ exports.resumeSourceList = tryCatch(async (req, res) => {
   let sources = await reqCandidateResumeSource.findAll({});
   return res
     .status(200)
-    .json({ result: true, message: "data retrived", data: sources });
+    .json({ result: true, message: response.DATA_RETRIEVED, data: sources });
 
 });
 
@@ -720,7 +721,7 @@ exports.candiateMailList = tryCatch(async (req, res, next) => {
   if (candidatesMail)
     return res
       .status(200)
-      .json({ result: true, message: "data retrived", data: candidatesMail });
+      .json({ result: true, message: response.DATA_RETRIEVED, data: candidatesMail });
 });
 
 exports.removeCandidate = tryCatch(async (req, res, next) => {

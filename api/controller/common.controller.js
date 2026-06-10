@@ -7,6 +7,7 @@ let { reqServiceSequence, reqTask, reqCandidates, reqServiceRequest, reqTeam,
   reqSkill, sequelize, reqDesignation, reqUser, reqStation, reqCandidateComments,
   reqRejectReason, reqFeedbacks, reqProgressSkill
 } = require("../../models");
+const response = require("../../api/utils/responseMessages");
 const { sendFeedbackAcknowledgement } = require("../utils/commonFunction");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
@@ -45,12 +46,12 @@ exports.secondGrafData = async (req, res, next) => {
 
 exports.feedbacksList = tryCatch(async (req, res) => {
   let feedBackes = await reqFeedbacks.findAll();
-  return res.status(200).json({ result: true, message: "Data Found", data: feedBackes });
+  return res.status(200).json({ result: true, message: response.DATA_FOUND, data: feedBackes });
 });
 
 exports.rejectionList = tryCatch(async (req, res) => {
   let rejections = await reqRejectReason.findAll();
-  return res.status(200).json({ result: true, message: "Data Found", data: rejections });
+  return res.status(200).json({ result: true, message: response.DATA_FOUND, data: rejections });
 });
 
 exports.taskAssign = tryCatch(async (req, res, next) => {
@@ -137,7 +138,7 @@ exports.skillsList = tryCatch(async (req, res, next) => {
       .json({ result: true, message: "data retrived", data: skills });
   return res
     .status(200)
-    .json({ result: false, message: "data not found", data: skills });
+    .json({ result: false, message: response.DATA_NOT_FOUND, data: skills });
 });
 
 exports.teamList = tryCatch(async (req, res, next) => {
@@ -152,7 +153,7 @@ exports.teamList = tryCatch(async (req, res, next) => {
     return res
       .status(200)
       .json({ result: true, message: "data found", data: teamList });
-  return res.status(401).json({ result: false, message: "data not found" });
+  return res.status(401).json({ result: false, message: response.DATA_NOT_FOUND });
 });
 
 exports.stations = tryCatch(async (req, res, next) => {
@@ -168,7 +169,7 @@ exports.stations = tryCatch(async (req, res, next) => {
     return res
       .status(200)
       .json({ result: true, message: "data found", data: stations });
-  return res.status(401).json({ result: false, message: "data not found" });
+  return res.status(401).json({ result: false, message: response.DATA_NOT_FOUND });
 });
 
 exports.rejectCandidate = tryCatch(async (req, res, next) => {
@@ -255,7 +256,7 @@ exports.rejectCandidate = tryCatch(async (req, res, next) => {
   if (!candidateStaion)
     return res
       .status(404)
-      .json({ result: false, message: "Candidate not found" });
+      .json({ result: false, message: response.CANDIDATE_NOT_FOUND });
   if (
     candidateStaion.serviceStatus == "done" ||
     candidateStaion.serviceStatus == "rejected"
@@ -384,8 +385,8 @@ exports.recruiterList = tryCatch(async (req, res, next) => {
   if (recruiterList)
     return res
       .status(200)
-      .json({ result: true, message: "data retrived", data: recruiterList });
-  return res.status(401).json({ result: false, message: "data not found" });
+      .json({ result: true, message: response.DATA_RETRIEVED, data: recruiterList });
+  return res.status(401).json({ result: false, message: response.DATA_NOT_FOUND });
 });
 
 exports.candidateCommentsDelete = tryCatch(async (req, res, next) => {
@@ -437,8 +438,8 @@ exports.designationList = tryCatch(async (req, res, next) => {
   if (designations)
     return res
       .status(200)
-      .json({ result: true, message: "data retrived", data: designations });
-  return res.status(401).json({ result: true, message: "data not found" });
+      .json({ result: true, message: response.DATA_RETRIEVED, data: designations });
+  return res.status(401).json({ result: true, message: response.DATA_NOT_FOUND });
 });
 
 exports.skipCurrentStation = tryCatch(async (req, res, next) => {
@@ -619,7 +620,7 @@ exports.statusFilter = tryCatch(async (req, res, next) => {
   ];
   return res
     .status(200)
-    .json({ result: true, message: "data retrived", data: statusLists });
+    .json({ result: true, message: response.DATA_RETRIEVED, data: statusLists });
 });
 
 exports.workModeList = tryCatch(async (req, res, next) => {
@@ -631,14 +632,14 @@ exports.workModeList = tryCatch(async (req, res, next) => {
   ];
   return res
     .status(200)
-    .json({ result: true, message: "data retrived", data: workModeLists });
+    .json({ result: true, message: response.DATA_RETRIEVED, data: workModeLists });
 });
 
 exports.prefferedList = tryCatch(async (req, res, next) => {
   let locationLists = [{ location: "Trivandrum" }, { location: "Cochin" }, { location: "Cochin & Trivandrum" }];
   return res
     .status(200)
-    .json({ result: true, message: "data retrived", data: locationLists });
+    .json({ result: true, message: response.DATA_RETRIEVED, data: locationLists });
 });
 
 exports.editProgressV1 = tryCatch(async (req, res) => {

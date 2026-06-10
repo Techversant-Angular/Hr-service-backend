@@ -4,6 +4,7 @@ const formidable = require("formidable");
 const path = require("path");
 const fs = require("fs");
 const { tryCatch } = require("../utils/trycatch");
+const response = require("../../api/utils/responseMessages");
 
 let {
   reqServiceSequence,
@@ -221,7 +222,7 @@ exports.addProgress = tryCatch(async (req, res) => {
     if (!progressAssignee?.[0])
       return res
         .status(400)
-        .json({ result: false, message: "ProgressAssignee required" });
+        .json({ result: false, message: response.PROGRESS_ASSIGNEE_REQUIRED });
 
     if (!progressSkill?.[0])
       return res
@@ -294,7 +295,7 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
   if (!progressAssignee)
     return res
       .status(400)
-      .json({ result: false, message: "ProgressAssignee required" });
+      .json({ result: false, message: response.PROGRESS_ASSIGNEE_REQUIRED });
 
   if (!progressServiceId)
     return res
@@ -362,7 +363,7 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
   if (!progressAssignee)
     return res.status(400).json({
       result: false,
-      message: "ProgressAssignee required",
+      message: response.PROGRESS_ASSIGNEE_REQUIRED,
     });
 
   if (!progressServiceId)

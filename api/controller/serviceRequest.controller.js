@@ -1,6 +1,8 @@
 const moment = require("moment");
 let { Op } = require("sequelize");
 const { tryCatch } = require("../utils/trycatch");
+const response = require("../../api/utils/responseMessages");
+
 let {
   reqServiceRequest,
   reqCandidates,
@@ -137,7 +139,7 @@ exports.listServices = tryCatch(async (req, res) => {
   }
   return res
     .status(401)
-    .json({ result: false, message: "data not found", data: services });
+    .json({ result: false, message: response.DATA_NOT_FOUND, data: services });
 });
 
 exports.yearList = tryCatch(async (req, res) => {
@@ -152,7 +154,7 @@ exports.yearList = tryCatch(async (req, res) => {
   });
   return res
     .status(200)
-    .json({ status: true, message: "data retrived", data: yearData });
+    .json({ status: true, message: response.DATA_RETRIEVED, data: yearData });
 });
 
 exports.servicesList = tryCatch(async (req, res) => {
@@ -167,8 +169,8 @@ exports.servicesList = tryCatch(async (req, res) => {
   if (services.length > 0)
     return res
       .status(200)
-      .json({ result: true, message: "data found", data: services });
-  return res.status(401).json({ result: false, message: "data not found" });
+      .json({ result: true, message: response.DATA_FOUND, data: services });
+  return res.status(401).json({ result: false, message: response.DATA_NOT_FOUND });
 });
 
 async function scheduleStations(flowObject) {
@@ -384,7 +386,7 @@ exports.viewService = tryCatch(async (req, res) => {
       .send({ result: false, message: "request id not found" });
   return res.status(200).json({
     result: true,
-    message: "data retrived",
+    message: response.DATA_RETRIEVED,
     data: validRequest,
     flows,
   });
@@ -502,5 +504,5 @@ exports.activeServicesList = tryCatch(async (req, res) => {
   }
   return res
     .status(401)
-    .json({ result: false, message: "data not found", data: services });
+    .json({ result: false, message: response.DATA_NOT_FOUND, data: services });
 });

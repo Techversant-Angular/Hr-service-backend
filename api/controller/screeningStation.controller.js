@@ -8,6 +8,7 @@ const { tryCatch } = require("../utils/trycatch");
 const candidateStation = require("../utils/commonFunction");
 const jsonData = require("../utils/userRignts.json");
 const { excelGenerator } = require("../utils/excelGenerator");
+const response = require("../../api/utils/responseMessages");
 
 // Models
 const {
@@ -482,7 +483,7 @@ exports.interviewDetail = tryCatch(async (req, res) => {
   if (!candidate)
     return res
       .status(401)
-      .json({ result: false, message: "Candidate Not found" });
+      .json({ result: false, message: response.CANDIDATE_NOT_FOUND });
   let service = await reqServiceRequest.findOne({
     where: { requestId: position },
     raw: true,
@@ -750,7 +751,7 @@ exports.interviewDetailCandidatesList = tryCatch(async (req, res) => {
       candidateCount,
       candidates,
     });
-  throw new Error("Candidates not found");
+  throw new Error(response.CANDIDATES_NOTFOUND);
 });
 
 exports.interviewDetailCandidateView = tryCatch(async (req, res) => {
@@ -827,7 +828,7 @@ exports.interviewDetailCandidateView = tryCatch(async (req, res) => {
     });
   return res
     .status(401)
-    .json({ result: true, message: "Candidates not found" });
+    .json({ result: true, message: response.CANDIDATES_NOTFOUND });
 });
 
 async function interviewScheduledCount(
@@ -933,7 +934,7 @@ exports.interviewModeList = tryCatch(async (req, res) => {
   let interviewModeList = await reqIntervieMode.findAll({ raw: true });
   return res.status(200).json({
     result: true,
-    message: "data retrived",
+    message: response.DATA_RETRIEVED,
     data: interviewModeList,
   });
 });
@@ -1291,7 +1292,7 @@ exports.toDateInterviewList = tryCatch(async (req, res) => {
   }
   return res
     .status(401)
-    .json({ result: false, message: "Candidates Not Found" });
+    .json({ result: false, message: response.CANDIDATES_NOTFOUND });
 });
 
 exports.removeAfterMapped = tryCatch(async (req, res) => {
@@ -1301,7 +1302,7 @@ exports.removeAfterMapped = tryCatch(async (req, res) => {
   let isServiceSquence = await reqServiceSequence.findOne({ where: { serviceId, serviceCandidate: candidateId, serviceStatus: { [Op.ne]: null } } });
   if (!isServiceSquence) res
     .status(400)
-    .json({ result: false, message: "Candidates Not Found" });
+    .json({ result: false, message: response.CANDIDATES_NOTFOUND });
 
     const requestId = isServiceSquence.serviceServiceRequst;
 
@@ -1406,5 +1407,5 @@ exports.candidatesPrgressList = tryCatch(async (req, res) => {
   }
   return res
     .status(401)
-    .json({ result: false, message: "Technical Candidates Not Found" });
+    .json({ result: false, message: response.TECHNICAL_CANDIDATES_NOT_FOUND });
 });

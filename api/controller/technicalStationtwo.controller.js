@@ -14,6 +14,7 @@ let {
   reqServiceSequencesAcitve, reqUser, reqCandidateComments,reqTeam,
   reqProgressSkill
 } = require("../../models");
+const response = require("../../api/utils/responseMessages");
 
 exports.list = tryCatch(async (req, res) => {
   let report = req.query.report;
@@ -197,7 +198,7 @@ exports.list = tryCatch(async (req, res) => {
     });
   return res
     .status(401)
-    .json({ result: false, message: "Technical Candidates Not Found" });
+    .json({ result: false, message: response.TECHNICAL_CANDIDATES_NOT_FOUND });
 
 });
 
@@ -218,7 +219,7 @@ exports.addProgress = tryCatch(async (req, res) => {
     if (!progressAssignee?.[0])
       return res
         .status(400)
-        .json({ result: false, message: "ProgressAssignee required" });
+        .json({ result: false, message: response.PROGRESS_ASSIGNEE_REQUIRED });
 
     if (!progressSkill?.[0])
       return res
@@ -267,11 +268,11 @@ exports.addProgress = tryCatch(async (req, res) => {
     if (created) {
       return res
         .status(200)
-        .json({ result: true, message: "Technical Progress added" });
+        .json({ result: true, message: response.TECHNICAL_PROGRESS_ADDED });
     } else {
       return res
         .status(401)
-        .json({ result: false, message: "Technical Progress already found" });
+        .json({ result: false, message: response.TECHNICAL_PROGRESS_ALREADY_FOUND });
     }
   });
 
@@ -290,7 +291,7 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
   if (!progressAssignee)
     return res
       .status(400)
-      .json({ result: false, message: "ProgressAssignee required" });
+      .json({ result: false, message: response.PROGRESS_ASSIGNEE_REQUIRED });
 
   if (!progressServiceId)
     return res
@@ -344,11 +345,11 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
     }
     return res
       .status(200)
-      .json({ result: true, message: "Technical Progress added" });
+      .json({ result: true, message: response.TECHNICAL_PROGRESS_ADDED });
   }
   return res
     .status(401)
-    .json({ result: false, message: "Technical Progress already found" });
+    .json({ result: false, message: response.TECHNICAL_PROGRESS_ALREADY_FOUND });
 
 });
 
@@ -440,13 +441,13 @@ exports.progressDetail = tryCatch(async (req, res) => {
     candidates.skillScore = skillScore;
     return res.status(200).json({
       result: true,
-      message: "Technical Candidates Found",
+      message: response.TECHNICAL_CANDIDATES_FOUND,
       candidates,
     });
   }
   return res
     .status(401)
-    .json({ result: false, message: "Technical Candidates Not Found" });
+    .json({ result: false, message: response.TECHNICAL_CANDIDATES_NOT_FOUND });
 
 });
 

@@ -4,6 +4,7 @@ const { tryCatch } = require("../utils/trycatch");
 let { excelGenerator } = require('../utils/excelGenerator');
 let { reqReport, reqUser, reqServiceRequest,
   sequelize, reqExperienceReport } = require("../../models");
+const response = require("../../api/utils/responseMessages");
 
 
 exports.reportDailyReport = tryCatch(async (req, res) => {
@@ -89,8 +90,8 @@ exports.reportDailyReport = tryCatch(async (req, res) => {
   if (reports)
     return res
       .status(200)
-      .json({ result: true, message: "data retrived", reportCount, data: reports });
-  return res.status(401).json({ result: false, messge: "data not found" });
+      .json({ result: true, message: response.DATA_RETRIEVED, reportCount, data: reports });
+  return res.status(401).json({ result: false, message: response.DATA_NOT_FOUND });
 });
 
 
@@ -176,7 +177,7 @@ exports.monthlyReportData = tryCatch(async (req, res) => {
     .status(200)
     .json({
       result: true,
-      message: "data retrived",
+      message: response.DATA_RETRIEVED,
       data: monthReport,
       totalReportMonth: total,
     });
@@ -207,13 +208,13 @@ return el;
     .status(200)
     .json({
       result: true,
-      message: "data retrived", toatlCount,
+      message: response.DATA_RETRIEVED, toatlCount,
       data: experienceInterviewCounts
     });
   return res
     .status(401)
     .json({
       result: false,
-      message: "data not found"
+      message: response.DATA_NOT_FOUND
     });
 });

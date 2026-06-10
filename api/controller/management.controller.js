@@ -7,6 +7,7 @@ let mailFunction = require('../utils/nodeMail');
 const { tryCatch } = require("../utils/trycatch");
 let { excelGenerator } = require('../utils/excelGenerator');
 let { reqestionStatusUpdate, logFunction, updateCandidateStations, updateReportData, addExperiencInterviewScheduled, isRequestionClosed, meetingLinkReplace } = require('../utils/commonFunction');
+const response = require("../../api/utils/responseMessages");
 
 
 exports.list = tryCatch(async (req, res) => {
@@ -436,7 +437,7 @@ exports.addProgressV1 = async (req, res, next) => {
     } = req.body;
 
     if (!progressAssignee)
-      return res.status(400).json({ result: false, message: "ProgressAssignee required" });
+      return res.status(400).json({ result: false, message: response.PROGRESS_ASSIGNEE_REQUIRED });
 
     if (!progressServiceId)
       return res.status(400).json({ result: false, message: "ProgressServiceId required" });
