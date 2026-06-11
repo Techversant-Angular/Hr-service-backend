@@ -1,4 +1,4 @@
-let { reqUser, Sequelize, reqUserRoleMapping, reqUserRole } = require('../../../models');
+let { reqUser, Sequelize, reqUserRoleMapping, reqUserRole, reqNotificationToken } = require('../../../models');
 let { jwtToken } = require('../../utils/jwt');
 const bcrypt = require('bcryptjs');
 let { jwtDecode } = require('jwt-decode');
@@ -338,3 +338,75 @@ exports.googleLogin = async (req, res) => {
 //         return res.status(500).json({ status: false, message: error.message || 'Internal Server Error' });
 //     }
 // };
+
+exports.saveFcmToken = async (req, res, next) => {
+    try {
+        const { token, deviceType } = req.body;
+        const userId = req.userId || (req.decodedToken ? req.decodedToken.userId : null);
+
+        if (!token) {
+            return res.status(400).json({ result: false, message: 'FCM Token is required' });
+        }
+        if (!userId) {
+            return res.status(401).json({ result: false, message: 'User not authenticated' });
+        }
+
+        // Upsert the token
+        const [fcmTokenRecord, created] = await reqNotificationToken.findOrCreate({
+            where: { token: token },
+            defaults: {
+                userId: userId,
+                deviceType: deviceType || 'web'
+            }
+        });
+
+        if (!created) {
+            fcmTokenRecord.userId = userId;
+            if (deviceType) fcmTokenRecord.deviceType = deviceType;
+            await fcmTokenRecord.save();
+        }
+
+        return res.status(200).json({ result: true, message: 'FCM token registered successfully' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.deleteFcmToken = async (req, res, next) => {
+    try {
+        const { token } = req.body;
+        if (!token) {
+            return res.status(400).json({ result: false, message: 'FCM Token is required' });
+        }
+
+        await reqNotificationToken.destroy({
+            where: { token: token }
+        });
+
+        return res.status(200).json({ result: true, message: 'FCM token deleted successfully' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.testPushNotification = async (req, res, next) => {
+    try {
+        const pushUtil = require('../../utils/pushNotification');
+        const userId = req.userId || (req.decodedToken ? req.decodedToken.userId : null);
+        const { title, body } = req.body;
+
+        if (!userId) {
+            return res.status(401).json({ result: false, message: 'User not authenticated' });
+        }
+
+        const response = await pushUtil.sendPushNotification(userId, {
+            title: title || 'Test Push',
+            body: body || 'FCM notification triggered successfully!',
+            data: { test: 'true' }
+        });
+
+        return res.status(200).json({ result: true, message: 'FCM notification sent successfully', details: response });
+    } catch (error) {
+        next(error);
+    }
+};

@@ -33,6 +33,7 @@ exports.authenticate = async (req, res, next) => {
         }
         req.userType = user.userType;
         req.userRole = user.userRole;
+        req.decodedToken = existToken;
         next();
     } catch (error) {
         if (error.code === 'TOKEN_EXPIRED') {

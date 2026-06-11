@@ -16,6 +16,10 @@ router.post("/resetPassword", authController.resetPassword);
 
 // router.post('/refresh-token', authController.refreshToken);
 
+router.post('/fcm-token', authenticate, authController.saveFcmToken);
+router.post('/fcm-token/delete', authenticate, authController.deleteFcmToken);
+router.post('/test-push', authenticate, authController.testPushNotification);
+
 router.post('/create', authenticate, verifyAdmin, controller.createUser);
 
 router.post('/delete', authenticate, verifyAdmin, controller.deleteUser);

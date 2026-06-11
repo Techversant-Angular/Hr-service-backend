@@ -17,6 +17,7 @@ module.exports = (sequelize, DataTypes) => {
       reqUser.hasMany(models.reqUserRole, { foreignKey: 'roleUserId', as: 'userRoles' });
       reqUser.hasOne(models.reqReport, { foreignKey: 'recruiter', as: 'reportData' });
       reqUser.hasOne(models.reqreqruiterStationReport, { foreignKey: 'user', as: 'recruiter' });
+      reqUser.hasMany(models.reqNotificationToken, { foreignKey: 'userId', as: 'notificationTokens' });
     }
   }
   reqUser.init({
