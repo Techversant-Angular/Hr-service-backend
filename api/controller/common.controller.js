@@ -15,24 +15,24 @@ const { s3Client } = require("../../config/config");
 
 exports.secondGrafData = async (req, res, next) => {
   try {
-    let startDate = req.query.fromDate + ' 00:00:00Z';
-    let endDate = req.query.todate + ' 23:59:59Z';
-    let arrayOfTeams = [];
+    const startDate = req.query.fromDate + ' 00:00:00Z';
+    const endDate = req.query.todate + ' 23:59:59Z';
+    const arrayOfTeams = [];
 
-    let [getcandidateRequirementQuery, meataData] = await sequelize.query(`SELECT DISTINCT("teamId") FROM "reqTeams"`);
+    const [getcandidateRequirementQuery, meataData] = await sequelize.query(`SELECT DISTINCT("teamId") FROM "reqTeams"`);
 
     // await Promise.all( getcandidateRequirementQuery.forEach(async (el) => {
     for (let i = 0; i < getcandidateRequirementQuery.length; i++) {
 
-      let [countTotal, TotalmeataData] = await sequelize.query(`select COUNT(DISTINCT("candidateId")) FROM "reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) AND "serviceServiceRequst" IN (SELECT DISTINCT("requestId") FROM "reqServiceRequests" WHERE "requestTeam"=${getcandidateRequirementQuery[i].teamId}) AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
+      const [countTotal, TotalmeataData] = await sequelize.query(`select COUNT(DISTINCT("candidateId")) FROM "reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) AND "serviceServiceRequst" IN (SELECT DISTINCT("requestId") FROM "reqServiceRequests" WHERE "requestTeam"=${getcandidateRequirementQuery[i].teamId}) AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
 
-      let [countHired, meataData] = await sequelize.query(`SELECT COUNT(DISTINCT("serviceCandidate")) FROM  "reqServiceSequences" WHERE "serviceServiceRequst" IN (SELECT DISTINCT ("requestId") FROM "reqServiceRequests" WHERE "requestTeam"=${getcandidateRequirementQuery[i].teamId}) AND "serviceStation"=6 AND "serviceStatus"='done' AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
+      const [countHired, meataData] = await sequelize.query(`SELECT COUNT(DISTINCT("serviceCandidate")) FROM  "reqServiceSequences" WHERE "serviceServiceRequst" IN (SELECT DISTINCT ("requestId") FROM "reqServiceRequests" WHERE "requestTeam"=${getcandidateRequirementQuery[i].teamId}) AND "serviceStation"=6 AND "serviceStatus"='done' AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
       // console.log({ team: el.teamId, count: countTechSelect[0].count });
 
-      let [countTechSelect, meataDataTech] = await sequelize.query(`SELECT COUNT(DISTINCT("serviceCandidate")) FROM  "reqServiceSequences" WHERE "serviceServiceRequst" IN (SELECT DISTINCT ("requestId") FROM "reqServiceRequests" WHERE "requestTeam"=${getcandidateRequirementQuery[i].teamId}) AND "serviceStation"=6 AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
+      const [countTechSelect, meataDataTech] = await sequelize.query(`SELECT COUNT(DISTINCT("serviceCandidate")) FROM  "reqServiceSequences" WHERE "serviceServiceRequst" IN (SELECT DISTINCT ("requestId") FROM "reqServiceRequests" WHERE "requestTeam"=${getcandidateRequirementQuery[i].teamId}) AND "serviceStation"=6 AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
       // console.log({ team: el.teamId, count: countTechSelect[0].count });
 
-      let [countTechoffer, meataDataOffer] = await sequelize.query(`SELECT COUNT(DISTINCT("serviceCandidate")) FROM  "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE "serviceServiceRequst" IN (SELECT DISTINCT ("requestId") FROM "reqServiceRequests" WHERE "requestTeam"=${getcandidateRequirementQuery[i].teamId}) AND "serviceStation"=6 AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
+      const [countTechoffer, meataDataOffer] = await sequelize.query(`SELECT COUNT(DISTINCT("serviceCandidate")) FROM  "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE "serviceServiceRequst" IN (SELECT DISTINCT ("requestId") FROM "reqServiceRequests" WHERE "requestTeam"=${getcandidateRequirementQuery[i].teamId}) AND "serviceStation"=6 AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
       arrayOfTeams.push({ team: getcandidateRequirementQuery[i].teamId, total_applicant: countTotal[0].count, hire_count: countHired[0].count, technical_selected_Count: countTechSelect[0].count, offered_Count: countTechoffer[0].count });
 
     }
@@ -45,19 +45,19 @@ exports.secondGrafData = async (req, res, next) => {
 }
 
 exports.feedbacksList = tryCatch(async (req, res) => {
-  let feedBackes = await reqFeedbacks.findAll();
+  const feedBackes = await reqFeedbacks.findAll();
   return res.status(200).json({ result: true, message: response.DATA_FOUND, data: feedBackes });
 });
 
 exports.rejectionList = tryCatch(async (req, res) => {
-  let rejections = await reqRejectReason.findAll();
+  const rejections = await reqRejectReason.findAll();
   return res.status(200).json({ result: true, message: response.DATA_FOUND, data: rejections });
 });
 
 exports.taskAssign = tryCatch(async (req, res, next) => {
-  let { assigneeId, stationId, serviceId } = req.body;
+  const { assigneeId, stationId, serviceId } = req.body;
 
-  let asigned = await reqServiceSequence.update(
+  const asigned = await reqServiceSequence.update(
     { serviceAssignee: assigneeId },
     {
       where: {
@@ -75,9 +75,9 @@ exports.taskAssign = tryCatch(async (req, res, next) => {
 });
 
 exports.userTasks = tryCatch(async (req, res, next) => {
-  let { taskUserId, taskStationId } = req.body;
+  const { taskUserId, taskStationId } = req.body;
   console.log(taskUserId);
-  let tasks = await reqTask.findAll({
+  const tasks = await reqTask.findAll({
     include: [
       {
         model: reqServiceSequence,
@@ -116,9 +116,9 @@ exports.userTasks = tryCatch(async (req, res, next) => {
 });
 
 exports.skillsList = tryCatch(async (req, res, next) => {
-  let { search, typeId } = req.query;
+  const { search, typeId } = req.query;
 
-  let condition = { raw: true };
+  const condition = { raw: true };
 
   if (search) {
     condition.where = { skillName: { [Op.iLike]: `${search}%` } };
@@ -131,7 +131,7 @@ exports.skillsList = tryCatch(async (req, res, next) => {
     [Sequelize.fn("DISTINCT", Sequelize.col("skillName")), "skillName"],
     "id", "typeId", "type"
   ];
-  let skills = await reqSkill.findAll(condition);
+  const skills = await reqSkill.findAll(condition);
   if (skills.length > 0)
     return res
       .status(200)
@@ -142,7 +142,7 @@ exports.skillsList = tryCatch(async (req, res, next) => {
 });
 
 exports.teamList = tryCatch(async (req, res, next) => {
-  let teamList = await reqTeam.findAll({
+  const teamList = await reqTeam.findAll({
     attributes: [
       [Sequelize.fn("DISTINCT", Sequelize.col("teamName")), "teamName"],
       "teamId",
@@ -157,7 +157,7 @@ exports.teamList = tryCatch(async (req, res, next) => {
 });
 
 exports.stations = tryCatch(async (req, res, next) => {
-  let stations = await reqStation.findAll({
+  const stations = await reqStation.findAll({
     attributes: [
       [Sequelize.fn("DISTINCT", Sequelize.col("stationName")), "stationName"],
       "stationId",
@@ -173,9 +173,9 @@ exports.stations = tryCatch(async (req, res, next) => {
 });
 
 exports.rejectCandidate = tryCatch(async (req, res, next) => {
-  let {
+  let { stationId } = req.body;
+  const {
     serviceId,
-    stationId,
     status,
     feedBack,
     userId,
@@ -185,12 +185,12 @@ exports.rejectCandidate = tryCatch(async (req, res, next) => {
     rejectBcc,
     attachmentArray,
   } = req.body;
-  let logData = {
+  const logData = {
     station: stationId,
     senderId: userId,
     type: "",
   };
-  let currentDate = moment(moment(), "YYYY/MM/DD").format(
+  const currentDate = moment(moment(), "YYYY/MM/DD").format(
     "YYYY-MM-DDTHH:mm:ss.SSS[Z]"
   );
   let statusString = "pending";
@@ -214,7 +214,7 @@ exports.rejectCandidate = tryCatch(async (req, res, next) => {
     updateingStaus = "cancelled";
     message = "Candidate cancelled";
   }
-  let sequence = await reqServiceSequence.findOne({
+  const sequence = await reqServiceSequence.findOne({
     where: {
       serviceId: serviceId,
     },
@@ -235,7 +235,7 @@ exports.rejectCandidate = tryCatch(async (req, res, next) => {
     });
   }
 
-  let candidateStaion = await reqServiceSequence.findOne({
+  const candidateStaion = await reqServiceSequence.findOne({
     include: [
       {
         model: reqServiceRequest,
@@ -251,7 +251,7 @@ exports.rejectCandidate = tryCatch(async (req, res, next) => {
     },
     raw: true,
   });
-  let requestId=candidateStaion.serviceServiceRequst;
+  const requestId=candidateStaion.serviceServiceRequst;
   logData.reciverId = candidateStaion.serviceCandidate;
   if (!candidateStaion)
     return res
@@ -280,7 +280,7 @@ exports.rejectCandidate = tryCatch(async (req, res, next) => {
     });
   }
 
-  let rejectedCandidate = await reqServiceSequence.update(
+  const rejectedCandidate = await reqServiceSequence.update(
     {
       serviceStatus: updateingStaus,
       serviceDate: currentDate,
@@ -293,7 +293,7 @@ exports.rejectCandidate = tryCatch(async (req, res, next) => {
       },
     }
   );
-  let getCandidateMail = await reqCandidates.findOne({
+  const getCandidateMail = await reqCandidates.findOne({
     where: { candidateId: candidateStaion.serviceCandidate },
   });
   let column_name = "";
@@ -355,7 +355,7 @@ exports.rejectCandidate = tryCatch(async (req, res, next) => {
 });
 
 exports.recruiterList = tryCatch(async (req, res, next) => {
-  let search = req.query.search;
+  const search = req.query.search;
   let where;
   if (search) {
     where = {
@@ -372,7 +372,7 @@ exports.recruiterList = tryCatch(async (req, res, next) => {
       userRole: "6",
     };
   }
-  let recruiterList = await reqUser.findAll({
+  const recruiterList = await reqUser.findAll({
     attributes: [
       "userFullName",
       "userId",
@@ -390,16 +390,16 @@ exports.recruiterList = tryCatch(async (req, res, next) => {
 });
 
 exports.candidateCommentsDelete = tryCatch(async (req, res, next) => {
-  let commentId = req.query.commentId;
-  let commentSeqenceId = req.query.commentSeqenceId;
-  let dataExist = await reqCandidateComments.findOne({
+  const commentId = req.query.commentId;
+  const commentSeqenceId = req.query.commentSeqenceId;
+  const dataExist = await reqCandidateComments.findOne({
     where: { commentId, commentSeqenceId },
   });
   if (!dataExist)
     return res
       .status(401)
       .json({ result: false, message: "data not found To delete" });
-  let deleteComment = await reqCandidateComments.destroy({
+  const deleteComment = await reqCandidateComments.destroy({
     where: { commentId, commentSeqenceId },
   });
   if (deleteComment)
@@ -409,17 +409,17 @@ exports.candidateCommentsDelete = tryCatch(async (req, res, next) => {
 });
 
 exports.candidateCommentsUpdate = tryCatch(async (req, res, next) => {
-  let commentId = req.query.commentId;
-  let commentSeqenceId = req.query.commentSeqenceId;
-  let comment = req.body.comment;
-  let dataExist = await reqCandidateComments.findOne({
+  const commentId = req.query.commentId;
+  const commentSeqenceId = req.query.commentSeqenceId;
+  const comment = req.body.comment;
+  const dataExist = await reqCandidateComments.findOne({
     where: { commentId, commentSeqenceId },
   });
   if (!dataExist)
     return res
       .status(401)
       .json({ result: false, message: "data not found To delete" });
-  let addData = await reqCandidateComments.update(
+  const addData = await reqCandidateComments.update(
     { reqCandidateComments: comment },
     { where: { commentId, commentSeqenceId } }
   );
@@ -433,8 +433,8 @@ exports.candidateCommentsUpdate = tryCatch(async (req, res, next) => {
 });
 
 exports.designationList = tryCatch(async (req, res, next) => {
-  let { search } = req.query;
-  let designations = await reqDesignation.findAll({ where: { designationName: { [Op.iLike]: `%${search}%` } } });
+  const { search } = req.query;
+  const designations = await reqDesignation.findAll({ where: { designationName: { [Op.iLike]: `%${search}%` } } });
   if (designations)
     return res
       .status(200)
@@ -443,9 +443,10 @@ exports.designationList = tryCatch(async (req, res, next) => {
 });
 
 exports.skipCurrentStation = tryCatch(async (req, res, next) => {
-  let { serviceId, stationId, assigneeId, date, currentStation, comment,movedBy } =
+  let { date } = req.body;
+  const { serviceId, stationId, assigneeId, currentStation, comment,movedBy } =
     req.body;
-  let sequenceData = await reqServiceSequence.findOne({
+  const sequenceData = await reqServiceSequence.findOne({
     where: { serviceId: { [Op.eq]: serviceId }, [Op.or]: [{ serviceStatus: 'on-hold' }, { serviceStatus: 'pending' }] }
   });
   date = moment(date, "YYYY/MM/DD").format("YYYY-MM-DDTHH:mm:ss.SSS[Z]");
@@ -459,7 +460,7 @@ exports.skipCurrentStation = tryCatch(async (req, res, next) => {
       .json({ result: false, message: "not a valid sequence" });
 
   // await updateCandidateStations(stationId, sequenceData.serviceCandidate);
-  let chekPreviouslyAdded = await reqServiceSequence.findOne({
+  const chekPreviouslyAdded = await reqServiceSequence.findOne({
     where: {
       serviceServiceRequst: sequenceData.serviceServiceRequst,
       serviceCandidate: sequenceData.serviceCandidate,
@@ -480,7 +481,7 @@ exports.skipCurrentStation = tryCatch(async (req, res, next) => {
     { serviceStatus: "moved", insertOrUpdateDate: date },
     { where: { serviceId: serviceId } }
   );
-  let newStationSequence = {
+  const newStationSequence = {
     serviceServiceRequst: sequenceData.serviceServiceRequst,
     serviceCandidate: sequenceData.serviceCandidate,
     serviceStation: stationId,
@@ -493,7 +494,7 @@ exports.skipCurrentStation = tryCatch(async (req, res, next) => {
     insertOrUpdateDate: date,
   };
 
-  let nextStationSequeence = await reqServiceSequence.create(
+  const nextStationSequeence = await reqServiceSequence.create(
     newStationSequence
   );
   logFunction(
@@ -584,8 +585,8 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
 
 
 exports.s3Credential = tryCatch(async (req, res, next) => {
-  let secretKey = process.env.S3_SECRET_KEY;
-  let buckeName = process.env.S3_BUCKET_NAME;
+  const secretKey = process.env.S3_SECRET_KEY;
+  const buckeName = process.env.S3_BUCKET_NAME;
 
   return res.status(200).json({
     result: true,
@@ -595,7 +596,7 @@ exports.s3Credential = tryCatch(async (req, res, next) => {
 });
 
 exports.statusFilter = tryCatch(async (req, res, next) => {
-  let statusLists = [
+  const statusLists = [
     {
       status: "pending"
     },
@@ -625,7 +626,7 @@ exports.statusFilter = tryCatch(async (req, res, next) => {
 
 exports.workModeList = tryCatch(async (req, res, next) => {
 
-  let workModeLists = [
+  const workModeLists = [
     { workMode: "Remote" },
     { workMode: "Onsite" },
     { workMode: "Hybrid" },
@@ -636,7 +637,7 @@ exports.workModeList = tryCatch(async (req, res, next) => {
 });
 
 exports.prefferedList = tryCatch(async (req, res, next) => {
-  let locationLists = [{ location: "Trivandrum" }, { location: "Cochin" }, { location: "Cochin & Trivandrum" }];
+  const locationLists = [{ location: "Trivandrum" }, { location: "Cochin" }, { location: "Cochin & Trivandrum" }];
   return res
     .status(200)
     .json({ result: true, message: response.DATA_RETRIEVED, data: locationLists });

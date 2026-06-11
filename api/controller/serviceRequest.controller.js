@@ -1,9 +1,9 @@
 const moment = require("moment");
-let { Op } = require("sequelize");
+const { Op } = require("sequelize");
 const { tryCatch } = require("../utils/trycatch");
 const response = require("../../api/utils/responseMessages");
 
-let {
+const {
   reqServiceRequest,
   reqCandidates,
   reqStation,
@@ -17,7 +17,7 @@ let {
 } = require("../../models");
 
 exports.createService = tryCatch(async (req, res) => {
-  let toDate = moment().format("YYYY-MM-DD");
+  const toDate = moment().format("YYYY-MM-DD");
   const transformedObject = {
     ...req.body,
     requestSkills: req.body.requestSkills.join(","),
@@ -31,33 +31,33 @@ exports.createService = tryCatch(async (req, res) => {
         message: "Only manager or Admin can create requstion",
       });
 
-  let requestFlowStations = req.body.requestFlowStations;
-  let requestDesignation = req.body.requestDesignation;
+  const requestFlowStations = req.body.requestFlowStations;
+  const requestDesignation = req.body.requestDesignation;
   let service;
   let responseMessage = "";
-  let team = await reqTeam.findOne({
+  const team = await reqTeam.findOne({
     where: { teamId: transformedObject.requestTeam },
     raw: true,
   });
-  let serviceRequestName = transformedObject.requestName;
+  const serviceRequestName = transformedObject.requestName;
   transformedObject.requestName = serviceRequestName;
-  let esistingServiceRequest = await reqServiceRequest.findOne({
+  const esistingServiceRequest = await reqServiceRequest.findOne({
     where: { requestName: transformedObject.requestName },
   });
   //create designtion  if string
   if (/^\d+$/.test(requestDesignation) == false) {
-    let designation = await reqDesignation.create({
+    const designation = await reqDesignation.create({
       designationName: requestDesignation,
     });
     transformedObject.requestDesignation = designation.designationId;
   }
   //keep entry in service table
-  let esistingService = await reqServices.findOne({
+  const esistingService = await reqServices.findOne({
     where: { sericeName: transformedObject.requestName },
   });
   let serviceId = null;
   if (esistingService) {
-    let [servicedata, metaData] = await sequelize.query(
+    const [servicedata, metaData] = await sequelize.query(
       `UPDATE "reqServices" SET "sericeName"=:sericeName 
                 WHERE "sericeName"=:sericeName RETURNING "sericeId"`,
       {
@@ -81,7 +81,7 @@ exports.createService = tryCatch(async (req, res) => {
     service = await reqServiceRequest.create(transformedObject);
     responseMessage = "Service Request Created Successfully";
   }
-  let flowObject = {
+  const flowObject = {
     flowServiceId: serviceId,
     flowStations: requestFlowStations,
   };
@@ -96,7 +96,7 @@ exports.createService = tryCatch(async (req, res) => {
 });
 
 exports.listServices = tryCatch(async (req, res) => {
-  let search = req.query.search;
+  const search = req.query.search;
   const toDate = new Date();
   const fromDate = new Date();
   fromDate.setMonth(fromDate.getMonth() - 3);
@@ -143,7 +143,7 @@ exports.listServices = tryCatch(async (req, res) => {
 });
 
 exports.yearList = tryCatch(async (req, res) => {
-  let yearData = await reqCandidates.findAll({
+  const yearData = await reqCandidates.findAll({
     attributes: [
       [
         sequelize.fn("DISTINCT", sequelize.col("candidateExperience")),
@@ -158,7 +158,7 @@ exports.yearList = tryCatch(async (req, res) => {
 });
 
 exports.servicesList = tryCatch(async (req, res) => {
-  let services = await reqServices.findAll({
+  const services = await reqServices.findAll({
     attributes: [
       [Sequelize.fn("DISTINCT", Sequelize.col("sericeName")), "sericeName"],
       "sericeId",
@@ -175,9 +175,9 @@ exports.servicesList = tryCatch(async (req, res) => {
 
 async function scheduleStations(flowObject) {
   try {
-    let { flowServiceId, flowStations } = flowObject;
+    const { flowServiceId, flowStations } = flowObject;
     console.log(flowStations, "stationsssss");
-    let flowWithRequest = await reqServiceFlow.findOne({
+    const flowWithRequest = await reqServiceFlow.findOne({
       where: {
         flowServiceId: flowServiceId,
       },
@@ -188,14 +188,14 @@ async function scheduleStations(flowObject) {
         where: { flowServiceId: flowServiceId },
       });
     }
-    let stations = await reqStation.findAll({
+    const stations = await reqStation.findAll({
       where: {
         stationId: { [Op.in]: flowStations },
       },
       raw: true,
       order: [["stationId", "ASC"]],
     });
-    let serviceFlows = stations.map((el) => {
+    const serviceFlows = stations.map((el) => {
       return {
         flowServiceId,
         flowStationId: el.stationId,
@@ -210,15 +210,15 @@ async function scheduleStations(flowObject) {
 }
 
 exports.editService = tryCatch(async (req, res) => {
-  let requestId = req.body.requestId;
+  const requestId = req.body.requestId;
   if (!requestId)
     return res
       .status(400)
       .json({ result: false, message: "request  id mandatory" });
-  let selectQuery = `SELECT DISTINCT("requestId"),(SELECT COUNT(*) FROM "reqServiceSequences" INNER JOIN "reqCandidates" ON "candidateId"="reqServiceSequences"."serviceCandidate" WHERE "reqServiceSequences"."serviceServiceRequst"= ?) AS "candidateCount"
+  const selectQuery = `SELECT DISTINCT("requestId"),(SELECT COUNT(*) FROM "reqServiceSequences" INNER JOIN "reqCandidates" ON "candidateId"="reqServiceSequences"."serviceCandidate" WHERE "reqServiceSequences"."serviceServiceRequst"= ?) AS "candidateCount"
         FROM "reqServiceRequests" as "service" INNER JOIN "reqTeams" ON "service"."requestTeam" = "teamId"
             WHERE "service"."requestId"=?`;
-  let [data, metadata] = await sequelize.query(selectQuery, {
+  const [data, metadata] = await sequelize.query(selectQuery, {
     replacements: [requestId, requestId],
   });
   if (!data.length)
@@ -231,26 +231,26 @@ exports.editService = tryCatch(async (req, res) => {
       message: "Not able to delete this requirement, because candidates added",
     });
 
-  let toDate = moment().format("YYYY-MM-DD");
+  const toDate = moment().format("YYYY-MM-DD");
   const transformedObject = {
     ...req.body,
     requestSkills: req.body.requestSkills.join(","),
   };
-  let requestFlowStations = req.body.requestFlowStations;
-  let requestDesignation = req.body.requestDesignation;
+  const requestFlowStations = req.body.requestFlowStations;
+  const requestDesignation = req.body.requestDesignation;
   let service;
 
-  let serviceRequestName = transformedObject.requestName; // + "-" + team.teamName + "-" + toDate;
+  const serviceRequestName = transformedObject.requestName; // + "-" + team.teamName + "-" + toDate;
   transformedObject.requestName = serviceRequestName;
-  let esistingServiceRequest = await reqServiceRequest.findOne({
+  const esistingServiceRequest = await reqServiceRequest.findOne({
     where: { requestId },
   });
 
   //keep entry in service table
-  let esistingService = await reqServices.findOne({
+  const esistingService = await reqServices.findOne({
     where: { sericeId: esistingServiceRequest.requestServiceId },
   });
-  let [servicedata, metaData] = await sequelize.query(
+  const [servicedata, metaData] = await sequelize.query(
     `UPDATE "reqServices" SET "sericeName"=:sericeName 
             WHERE "sericeName"=:sericeName RETURNING "sericeId"`,
     {
@@ -260,15 +260,15 @@ exports.editService = tryCatch(async (req, res) => {
     }
   );
   if (typeof requestDesignation === "string") {
-    let designation = await reqDesignation.create({
+    const designation = await reqDesignation.create({
       designationName: requestDesignation,
     });
     transformedObject.requestDesignation = designation.designationId;
   }
-  let serviceId = servicedata[0]?.sericeId;
+  const serviceId = servicedata[0]?.sericeId;
   transformedObject.requestServiceId = serviceId;
   service = await esistingServiceRequest.update(transformedObject);
-  let flowObject = {
+  const flowObject = {
     flowServiceId: serviceId,
     flowStations: requestFlowStations,
   };
@@ -282,16 +282,16 @@ exports.editService = tryCatch(async (req, res) => {
 });
 
 exports.deleteService = tryCatch(async (req, res) => {
-  let requestId = req.body.requestId;
+  const requestId = req.body.requestId;
   if (!requestId)
     return res
       .status(400)
       .json({ result: false, message: "request  id mandatory" });
-  let selectQuery = `SELECT DISTINCT("requestId"),"requestServiceId",(SELECT COUNT(*) FROM "reqServiceSequences" INNER JOIN "reqCandidates" ON "candidateId"="reqServiceSequences"."serviceCandidate" WHERE "reqServiceSequences"."serviceServiceRequst"= ?) AS "candidateCount"
+  const selectQuery = `SELECT DISTINCT("requestId"),"requestServiceId",(SELECT COUNT(*) FROM "reqServiceSequences" INNER JOIN "reqCandidates" ON "candidateId"="reqServiceSequences"."serviceCandidate" WHERE "reqServiceSequences"."serviceServiceRequst"= ?) AS "candidateCount"
         FROM "reqServiceRequests" as "service" INNER JOIN "reqTeams" ON "service"."requestTeam" = "teamId"
             WHERE "service"."requestId"=?`;
 
-  let [data, metadata] = await sequelize.query(selectQuery, {
+  const [data, metadata] = await sequelize.query(selectQuery, {
     replacements: [requestId, requestId],
   });
   if (!data.length)
@@ -307,7 +307,7 @@ exports.deleteService = tryCatch(async (req, res) => {
   await reqServiceFlow.destroy({
     where: { flowServiceId: data[0].requestServiceId },
   });
-  let deletedService = await reqServiceRequest.destroy({
+  const deletedService = await reqServiceRequest.destroy({
     where: { requestId },
   });
 
@@ -323,8 +323,8 @@ exports.deleteService = tryCatch(async (req, res) => {
 });
 
 exports.viewService = tryCatch(async (req, res) => {
-  let requestId = req.query.requestId;
-  let validRequest = await reqServiceRequest.findOne({
+  const requestId = req.query.requestId;
+  const validRequest = await reqServiceRequest.findOne({
     include: [
       {
         model: reqTeam,
@@ -376,8 +376,8 @@ exports.viewService = tryCatch(async (req, res) => {
       ],
     },
   });
-  let requestServiceId = validRequest.requestServiceId;
-  let flows = await reqServiceFlow.findAll({
+  const requestServiceId = validRequest.requestServiceId;
+  const flows = await reqServiceFlow.findAll({
     where: { flowServiceId: requestServiceId },
   });
   if (!validRequest)
@@ -416,7 +416,7 @@ exports.partialServiceEdit = tryCatch(async (req, res) => {
 
   //create designtion  if string
   if (/^\d+$/.test(requestDesignation) == false&&requestDesignation!=undefined) {
-    let designation = await reqDesignation.create({
+    const designation = await reqDesignation.create({
       designationName: requestDesignation,
     });
     updatePayload.requestDesignation = designation.designationId;
@@ -461,7 +461,7 @@ exports.requestActive = tryCatch(async (req, res) => {
 });
 
 exports.activeServicesList = tryCatch(async (req, res) => {
-  let search = req.query.search;
+  const search = req.query.search;
   const toDate = new Date();
   const fromDate = new Date();
   fromDate.setMonth(fromDate.getMonth() - 3);

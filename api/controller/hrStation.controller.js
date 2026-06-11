@@ -1,31 +1,31 @@
-let moment = require('moment');
-let { Op } = require('sequelize');
-let mailFunction = require('../utils/nodeMail');
+const moment = require('moment');
+const { Op } = require('sequelize');
+const mailFunction = require('../utils/nodeMail');
 const { tryCatch } = require("../utils/trycatch");
-let { excelGenerator, } = require('../utils/excelGenerator');
-let { reqServiceSequence, reqCandidates, reqServiceRequest,
+const { excelGenerator, } = require('../utils/excelGenerator');
+const { reqServiceSequence, reqCandidates, reqServiceRequest,
   reqUser, reqHrReview, reqServices, reqCandidateComments,
   sequelize, Sequelize, reqReport, reqServiceSequencesAcitve,
   reqCandidateProgress, reqProgressSkill, reqOfferAttachments,reqTeam } = require("../../models");
-let { updateReportData, logFunction, reqestionStatusUpdate, reqcuriterReport, isRequestionClosed } = require('../utils/commonFunction');
+const { updateReportData, logFunction, reqestionStatusUpdate, reqcuriterReport, isRequestionClosed } = require('../utils/commonFunction');
 const e = require('express');
 const response = require("../../api/utils/responseMessages");
 
 
 exports.list = tryCatch(async (req, res) => {
-  let report = req.query.report;
-  let search = req.query.search;
-  let statusFilter = req.query.status_filter;
-  let position = req.query.position;
+  const report = req.query.report;
+  const search = req.query.search;
+  const statusFilter = req.query.status_filter;
+  const position = req.query.position;
   let ids = req.query.ids;
   let limit = req.query.limit || 100;
   let offset = req.query.page || 0;
-  let experience = req.query.experience;
-  let fromDate = req.query.fromDate ? new Date(moment(req.query.fromDate).format('YYYY-MM-DD')) : "";
+  const experience = req.query.experience;
+  const fromDate = req.query.fromDate ? new Date(moment(req.query.fromDate).format('YYYY-MM-DD')) : "";
   let toDate = req.query.toDate;
   if (toDate) {
     // Parse the toDate using Moment.js
-    let momentDate = moment(toDate);
+    const momentDate = moment(toDate);
 
     // Set the time to 12 PM
     momentDate.set({
@@ -45,7 +45,7 @@ exports.list = tryCatch(async (req, res) => {
     offset = (offset - 1) * limit;
   }
 
-  let where = { serviceStation: 5 };
+  const where = { serviceStation: 5 };
   if (fromDate && toDate) where.serviceDate = { [Op.between]: [fromDate, toDate] }
   if (statusFilter) where.serviceStatus = statusFilter;
   if (position) where.serviceServiceRequst = position;
@@ -74,7 +74,7 @@ exports.list = tryCatch(async (req, res) => {
 
   }
 
-  let include = [
+  const include = [
     {
       model: reqServiceRequest,
       as: "serviceRequest",
@@ -117,7 +117,7 @@ exports.list = tryCatch(async (req, res) => {
     raw: true, limit, offset,
     where, order: [['serviceId', 'DESC']]
   });
-  let totalCount = await reqServiceSequencesAcitve.count({ where, include });
+  const totalCount = await reqServiceSequencesAcitve.count({ where, include });
 
   if (candidates) {
     candidates = candidates.map((c) => {
@@ -133,7 +133,7 @@ exports.list = tryCatch(async (req, res) => {
   }
 
   if (report == 'true' && candidates) {
-    let head = [{ header: "Request Name", key: "requestName", width: 10 },
+    const head = [{ header: "Request Name", key: "requestName", width: 10 },
     { header: "Candidate First Name", key: "candidateFirstName", width: 25 },
     { header: "Candidate Last Name", key: "candidateLastName", width: 15 },
     { header: "Candidate Experience", key: "candidateExperience", width: 15 },
@@ -157,7 +157,7 @@ exports.list = tryCatch(async (req, res) => {
     },
     { header: "Candidate Station Status", key: "candidateStationStatus", width: 10 }];
 
-    let body = candidates.map((le) => {
+    const body = candidates.map((le) => {
       return {
         requestName: le['serviceRequest.requestName'],
         candidateFirstName: le['candidate.candidateFirstName'],
@@ -172,7 +172,7 @@ exports.list = tryCatch(async (req, res) => {
         candidateStationStatus: le['serviceStatus']
       };
     });
-    let name = `candidates_technical_1_${moment().format('yyyymmddHHMMSS')}`;
+    const name = `candidates_technical_1_${moment().format('yyyymmddHHMMSS')}`;
     excelGenerator(req, res, head, body, name);
     return;
   }
@@ -189,13 +189,13 @@ exports.list = tryCatch(async (req, res) => {
 
 
 exports.fetchFinalCandidte = tryCatch(async (req, res) => {
-  let serviceId = req.query.serviceId;
-  let hrReviewInclude = { model: reqHrReview };
+  const serviceId = req.query.serviceId;
+  const hrReviewInclude = { model: reqHrReview };
   if (req.userRole == 'visitor') {
     hrReviewInclude.attributes = { exclude: ["reviewedSalary"] };
   }
 
-  let candidates = await reqServiceSequence.findOne({
+  const candidates = await reqServiceSequence.findOne({
     attributes: [
       "serviceId",
       "serviceStation",
@@ -251,7 +251,7 @@ exports.fetchFinalCandidte = tryCatch(async (req, res) => {
   //here we have to add last station review also----------------------------------
 
   if (candidates) {
-    let candidateComments = await reqCandidateComments.findOne({
+    const candidateComments = await reqCandidateComments.findOne({
       where: { commentSeqenceId: serviceId },
       order: [['commentId', 'DESC']]
     });
@@ -292,14 +292,14 @@ exports.fetchFinalCandidte = tryCatch(async (req, res) => {
 
 
 exports.candidateOffers = tryCatch(async (req, res) => {
-  let { offerServiceSeqId, offerSalary, offerRleasedBy, offerDescription, offerJoinDate, offerMailTemp, offerMailSubject, offerMailBackCc, offerMailBackBcc, attachmentArray } = req.body;
+  const { offerServiceSeqId, offerSalary, offerRleasedBy, offerDescription, offerJoinDate, offerMailTemp, offerMailSubject, offerMailBackCc, offerMailBackBcc, attachmentArray } = req.body;
 
-  let requestionActive = await isRequestionClosed(offerServiceSeqId);
+  const requestionActive = await isRequestionClosed(offerServiceSeqId);
   if (!requestionActive) return res
     .status(400)
     .json({ result: false, message: "Requestion is closed No action Can be taken." })
 
-  let serviceSeq = await reqServiceSequence.findOne({ where: { serviceId: offerServiceSeqId } });
+  const serviceSeq = await reqServiceSequence.findOne({ where: { serviceId: offerServiceSeqId } });
   if (!serviceSeq) return res.status(401).json({ result: false, message: "offerServiceSeqId Not Found" });
 
   const [progress, created] = await reqHrReview.findOrCreate({
@@ -313,7 +313,7 @@ exports.candidateOffers = tryCatch(async (req, res) => {
   });
 
   await updateReportData('offerReleased', offerRleasedBy, serviceSeq.serviceServiceRequst);
-  let getCandidateMail = await reqCandidates.findOne({ where: { candidateId: serviceSeq.serviceCandidate } });
+  const getCandidateMail = await reqCandidates.findOne({ where: { candidateId: serviceSeq.serviceCandidate } });
   if (getCandidateMail) {
 
     await mailFunction.sendEmail(
@@ -322,7 +322,7 @@ exports.candidateOffers = tryCatch(async (req, res) => {
       offerMailTemp, offerMailBackCc, offerMailBackBcc, attachmentArray
     );
   }
-  let attachmentsData = attachmentArray.map(el => {
+  const attachmentsData = attachmentArray.map(el => {
     return {
       candidateId: serviceSeq.serviceCandidate,
       attachmentPath: el.filename,
@@ -349,22 +349,22 @@ exports.candidateOffers = tryCatch(async (req, res) => {
 
 
 exports.candidateToUser = tryCatch(async (req, res) => {
-  let toDate = moment().format('YYYY-MM-DD');
-  let { serviceSeqId, feedBack, feedBackBy } = req.body;
+  const toDate = moment().format('YYYY-MM-DD');
+  const { serviceSeqId, feedBack, feedBackBy } = req.body;
 
-  let requestionActive = await isRequestionClosed(serviceSeqId);
+  const requestionActive = await isRequestionClosed(serviceSeqId);
   if (!requestionActive) return res
     .status(400)
     .json({ result: false, message: "Requestion is closed No action Can be taken." })
 
-  let getCandidateService = await reqServiceSequence.findOne({
+  const getCandidateService = await reqServiceSequence.findOne({
     where: { serviceId: serviceSeqId, serviceStatus: 'pending' },
     include: [{ model: reqCandidates, as: 'candidate', required: true }, { model: reqServices }]
   });
 
   if (!getCandidateService) return res.status(401).json({ result: false, message: "There's nothing to add as user" });
   await reqCandidateComments.create({ commentSeqenceId: serviceSeqId, commentComment: feedBack, commentUserId: feedBackBy, offerReleaseReject: 1 });
-  let userData = {
+  const userData = {
     userfirstName: getCandidateService.candidate.candidateFirstName,
     userlastName: getCandidateService.candidate.candidateLastName,
     userEmail: getCandidateService.candidate.candidateEmail,
@@ -377,8 +377,8 @@ exports.candidateToUser = tryCatch(async (req, res) => {
 
   await offerAccepetedCount(getCandidateService.serviceCandidate, feedBackBy);
   logFunction(getCandidateService.candidate.candidateId, feedBackBy, `Offer Accepted`, 5);
-  let subject = 'Onboard';
-  let message = 'You had joined as an Employee in Techversant Infotech';
+  const subject = 'Onboard';
+  const message = 'You had joined as an Employee in Techversant Infotech';
   mailFunction.sendEmail(getCandidateService.candidate.candidateEmail, subject, message);
   await sequelize.query(`UPDATE "reqCandidates" SET "candidateInterviewStatus"='hired' WHERE "candidateId"=${getCandidateService.candidate.candidateId}`);
   await reqUser.create(userData);//add candidate to user
@@ -454,7 +454,7 @@ async function offerAccepetedCount(candidateId, userId) {
 }
 
 exports.addProgress = tryCatch(async (req, res) => {
-  let {
+  const {
     progressAssignee,
     progressSkill,
     progressServiceId,
@@ -478,12 +478,12 @@ exports.addProgress = tryCatch(async (req, res) => {
       .status(400)
       .json({ result: false, message: "ProgressDescription required" });
 
-  let requestionActive = await isRequestionClosed(progressServiceId);
+  const requestionActive = await isRequestionClosed(progressServiceId);
   if (!requestionActive) return res
     .status(400)
     .json({ result: false, message: "Requestion is closed No action Can be taken." })
 
-  let defaultData = {
+  const defaultData = {
 
     progressStation: 5,
     progressVerifiedBy: progressAssignee,
@@ -516,7 +516,7 @@ exports.addProgress = tryCatch(async (req, res) => {
     commentUserId: progressAssignee,
   });
   if (created) {
-    let candidate = await reqServiceSequence.findOne({ attributes: ['serviceCandidate', 'serviceStation', 'serviceServiceRequst'], where: { serviceId: progressServiceId } });
+    const candidate = await reqServiceSequence.findOne({ attributes: ['serviceCandidate', 'serviceStation', 'serviceServiceRequst'], where: { serviceId: progressServiceId } });
 
     if (candidate.serviceStation == 5 && progressDescription == 'Selected') {
       logFunction(candidate.serviceCandidate, progressAssignee, 'Offer Released', 5, candidate.serviceServiceRequst);

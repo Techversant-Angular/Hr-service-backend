@@ -14,15 +14,15 @@ let jsonData = require("../utils/userRignts.json");
 const { tryCatch } = require("../utils/trycatch");
 
 exports.createCandidate = tryCatch(async (req, res) => {
-  let { ...parameter } = req.body;
-  let {
+  const { ...parameter } = req.body;
+  const {
     candidateEmail,
     candidateCreatedby,
     candidatesAddingAgainst,
     resumeSourceId,
   } = parameter;
 
-  let sourcedString = `Candidate Sourced From ${jsonData.sourceList[resumeSourceId]}`;
+  const sourcedString = `Candidate Sourced From ${jsonData.sourceList[resumeSourceId]}`;
   const candidateIspresent = await reqCandidates.findOne({
     where: {
       candidateEmail,
@@ -31,8 +31,8 @@ exports.createCandidate = tryCatch(async (req, res) => {
   });
 
   if (!candidateIspresent) {
-    let candiate = await reqCandidates.create(parameter);
-    let candidateId = candiate.candidateId;
+    const candiate = await reqCandidates.create(parameter);
+    const candidateId = candiate.candidateId;
     await addSkills(candidateId, parameter);
     // if (candidatesAddingAgainst) await profileSourceReport(candidateCreatedby, candidatesAddingAgainst, [resumeSourceId]);
 
@@ -46,12 +46,13 @@ exports.createCandidate = tryCatch(async (req, res) => {
       .status(200)
       .json({ status: true, message: "Candidate Created Successfully" });
   }
+
   const sixthMonthDate = getSixthMonthDate(candidateIspresent.createdAt);
   const currentDate = moment();
   const currentDateGreaterThis = moment(sixthMonthDate);
   if (currentDate.isAfter(currentDateGreaterThis)) {
-    let candidate = await reqCandidates.create(parameter);
-    let candidateId = candidate.candidateId;
+    const candidate = await reqCandidates.create(parameter);
+    const candidateId = candidate.candidateId;
     // if (candidatesAddingAgainst) await profileSourceReport(candidateCreatedby, candidatesAddingAgainst, [resumeSourceId]);
 
     logFunction(candidateId, candidateCreatedby, sourcedString, 1);
@@ -75,8 +76,8 @@ exports.createCandidate = tryCatch(async (req, res) => {
 });
 
 exports.editCandidate = tryCatch(async (req, res) => {
-  let { ...parameter } = req.body;
-  let { candidateId } = parameter;
+  const { ...parameter } = req.body;
+  const { candidateId } = parameter;
 
   const candidateIspresent = await reqCandidates.findOne({
     where: {
@@ -88,7 +89,7 @@ exports.editCandidate = tryCatch(async (req, res) => {
     return res
       .status(401)
       .json({ status: false, message: response.CANDIDATE_NOT_FOUND });
-  let updatedCandidate = await reqCandidates.update(parameter, {
+  const updatedCandidate = await reqCandidates.update(parameter, {
     where: { candidateId },
   });
   await addSkills(candidateId, parameter);
@@ -102,17 +103,17 @@ exports.editCandidate = tryCatch(async (req, res) => {
 });
 
 exports.listCandidates = tryCatch(async (req, res) => {
-  let report = req.query.report;
+  const report = req.query.report;
   let limit = req.query.limit || 100;
   let offset = req.query.page || 0;
-  let experience = req.query.exprience;
+  const experience = req.query.exprience;
   let ids = req.query.ids;
 
-  let search = req.query.search ? decodeURIComponent(req.query.search) : req.query.search;
-  let skills = req.query.skills;
-  let recuriter = req.query.recuriter;
-  let serviceRequestId = req.query.serviceRequestId;
-  let where = {
+  const search = req.query.search ? decodeURIComponent(req.query.search) : req.query.search;
+  const skills = req.query.skills;
+  const recuriter = req.query.recuriter;
+  const serviceRequestId = req.query.serviceRequestId;
+  const where = {
     candidateStatus: "active",
   };
   if (limit && offset) {
@@ -120,8 +121,8 @@ exports.listCandidates = tryCatch(async (req, res) => {
     offset = (offset - 1) * limit;
   }
   // this statement is used to filter candidates in service request
-  let data = req.url.split("/");
-  let urlCandidates = data.includes("candidates");
+  const data = req.url.split("/");
+  const urlCandidates = data.includes("candidates");
   if (urlCandidates) {
     where.candidateStation = {
       [Op.is]: null,
@@ -154,15 +155,15 @@ exports.listCandidates = tryCatch(async (req, res) => {
       Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidatePreviousOrg')), { [Op.like]: `%${searchLower}%` }),
     ];
   }
-  let recuriterCondition = { where: {} };
+  const recuriterCondition = { where: {} };
   if (recuriter) {
     recuriterCondition.where = { userId: recuriter };
   }
-  let candidateSkill = {};
+  const candidateSkill = {};
   if (skills) {
     candidateSkill.candidateSkillId = skills;
   }
-  let include = [
+  const include = [
     { model: reqServiceRequest, attributes: ["requestName", "requestId"] },
     {
       model: reqCandidateRequestion,as: "candidateReqst",
@@ -193,13 +194,13 @@ exports.listCandidates = tryCatch(async (req, res) => {
     [Op.in]: results.map((result) => result.candidateId),
   };
 
-  let candidateCount = await reqCandidates.count({
+  const candidateCount = await reqCandidates.count({
     include,
     where,
     distinct: true,
   });
 
-  let candidates = await reqCandidates.findAll({
+  const candidates = await reqCandidates.findAll({
     include,
     attributes: { exclude: ["candidateCurrentSalary", "candidateExpectedSalary"] },
     where,
@@ -212,7 +213,7 @@ exports.listCandidates = tryCatch(async (req, res) => {
   });
 
   if (report == "true" && candidates) {
-    let head = [
+    const head = [
       { header: "Candidate Id", key: "candidateId", width: 10 },
       {
         header: "Candidate First Name",
@@ -251,7 +252,7 @@ exports.listCandidates = tryCatch(async (req, res) => {
       { header: "candidate Education", key: "candidateEducation", width: 10 },
     ];
 
-    let body = candidates.map((le) => {
+    const body = candidates.map((le) => {
       return {
         candidateId: le.candidateId,
         candidateFirstName: le.candidateFirstName,
@@ -267,7 +268,7 @@ exports.listCandidates = tryCatch(async (req, res) => {
         candidateEducation: le.candidateEducation,
       };
     });
-    let name = `candidates${moment().format("yyyymmddHHMMSS")}`;
+    const name = `candidates${moment().format("yyyymmddHHMMSS")}`;
     excelGenerator(req, res, head, body, name);
     return;
   }
@@ -291,22 +292,22 @@ exports.listCandidates = tryCatch(async (req, res) => {
 });
 
 exports.candidateCompareList = tryCatch(async (req, res) => {
-  let report = req.query.report;
+  const report = req.query.report;
   let limit = req.query.limit || 100;
   let offset = req.query.page || 0;
-  let experience = req.query.exprience;
-  let search = req.query.search ? decodeURIComponent(req.query.search) : req.query.search;
-  let skills = req.query.skills;
-  let recuriter = req.query.recuriter;
-  let serviceRequestId = req.query.serviceRequestId;
-  let where = { candidateStatus: "active" };
+  const experience = req.query.exprience;
+  const search = req.query.search ? decodeURIComponent(req.query.search) : req.query.search;
+  const skills = req.query.skills;
+  const recuriter = req.query.recuriter;
+  const serviceRequestId = req.query.serviceRequestId;
+  const where = { candidateStatus: "active" };
   if (limit && offset) {
     limit = limit;
     offset = (offset - 1) * limit;
   }
   // this statement is used to filter candidates in service request
-  let data = req.url.split("/");
-  let urlCandidates = data.includes("candidates");
+  const data = req.url.split("/");
+  const urlCandidates = data.includes("candidates");
   if (urlCandidates) {
     where.candidateStation = {
       [Op.is]: null,
@@ -335,15 +336,15 @@ exports.candidateCompareList = tryCatch(async (req, res) => {
       { candidatePreviousOrg: { [Op.iLike]: `${search}%` } },
     ];
   }
-  let recuriterCondition = { where: {} };
+  const recuriterCondition = { where: {} };
   if (recuriter) {
     recuriterCondition.where = { userId: recuriter };
   }
-  let candidateSkill = {};
+  const candidateSkill = {};
   if (skills) {
     candidateSkill.candidateSkillId = skills;
   }
-  let include = [
+  const include = [
     {
       model: reqUser,
       as: "createdBy",
@@ -361,13 +362,13 @@ exports.candidateCompareList = tryCatch(async (req, res) => {
     },
   ];
 
-  let candidateCount = await reqCandidates.count({
+  const candidateCount = await reqCandidates.count({
     include,
     where,
     distinct: true,
   });
 
-  let candidates = await reqCandidates.findAll({
+  const candidates = await reqCandidates.findAll({
     include,
     attributes: { exclude: ["createdAt", "updatedAt", "candidateCurrentSalary", "candidateExpectedSalary"] },
     where,
@@ -376,7 +377,7 @@ exports.candidateCompareList = tryCatch(async (req, res) => {
     order: [["candidateId", "DESC"]],
   });
   if (report && candidates) {
-    let head = [
+    const head = [
       { header: "Candidate Id", key: "candidateId", width: 10 },
       {
         header: "Candidate First Name",
@@ -415,7 +416,7 @@ exports.candidateCompareList = tryCatch(async (req, res) => {
       { header: "candidate Education", key: "candidateEducation", width: 10 },
     ];
 
-    let body = candidates.map((le) => {
+    const body = candidates.map((le) => {
       return {
         candidateId: le.candidateId,
         candidateFirstName: le.candidateFirstName,
@@ -431,7 +432,7 @@ exports.candidateCompareList = tryCatch(async (req, res) => {
         candidateEducation: le.candidateEducation,
       };
     });
-    let name = `candidates${moment().format("yyyymmddHHMMSS")}`;
+    const name = `candidates${moment().format("yyyymmddHHMMSS")}`;
     excelGenerator(req, res, head, body, name);
     return;
   }
@@ -447,7 +448,7 @@ exports.candidateCompareList = tryCatch(async (req, res) => {
 
 exports.viewCandidate = tryCatch(async (req, res) => {
 
-  let candidateId = req.params.candidateId;
+  const candidateId = req.params.candidateId;
   if (!candidateId) {
     return res
       .status(401)
@@ -519,7 +520,7 @@ exports.viewCandidate = tryCatch(async (req, res) => {
       comments = [];
     }
   }
-  let candidate = await sequelize.query(`SELECT
+  const candidate = await sequelize.query(`SELECT
         "reqCandidates"."candidateId",
         "reqCandidates"."candidateFirstName",
         "reqCandidates"."candidateLastName",
@@ -589,11 +590,11 @@ exports.viewCandidate = tryCatch(async (req, res) => {
       .json({ result: false, message: response.CANDIDATE_NOT_FOUND });
   }
 
-  let candidateData = await Promise.all(
+  const candidateData = await Promise.all(
     candidate[0].map(async (elm, i) => {
       elm.candidateStatus = candidateStatus;
       // Fetch positions for each candidate using their specific email
-      let positions = await reqCandidates.findAll({
+      const positions = await reqCandidates.findAll({
         attributes: ["candidatesAddingAgainst"],
         where: { candidateEmail: elm.candidateEmail }, // Use elm.candidateEmail here
         include: [
@@ -664,7 +665,7 @@ async function addSkills(candidateId, parameter) {
 
 exports.resumeSourceList = tryCatch(async (req, res) => {
 
-  let sources = await reqCandidateResumeSource.findAll({});
+  const sources = await reqCandidateResumeSource.findAll({});
   return res
     .status(200)
     .json({ result: true, message: response.DATA_RETRIEVED, data: sources });
@@ -689,8 +690,8 @@ async function entryInSequence(requrestId, candidateId, createdBy) {
 
 exports.candiateMailList = tryCatch(async (req, res, next) => {
 
-  let search = req.query.search ? decodeURIComponent(req.query.search) : req.query.search;
-  let where = { candidateStatus: "active" };
+  const search = req.query.search ? decodeURIComponent(req.query.search) : req.query.search;
+  const where = { candidateStatus: "active" };
   if (search) {
     const searchLower = search.toLowerCase();
     where[Op.or] = [
@@ -706,7 +707,7 @@ exports.candiateMailList = tryCatch(async (req, res, next) => {
     ];
   }
 
-  let candidatesMail = await reqCandidates.findAll({
+  const candidatesMail = await reqCandidates.findAll({
     attributes: [
       "candidateId",
       "candidateFirstName",
@@ -726,8 +727,8 @@ exports.candiateMailList = tryCatch(async (req, res, next) => {
 
 exports.removeCandidate = tryCatch(async (req, res, next) => {
 
-  let candidateId = req.body.candidateId;
-  let getInterviewStatus = await reqServiceSequence.findAll({
+  const candidateId = req.body.candidateId;
+  const getInterviewStatus = await reqServiceSequence.findAll({
     where: {
       serviceCandidate: candidateId,
       serviceStation: { [Op.is]: null },
@@ -741,7 +742,7 @@ exports.removeCandidate = tryCatch(async (req, res, next) => {
       message:
         "candidte is not in screening station, So you are not able to Delte.j",
     });
-  let candidate = await reqCandidates.findOne({
+  const candidate = await reqCandidates.findOne({
     where: { candidateId: candidateId, candidateStatus: "active" },
   });
   if (!candidate)
@@ -755,7 +756,7 @@ exports.removeCandidate = tryCatch(async (req, res, next) => {
         "cannot delete candidate because candidate moved to interview slots",
     });
 
-  let removedCandidate = await reqCandidates.update(
+  const removedCandidate = await reqCandidates.update(
     { candidateStatus: "inactive" },
     { where: { candidateId: candidateId } }
   );
@@ -769,7 +770,8 @@ exports.removeCandidate = tryCatch(async (req, res, next) => {
 
 exports.addNewSkill = tryCatch(async (req, res) => {
 
-  let { skillName, typeId } = req.query;
+  let { skillName } = req.query;
+  const { typeId } = req.query;
 
   if (!skillName)
     return res
@@ -811,7 +813,7 @@ exports.addNewSkill = tryCatch(async (req, res) => {
 });
 
 exports.deleteSkill = tryCatch(async (req, res, next) => {
-  let skillId = req.params.id;
+  const skillId = req.params.id;
 
   if (!skillId) {
     return res.status(400).json({
@@ -820,7 +822,7 @@ exports.deleteSkill = tryCatch(async (req, res, next) => {
     });
   }
 
-  let skillRemoved = await reqSkill.destroy({ where: { id: skillId } });
+  const skillRemoved = await reqSkill.destroy({ where: { id: skillId } });
 
   if (skillRemoved) {
     return res.status(200).json({
@@ -837,10 +839,10 @@ exports.deleteSkill = tryCatch(async (req, res, next) => {
 
 exports.candidateHistory = tryCatch(async (req, res) => {
 
-  let email = req.query.email;
-  let userRole = req.userRole
+  const email = req.query.email;
+  const userRole = req.userRole
 
-  let query = `
+  const query = `
 SELECT  
     "reqCandidates"."candidateId",  
     "reqCandidates"."candidateFirstName",
@@ -891,19 +893,19 @@ GROUP BY
     "requestName",
     "requestId";
 `;
-  let [data] = await sequelize.query(query, { replacements: { email } });
+  const [data] = await sequelize.query(query, { replacements: { email } });
 
-  let candidateId = data[0]?.candidateId;
+  const candidateId = data[0]?.candidateId;
   if (!candidateId) return res.status(200).json({ history: data });
 
   for (let i = 0; i < data.length; i++) {
-    let positionId = data[i].positionId;
+    const positionId = data[i].positionId;
 
     /*
     ATTACHMENTS QUERY
     */
 
-    let query2 = `
+    const query2 = `
     SELECT
         "stationName" AS "station",
         "progressFile" AS "uploadedFile",
@@ -953,7 +955,7 @@ GROUP BY
     WHERE "candidateId" = :candidateId
     `;
 
-    let [attachedData] = await sequelize.query(query2, {
+    const [attachedData] = await sequelize.query(query2, {
       replacements: { candidateId, positionId },
     });
 
@@ -963,7 +965,7 @@ GROUP BY
     HISTORY DETAILS
     */
 
-    let [historyDetail] = await sequelize.query(
+    const [historyDetail] = await sequelize.query(
       `
       SELECT
           "action" AS "historyType",
@@ -998,7 +1000,7 @@ GROUP BY
     */
 
     if (req.userRole !== 4 && req.userRole !== 2) {
-      let [feedbackDetail] = await sequelize.query(
+      const [feedbackDetail] = await sequelize.query(
         `
         SELECT
             "commentComment" AS "feedbackMessage",

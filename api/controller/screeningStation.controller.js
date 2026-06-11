@@ -43,10 +43,10 @@ const {
 
 //assign the service and candidate to the screening station
 exports.groupCandidate = tryCatch(async (req, res) => {
-  let { serviceStation = 1, serviceServiceRequst, serviceCandidates, serviceAssignee, serviceDate, } = req.body;
-  let toDate = moment().format("YYYY-MM-DD");
+  const { serviceStation = 1, serviceServiceRequst, serviceCandidates, serviceAssignee, serviceDate, } = req.body;
+  const toDate = moment().format("YYYY-MM-DD");
 
-  let service = await reqServiceRequest.findOne({
+  const service = await reqServiceRequest.findOne({
     where: { requestId: serviceServiceRequst },
     raw: true,
   });
@@ -55,7 +55,7 @@ exports.groupCandidate = tryCatch(async (req, res) => {
     return res
       .status(401)
       .json({ result: false, message: "Not a valid request Id" });
-  let serviceServiceId = service.requestServiceId;
+  const serviceServiceId = service.requestServiceId;
   await Promise.all(
     serviceCandidates.map(async (element) => {
       let reqSequence = await reqServiceSequence.findOne({
@@ -226,11 +226,11 @@ exports.groupListsv1 = tryCatch(async (req, res) => {
 //verifiy and move the service to next station
 exports.acceptCandidateService = tryCatch(async (req, res) => {
 
-  let toDayDate = moment().format("YYYY-MM-DD");
-  let { serviceIds, requestId } = req.body;
-  let serviceIndex = serviceIds.length - 1;
-  let userId = req.userId;
-  let numberOfCandidates = serviceIds.length;
+  const toDayDate = moment().format("YYYY-MM-DD");
+  const { serviceIds, requestId } = req.body;
+  const serviceIndex = serviceIds.length - 1;
+  const userId = req.userId;
+  const numberOfCandidates = serviceIds.length;
   await interviewScheduledCount(
     userId,
     requestId,
@@ -273,13 +273,13 @@ exports.acceptCandidateService = tryCatch(async (req, res) => {
 
 exports.batchCandidates = tryCatch(async (req, res) => {
 
-  let requestId = req.params.requestId;
-  let search = req.query.search ? decodeURIComponent(req.query.search) : req.query.search;
-  let status = req.query.status;
-  let station = req.query.station || 1;
+  const requestId = req.params.requestId;
+  const search = req.query.search ? decodeURIComponent(req.query.search) : req.query.search;
+  const status = req.query.status;
+  const station = req.query.station || 1;
   let limit = req.query.limit || 10;
   let offset = req.query.page || 0;
-  let experience = req.query.experience;
+  const experience = req.query.experience;
 
   let candidateWhere = { where: {} };
   if (experience) candidateWhere.where = { candidateExperience: experience };
@@ -309,10 +309,10 @@ exports.batchCandidates = tryCatch(async (req, res) => {
   }
 
   //Add status filter
-  let normalizedSearch =
+  const normalizedSearch =
     search ? search.toLowerCase().trim() : null;
 
-  let statusMap = {
+  const statusMap = {
     "shortlisted": "done",
     "in_progress": "pending",
     "cancelled": "cancelled",
@@ -411,7 +411,7 @@ exports.batchCandidates = tryCatch(async (req, res) => {
 
   });
 
-  let candidateCount = await reqCandidates.count({
+  const candidateCount = await reqCandidates.count({
     include: [
       {
         model: reqServiceSequence,
@@ -464,27 +464,27 @@ exports.batchCandidates = tryCatch(async (req, res) => {
 });
 
 exports.interviewDetail = tryCatch(async (req, res) => {
-  let { recruiterId, candidateId, noticePeriod, location, interviewTime, interViewPanel,
+  const { recruiterId, candidateId, noticePeriod, location, interviewTime, interViewPanel,
     interviewMode, rescheduleStatus, comments, position, serviceId, workMode, station,
     interviewCc, interviewMailTemp, interviewSubject, interviewBcc, attachmentArray } = req.body;
 
-  let todate = moment().format("YYYY-MM-DD");
-  let logData = {
+  const todate = moment().format("YYYY-MM-DD");
+  const logData = {
     station,
     senderId: recruiterId,
     reciverId: candidateId,
     type: "",
   };
-  let status = "shorted";
-  let serviceRequest = position;
-  let candidate = await reqCandidates.findOne({
+  const status = "shorted";
+  const serviceRequest = position;
+  const candidate = await reqCandidates.findOne({
     where: { candidateId: candidateId },
   });
   if (!candidate)
     return res
       .status(401)
       .json({ result: false, message: response.CANDIDATE_NOT_FOUND });
-  let service = await reqServiceRequest.findOne({
+  const service = await reqServiceRequest.findOne({
     where: { requestId: position },
     raw: true,
   });
@@ -493,23 +493,23 @@ exports.interviewDetail = tryCatch(async (req, res) => {
       .status(401)
       .json({ result: false, message: "Not a valid position Id" });
 
-  let interviewCcAttendee = Array.isArray(interviewCc) && interviewCc.length > 0
+  const interviewCcAttendee = Array.isArray(interviewCc) && interviewCc.length > 0
     ? interviewCc.map(el => ({ email: el }))
     : [];
 
-  let interviewBccAttendee = Array.isArray(interviewBcc) && interviewBcc.length > 0
+  const interviewBccAttendee = Array.isArray(interviewBcc) && interviewBcc.length > 0
     ? interviewBcc.map(el => ({ email: el }))
     : [];
 
   // Merging all attendees into one array, handling empty arrays
-  let attendees = [{ email: candidate.candidateEmail }, ...interviewCcAttendee, ...interviewBccAttendee];
+  const attendees = [{ email: candidate.candidateEmail }, ...interviewCcAttendee, ...interviewBccAttendee];
 
   interviewMailTemp = await meetingLinkReplace(interviewMailTemp, interviewTime, attendees);
   if (serviceId) {
     //if true update interview //for already updated candidate
     await updateExperiencInterviewReScheduled(position, 1); //for experience count
     position = service.requestServiceId;
-    let interviewDetail = await reqServiceSequence.update(
+    const interviewDetail = await reqServiceSequence.update(
       {
         serviceAssignee: interViewPanel,
         serviceDate: interviewTime,
@@ -539,7 +539,7 @@ exports.interviewDetail = tryCatch(async (req, res) => {
       );
     }
     let updateQueryString = "";
-    let replacementValue = {
+    const replacementValue = {
       status,
       candidateId,
     };
@@ -576,7 +576,7 @@ exports.interviewDetail = tryCatch(async (req, res) => {
   } else {
     await updateReportData("candidateContacted", recruiterId, position);
     await updateReportData("candidatesIntrested", recruiterId, position);
-    let sequenceWIthoutStation = await reqServiceSequence.findOne({
+    const sequenceWIthoutStation = await reqServiceSequence.findOne({
       where: {
         serviceCandidate: candidateId,
         serviceStatus: { [Op.notIn]: ["done", "rejected"] },
@@ -604,7 +604,7 @@ exports.interviewDetail = tryCatch(async (req, res) => {
       position = service.requestServiceId;
 
       //update the soursed candidates sequence status to done
-      var interviewDetail = await reqServiceSequence.update(
+      const interviewDetail = await reqServiceSequence.update(
         {
           serviceAssignee: interViewPanel,
           serviceDate: interviewTime,
@@ -690,18 +690,18 @@ exports.interviewDetail = tryCatch(async (req, res) => {
 });
 
 exports.interviewDetailCandidatesList = tryCatch(async (req, res) => {
-  let scheduleStatus = req.query.scheduleStatus;
+  const scheduleStatus = req.query.scheduleStatus;
 
   let limit = req.query.limit || 100;
   let offset = req.query.page || 0;
-  let experience = req.query.exprience;
-  let search = req.query.search;
-  let serviceRequestId = req.query.serviceRequestId;
+  const experience = req.query.exprience;
+  const search = req.query.search;
+  const serviceRequestId = req.query.serviceRequestId;
   if (!serviceRequestId)
     return res
       .status(401)
       .json({ result: false, message: "serviceRequestId is mandatory" });
-  let where = {};
+  const where = {};
   if (limit && offset) {
     limit = limit;
     offset = (offset - 1) * limit;
@@ -730,7 +730,7 @@ exports.interviewDetailCandidatesList = tryCatch(async (req, res) => {
     ];
   }
   let candidateCount = await reqCandidates.count({ where });
-  let candidates = await reqCandidates.findAll({
+  const candidates = await reqCandidates.findAll({
     attributes: [
       "candidateId",
       "candidateFirstName",
@@ -755,8 +755,8 @@ exports.interviewDetailCandidatesList = tryCatch(async (req, res) => {
 });
 
 exports.interviewDetailCandidateView = tryCatch(async (req, res) => {
-  let candidateId = req.query.candidateId;
-  let serviceId = req.query.serviceId;
+  const candidateId = req.query.candidateId;
+  const serviceId = req.query.serviceId;
 
   if (!candidateId) {
     return res
@@ -838,8 +838,8 @@ async function interviewScheduledCount(
   numberOfCandidates
 ) {
   try {
-    let targetDate = new Date(date);
-    let where = {
+    const targetDate = new Date(date);
+    const where = {
       recruiter: userId,
       position: position,
       date: {
@@ -850,15 +850,15 @@ async function interviewScheduledCount(
       },
     };
 
-    let getIntervieExistCount = await reqReport.findOne({
+    const getIntervieExistCount = await reqReport.findOne({
       attributes: ["interviewScheduled", "id"],
       raw: true,
       where,
     });
     if (getIntervieExistCount?.interviewScheduled > -1) {
-      let totalScheduledCount =
+      const totalScheduledCount =
         getIntervieExistCount.interviewScheduled + numberOfCandidates;
-      let updatedReport =
+      const updatedReport =
         await sequelize.query(`UPDATE "reqReports" SET "interviewScheduled"=${totalScheduledCount},"interviewConducted"=${totalScheduledCount} WHERE "position"=${position} AND "recruiter"=${userId} AND
             "id"=${getIntervieExistCount.id};`);
     } else {
@@ -873,7 +873,7 @@ async function interviewScheduledCount(
 
 async function updateExperiencInterviewReScheduled(position, count) {
   try {
-    let getPosition = await reqExperienceReport.findOne({
+    const getPosition = await reqExperienceReport.findOne({
       where: { technology: position },
     });
     if (getPosition) {
@@ -900,8 +900,8 @@ async function interviewReScheduledCountfn(
   numberOfCandidates
 ) {
   try {
-    let targetDate = new Date(date);
-    let where = {
+    const targetDate = new Date(date);
+    const where = {
       recruiter: userId,
       position: position,
       date: {
@@ -911,15 +911,15 @@ async function interviewReScheduledCountfn(
         ],
       },
     };
-    let getIntervieExistCount = await reqReport.findOne({
+    const getIntervieExistCount = await reqReport.findOne({
       attributes: ["interviewReScheduled"],
       where,
       raw: true,
     });
     if (getIntervieExistCount?.interviewReScheduled > -1) {
-      let totalReScheduledCount =
+      const totalReScheduledCount =
         getIntervieExistCount.interviewReScheduled + numberOfCandidates;
-      let updatedReport =
+      const updatedReport =
         await sequelize.query(`UPDATE "reqReports" SET "interviewReScheduled"=${totalReScheduledCount} WHERE "position"=${position} AND "recruiter"=${userId} AND
             "date" >= '${targetDate.toISOString()}' AND "date" <= '${new Date(
           targetDate.getTime() + 24 * 60 * 60 * 1000
@@ -941,12 +941,12 @@ exports.interviewModeList = tryCatch(async (req, res) => {
 
 
 exports.candidateMapRequirement = tryCatch(async (req, res) => {
-  let candidatesId = req.body.candidatesId;
-  let requiementId = req.body.requirementId;
-  let candidateCreatedby = req.body.userId;
-  let resumeSourceId = req.body.resumeSource;
+  const candidatesId = req.body.candidatesId;
+  const requiementId = req.body.requirementId;
+  const candidateCreatedby = req.body.userId;
+  const resumeSourceId = req.body.resumeSource;
 
-  let addCandidateRequirement = await reqCandidates.update(
+  const addCandidateRequirement = await reqCandidates.update(
     { candidatesAddingAgainst: requiementId },
     { where: { candidateId: { [Op.in]: candidatesId } } }
   );
@@ -982,13 +982,13 @@ exports.candidateMapRequirement = tryCatch(async (req, res) => {
 
 
 exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
-  let today = moment().format("YYYY-MM-DD");
+  const today = moment().format("YYYY-MM-DD");
   const sixMonthsAgo = moment().add(6, "months").toDate();
 
-  let bypassing = req.body.bypassing || false;
-  let candidates = req.body.candidates;
-  let requiementId = req.body.requirementId;
-  let candidateCreatedby = req.body.userId;
+  const bypassing = req.body.bypassing || false;
+  const candidates = req.body.candidates;
+  const requiementId = req.body.requirementId;
+  const candidateCreatedby = req.body.userId;
 
   const candidatesAginstRequest = [];
   const candidatesIds = [];
@@ -1147,7 +1147,7 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
 
 
   if (insertedCandidatesIds.length) {
-    let reSourcesIds = [];
+    const reSourcesIds = [];
     await insertedCandidatesIds.map(async (element) => {
       logFunction(
         element.candidatesId,
@@ -1182,18 +1182,18 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
 
 exports.toDateInterviewList = tryCatch(async (req, res) => {
 
-  let { fromDateData, toDateData, search, status_filter: statusFilter, position, limit = 100, offset = 0, ids, experience } = req.query;
+  const { fromDateData, toDateData, search, status_filter: statusFilter, position, limit = 100, offset = 0, ids, experience } = req.query;
 
-  let fromDate = `${fromDateData} 00:00:00+05:30`;
+  const fromDate = `${fromDateData} 00:00:00+05:30`;
   let toDate = `${toDateData} 23:59:59+05:30`;
 
   // let fromDate = moment().subtract(7, 'days').format("YYYY-MM-DD 00:00:00+05:30"); // 7 days before today
 
   // Handle pagination
-  offset = offset == 1 || offset == 0 ? 0 : (offset - 1) * limit;
+  let offset = offset == 1 || offset == 0 ? 0 : (offset - 1) * limit;
 
-  let where = {};
-  let searchCondition = {};
+  const where = {};
+  const searchCondition = {};
 
   // Filter by experience
   if (experience) {
@@ -1223,7 +1223,7 @@ exports.toDateInterviewList = tryCatch(async (req, res) => {
   // Filter by status and position
   if (statusFilter) where.serviceStatus = statusFilter;
   if (position) where.serviceServiceRequst = position;
-  let candidates = await reqServiceSequencesAcitve.findAll({
+  const candidates = await reqServiceSequencesAcitve.findAll({
     attributes: {
       include: [
         [
@@ -1269,7 +1269,7 @@ exports.toDateInterviewList = tryCatch(async (req, res) => {
     order: [["serviceId", "DESC"]],
   });
 
-  let totalCount = await reqServiceSequencesAcitve.count({ where });
+  const totalCount = await reqServiceSequencesAcitve.count({ where });
 
   if (candidates) {
     candidates = candidates.map((c) => {
@@ -1296,10 +1296,10 @@ exports.toDateInterviewList = tryCatch(async (req, res) => {
 });
 
 exports.removeAfterMapped = tryCatch(async (req, res) => {
-  let serviceId = req.query.serviceId;
-  let candidateId = req.query.candidateId;
+  const serviceId = req.query.serviceId;
+  const candidateId = req.query.candidateId;
 
-  let isServiceSquence = await reqServiceSequence.findOne({ where: { serviceId, serviceCandidate: candidateId, serviceStatus: { [Op.ne]: null } } });
+  const isServiceSquence = await reqServiceSequence.findOne({ where: { serviceId, serviceCandidate: candidateId, serviceStatus: { [Op.ne]: null } } });
   if (!isServiceSquence) res
     .status(400)
     .json({ result: false, message: response.CANDIDATES_NOTFOUND });
@@ -1315,7 +1315,7 @@ exports.removeAfterMapped = tryCatch(async (req, res) => {
     },
     { where: { serviceId } }
   );
-  let addCandidateRequirement = await reqCandidates.update(
+  const addCandidateRequirement = await reqCandidates.update(
     { candidatesAddingAgainst: null },
     { where: { candidateId: candidateId } }
   );
@@ -1328,11 +1328,11 @@ exports.removeAfterMapped = tryCatch(async (req, res) => {
 });
 
 exports.candidatesPrgressList = tryCatch(async (req, res) => {
-  let candidateId = req.query.candidateId;
+  const candidateId = req.query.candidateId;
   if (!candidateId) return res
     .status(400)
     .json({ result: false, message: "Candidate id is Mandatory" });
-  let excludeData = ["createdAt",
+  const excludeData = ["createdAt",
     "updatedAt",
     "candidateStatus",
     "candidateCreatedby",

@@ -1,8 +1,8 @@
-let moment = require("moment");
-let { Op } = require("sequelize");
+const moment = require("moment");
+const { Op } = require("sequelize");
 const { tryCatch } = require("../utils/trycatch");
-let { excelGenerator } = require('../utils/excelGenerator');
-let { reqReport, reqUser, reqServiceRequest,
+const { excelGenerator } = require('../utils/excelGenerator');
+const { reqReport, reqUser, reqServiceRequest,
   sequelize, reqExperienceReport } = require("../../models");
 const response = require("../../api/utils/responseMessages");
 
@@ -34,7 +34,7 @@ exports.reportDailyReport = tryCatch(async (req, res) => {
     ? (where.date = { [Op.between]: [reportFromDate, reportToDate] })
     : {};
   //joins query
-  let include = [
+  const include = [
     {
       model: reqUser,
       attributes: ["userfirstName", "userlastName", "userId"],
@@ -47,7 +47,7 @@ exports.reportDailyReport = tryCatch(async (req, res) => {
       attributes: [["requestName", "Position Title"]],
     },
   ];
-  let reportCount = await reqReport.count({ include, where });
+  const reportCount = await reqReport.count({ include, where });
   let reports = await reqReport.findAll({
     include,
     where,
@@ -73,7 +73,7 @@ exports.reportDailyReport = tryCatch(async (req, res) => {
 
   if (report == 'true' && reports) {
     let head = [];
-    let reportsObj = reports[0];
+    const reportsObj = reports[0];
     for (const report in reportsObj) {
       let hedObject = {};
       hedObject.header = report;
@@ -81,8 +81,8 @@ exports.reportDailyReport = tryCatch(async (req, res) => {
       head.push(hedObject);
     }
 
-    let body = reports;
-    let name = `report${moment().format('yyyymmddHHMMSS')}`;
+    const body = reports;
+    const name = `report${moment().format('yyyymmddHHMMSS')}`;
     excelGenerator(req, res, head, body, name);
     return;
   }
@@ -96,17 +96,17 @@ exports.reportDailyReport = tryCatch(async (req, res) => {
 
 
 exports.monthlyReportData = tryCatch(async (req, res) => {
-  let date = req.query.month;
-  let recruiter = req.query.userId;
-  let year = moment(date).format("YYYY");
-  let month = moment(date).format("MM");
+  const date = req.query.month;
+  const recruiter = req.query.userId;
+  const year = moment(date).format("YYYY");
+  const month = moment(date).format("MM");
   let dataExistObj = {
     year,
     month
   };
   let dataExistQuery = '';
   if (recruiter) { dataExistObj.recruiter=recruiter;dataExistQuery=` AND "recruiter"=:recruiter ` }
-  let [reportDataExist, reportMetadata] = await sequelize.query(
+  const [reportDataExist, reportMetadata] = await sequelize.query(
     `   SELECT COUNT("sourcedScreened") FROM public."reqReports" WHERE 
         EXTRACT(YEAR FROM "date") = :year AND 
         EXTRACT(MONTH FROM "date") = :month ${dataExistQuery}`,
@@ -120,7 +120,7 @@ exports.monthlyReportData = tryCatch(async (req, res) => {
       message: "data not found",
       data: []
     });
-  let [monthReport, metadata] = await sequelize.query(
+  const [monthReport, metadata] = await sequelize.query(
     `   SELECT 
         COALESCE((SELECT SUM("sourcedScreened") FROM public."reqReports" WHERE 
         EXTRACT(YEAR FROM "date") = :year AND 
@@ -145,7 +145,7 @@ exports.monthlyReportData = tryCatch(async (req, res) => {
     }
   );
 
-  let [total, totalMetadata] = await sequelize.query(
+  const [total, totalMetadata] = await sequelize.query(
     `   SELECT 
         COALESCE((SELECT SUM("sourcedScreened") FROM public."reqReports" WHERE 
         EXTRACT(YEAR FROM "date") = :year AND 
@@ -192,8 +192,8 @@ exports.overAllInterviewReportExperience = tryCatch(async (req, res) => {
     limit = limit;
     offset = (offset - 1) * limit;
   }
-  let include = { model: reqServiceRequest,required:true, attributes: ['requestName'] }
-  let toatlCount = await reqExperienceReport.count({ include });
+  const include = { model: reqServiceRequest,required:true, attributes: ['requestName'] }
+  const toatlCount = await reqExperienceReport.count({ include });
   let experienceInterviewCounts = await reqExperienceReport.findAll({
     include, limit, offset, order: [['id', 'DESC']]
   });

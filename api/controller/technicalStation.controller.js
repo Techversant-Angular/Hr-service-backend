@@ -3,34 +3,34 @@ const path = require("path");
 const moment = require("moment");
 const { Op } = require("sequelize");
 const formidable = require("formidable");
-let mailFunction = require("../utils/nodeMail");
+const mailFunction = require("../utils/nodeMail");
 const { tryCatch } = require("../utils/trycatch");
-let commonFunction = require("../utils/commonFunction");
-let { excelGenerator } = require('../utils/excelGenerator');
-let { updateReportData, logFunction, addExperiencInterviewScheduled, isRequestionClosed, meetingLinkReplace } = require('../utils/commonFunction');
-let { reqServiceSequence, reqServiceRequest, reqCandidates,
-  reqCandidateProgress, reqServiceSequencesAcitve, sequelize,reqTeam,
+const commonFunction = require("../utils/commonFunction");
+const { excelGenerator } = require('../utils/excelGenerator');
+const { updateReportData, logFunction, addExperiencInterviewScheduled, isRequestionClosed, meetingLinkReplace } = require('../utils/commonFunction');
+const { reqServiceSequence, reqServiceRequest, reqCandidates,
+  reqCandidateProgress, reqServiceSequencesAcitve, sequelize, reqTeam,
   Sequelize, reqCandidateComments, reqProgressSkill
 } = require("../../models");
 const response = require("../../api/utils/responseMessages");
 
 exports.list = tryCatch(async (req, res) => {
-  let report = req.query.report;
-  let statusFilter = req.query.status_filter;
+  const report = req.query.report;
+  const statusFilter = req.query.status_filter;
   let ids = req.query.ids;
-  let position = req.query.position;
-  let search = req.query.search;
-  let limit = req.query.limit || 100;
+  const position = req.query.position;
+  const search = req.query.search;
+  const limit = req.query.limit || 100;
   let offset = req.query.page || 0;
-  let experience = req.query.experience;
+  const experience = req.query.experience;
 
-  let fromDate = req.query.fromDate
+  const fromDate = req.query.fromDate
     ? new Date(moment(req.query.fromDate).format("YYYY-MM-DD"))
     : "";
   let toDate = req.query.toDate;
   if (toDate) {
     // Parse the toDate using Moment.js
-    let momentDate = moment(toDate);
+    const momentDate = moment(toDate);
 
     // Set the time to 12 PM
     momentDate.set({
@@ -50,7 +50,7 @@ exports.list = tryCatch(async (req, res) => {
     limit = limit;
     offset = (offset - 1) * limit;
   }
-  let where = { serviceStation: 3 };
+  const where = { serviceStation: 3 };
   if (statusFilter) where.serviceStatus = statusFilter;
   if (position) where.serviceServiceRequst = position;
   if (ids?.length) {
@@ -127,7 +127,7 @@ exports.list = tryCatch(async (req, res) => {
     where,
     order: [["serviceId", "DESC"]],
   });
-  let totalCount = await reqServiceSequencesAcitve.count({ where });
+  const totalCount = await reqServiceSequencesAcitve.count({ where });
 
   if (candidates) {
     candidates = candidates.map((c) => {
@@ -143,7 +143,7 @@ exports.list = tryCatch(async (req, res) => {
   }
 
   if (report == 'true' && candidates) {
-    let head = [{ header: "Request Name", key: "requestName", width: 10 },
+    const head = [{ header: "Request Name", key: "requestName", width: 10 },
     { header: "Candidate First Name", key: "candidateFirstName", width: 25 },
     { header: "Candidate Last Name", key: "candidateLastName", width: 15 },
     { header: "Candidate Experience", key: "candidateExperience", width: 15 },
@@ -167,7 +167,7 @@ exports.list = tryCatch(async (req, res) => {
     },
     { header: "Candidate Station Status", key: "candidateStationStatus", width: 10 }];
 
-    let body = candidates.map((le) => {
+    const body = candidates.map((le) => {
       return {
         requestName: le['serviceRequest.requestName'],
         candidateFirstName: le['candidate.candidateFirstName'],
@@ -182,7 +182,7 @@ exports.list = tryCatch(async (req, res) => {
         candidateStationStatus: le['serviceStatus']
       };
     });
-    let name = `candidates_technical_1_${moment().format('yyyymmddHHMMSS')}`;
+    const name = `candidates_technical_1_${moment().format('yyyymmddHHMMSS')}`;
     excelGenerator(req, res, head, body, name);
     return;
   }
@@ -206,7 +206,7 @@ exports.addProgress = tryCatch(async (req, res) => {
     if (err) {
       return res.status(500).json({ error: "Error parsing form data" });
     }
-    let {
+    const {
       progressAssignee,
       progressSkill,
       progressServiceId,
@@ -229,20 +229,20 @@ exports.addProgress = tryCatch(async (req, res) => {
 
     let fileStoragePath = "";
     if (Object.keys(files).length !== 0) {
-      let currentTime = moment().format("YYYY_MM_DD_HH_mm_ss");
-      let fileExt = files.file[0].originalFilename.split(".").pop();
+      const currentTime = moment().format("YYYY_MM_DD_HH_mm_ss");
+      const fileExt = files.file[0].originalFilename.split(".").pop();
       fileStoragePath = `/uploads/${progressServiceId}_${progressAssignee}_${currentTime}.${fileExt}`;
-      let newPath = path.resolve(__dirname, "../..") + fileStoragePath;
+      const newPath = path.resolve(__dirname, "../..") + fileStoragePath;
 
-      let oldPath = files.file[0].filepath;
-      let rawData = fs.readFileSync(oldPath);
+      const oldPath = files.file[0].filepath;
+      const rawData = fs.readFileSync(oldPath);
 
       fs.writeFile(newPath, rawData, function (err) {
         if (err) throw new err();
       });
     }
 
-    let defaultData = {
+    const defaultData = {
       // progressScore: progressScore[0],
       progressStation: 2,
       progressVerifiedBy: progressAssignee[0],
@@ -276,7 +276,7 @@ exports.addProgress = tryCatch(async (req, res) => {
 });
 
 exports.addProgressV1 = tryCatch(async (req, res) => {
-  let {
+  const {
     progressAssignee,
     progressSkill,
     progressServiceId,
@@ -301,7 +301,7 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
       .status(400)
       .json({ result: false, message: "ProgressDescription required" });
 
-  let requestionActive = await isRequestionClosed(progressServiceId);
+  const requestionActive = await isRequestionClosed(progressServiceId);
   if (!requestionActive) return res
     .status(400)
     .json({ result: false, message: "Requestion is closed No action Can be taken." })
@@ -337,7 +337,7 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
     commentUserId: progressAssignee,
   });
   if (created) {
-    let candidate = await reqServiceSequence.findOne({ attributes: ['serviceCandidate','serviceServiceRequst',"serviceStation"], where: { serviceId: progressServiceId } });
+    const candidate = await reqServiceSequence.findOne({ attributes: ['serviceCandidate','serviceServiceRequst',"serviceStation"], where: { serviceId: progressServiceId } });
     if (candidate.serviceStation == 3) {
       logFunction(candidate.serviceCandidate, progressAssignee, 'Scores and Feedback added in Technical 2', 3,candidate.serviceServiceRequst);
     }else{
@@ -355,13 +355,13 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
 });
 
 exports.progressDetail = tryCatch(async (req, res) => {
-  let serviceId = req.query.serviceId;
+  const serviceId = req.query.serviceId;
   if (!serviceId) {
     return res
       .status(401)
       .json({ result: false, message: "Service should be mandatory" });
   }
-  let candidates = await reqServiceSequence.findOne({
+  const candidates = await reqServiceSequence.findOne({
     attributes: [
       "serviceId",
       "serviceStation",
@@ -436,8 +436,8 @@ exports.progressDetail = tryCatch(async (req, res) => {
 
   if (candidates) {
 
-    let [skills, metadata] = await sequelize.query(`SELECT *  FROM "reqCandidateSkills" INNER JOIN "reqSkills" ON "candidateSkillId"="reqSkills"."id" WHERE "candidateId"=:candidateId `, { replacements: { candidateId: candidates.serviceCandidate } });
-    let [skillScore, scoreMetadata] = await sequelize.query(`SELECT *  FROM "reqProgressSkills" INNER JOIN "reqSkills" ON "reqProgressSkills"."skillId"="reqSkills"."id" WHERE "serviceSeqId"=:serviceId `, { replacements: { serviceId: serviceId } });
+    const [skills, metadata] = await sequelize.query(`SELECT *  FROM "reqCandidateSkills" INNER JOIN "reqSkills" ON "candidateSkillId"="reqSkills"."id" WHERE "candidateId"=:candidateId `, { replacements: { candidateId: candidates.serviceCandidate } });
+    const [skillScore, scoreMetadata] = await sequelize.query(`SELECT *  FROM "reqProgressSkills" INNER JOIN "reqSkills" ON "reqProgressSkills"."skillId"="reqSkills"."id" WHERE "serviceSeqId"=:serviceId `, { replacements: { serviceId: serviceId } });
     candidates.skills = skills;
     candidates.skillScore = skillScore;
     return res.status(200).json({
@@ -453,24 +453,24 @@ exports.progressDetail = tryCatch(async (req, res) => {
 });
 
 exports.approve = tryCatch(async (req, res) => {
-  let {
+  const {
     serviceSeqId,
     feedBack,
     feedBackBy,
     feedBackCc,
-    feedBackMailTemp,
     feedBackSubject,
     feedBackBcc,
     attachmentArray, date, pannelUser, interviewMode
   } = req.body;
+  let feedBackMailTemp = req.body.feedBackMailTemp;
 
-  let requestionActive = await isRequestionClosed(serviceSeqId);
+  const requestionActive = await isRequestionClosed(serviceSeqId);
   if (!requestionActive) return res
     .status(400)
     .json({ result: false, message: "Requestion is closed No action Can be taken." })
 
   // date = moment(date, 'MM/DD/YYYY').toDate()
-  let serviceSeqence = await reqServiceSequence.findOne({
+  const serviceSeqence = await reqServiceSequence.findOne({
     where: {
       serviceId: serviceSeqId,
       serviceStatus: "pending",
@@ -490,11 +490,11 @@ exports.approve = tryCatch(async (req, res) => {
     commentUserId: feedBackBy,
   });
 
-  let userId = pannelUser;
+  const userId = pannelUser;
   serviceSeqence.interviewMode = interviewMode;
 
   //store the serviceScequence to view in next station and update current station candidate station
-  let nextStationSequeence = await commonFunction.nextStationSequence(
+  const nextStationSequeence = await commonFunction.nextStationSequence(
     userId,
     [serviceSeqence],
     date, feedBackBy
@@ -504,15 +504,15 @@ exports.approve = tryCatch(async (req, res) => {
       .status(401)
       .json({ result: false, message: "This is the last station" });
 
-  let interviewCcAttendee = Array.isArray(feedBackCc) && feedBackCc.length > 0
+  const interviewCcAttendee = Array.isArray(feedBackCc) && feedBackCc.length > 0
     ? feedBackCc.map(el => ({ email: el }))
     : [];
-  let interviewBccAttendee = Array.isArray(feedBackBcc) && feedBackBcc.length > 0
+  const interviewBccAttendee = Array.isArray(feedBackBcc) && feedBackBcc.length > 0
     ? feedBackBcc.map(el => ({ email: el }))
     : [];
 
   // Merging all attendees into one array, handling empty arrays
-  let attendees = [{ email: serviceSeqence['candidate.candidateEmail'] }, ...interviewCcAttendee, ...interviewBccAttendee];
+  const attendees = [{ email: serviceSeqence['candidate.candidateEmail'] }, ...interviewCcAttendee, ...interviewBccAttendee];
   feedBackMailTemp = await meetingLinkReplace(feedBackMailTemp, date, attendees);
 
   if (nextStationSequeence)
@@ -523,7 +523,7 @@ exports.approve = tryCatch(async (req, res) => {
     );
   await updateReportData('interviewConducted', feedBackBy, serviceSeqence.serviceServiceRequst);
   // await updateReportData('interviewScheduled', feedBackBy, serviceSeqence.serviceServiceRequst);
-  let candidate =
+  const candidate =
     await reqServiceSequence.findOne({
       attributes: [
         'serviceCandidate',

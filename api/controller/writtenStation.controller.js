@@ -6,37 +6,37 @@ const fs = require("fs");
 const { tryCatch } = require("../utils/trycatch");
 const response = require("../../api/utils/responseMessages");
 
-let {
+const {
   reqServiceSequence,
   reqServiceRequest, Sequelize,
   sequelize,
   reqCandidates,
   reqCandidateProgress, reqServiceSequencesAcitve,
   reqUser,
-  reqCandidateComments, reqProgressSkill,reqTeam,reqAuditLog
+  reqCandidateComments,reqProgressSkill,reqTeam,reqAuditLog
 } = require("../../models");
-let commonFunction = require("../utils/commonFunction");
-let { excelGenerator } = require('../utils/excelGenerator');
-let mailFunction = require("../utils/nodeMail");
-let { updateReportData, logFunction, addExperiencInterviewScheduled, meetingLinkReplace } = require('../utils/commonFunction');
+const commonFunction = require("../utils/commonFunction");
+const { excelGenerator } = require('../utils/excelGenerator');
+const mailFunction = require("../utils/nodeMail");
+const { updateReportData, logFunction, addExperiencInterviewScheduled, meetingLinkReplace } = require('../utils/commonFunction');
 
 exports.list = tryCatch(async (req, res) => {
-  let report = req.query.report;
+  const report = req.query.report;
 
-  let search = req.query.search;
-  let statusFilter = req.query.status_filter;
-  let position = req.query.position;
+  const search = req.query.search;
+  const statusFilter = req.query.status_filter;
+  const position = req.query.position;
   let limit = req.query.limit || 100;
   let offset = req.query.page || 0;
   let ids = req.query.ids;
 
-  let fromDate = req.query.fromDate
+  const fromDate = req.query.fromDate
     ? new Date(moment(req.query.fromDate).format("YYYY-MM-DD"))
     : "";
   let toDate = req.query.toDate;
   if (toDate) {
     // Parse the toDate using Moment.js
-    let momentDate = moment(toDate);
+    const momentDate = moment(toDate);
 
     // Set the time to 12 PM
     momentDate.set({
@@ -52,13 +52,13 @@ exports.list = tryCatch(async (req, res) => {
   }
 
   offset = offset == 1 ? 0 : offset;
-  let experience = req.query.experience;
+  const experience = req.query.experience;
 
   if (limit && offset) {
     limit = limit;
     offset = (offset - 1) * limit;
   }
-  let where = { serviceStation: 2 };
+  const where = { serviceStation: 2 };
   let searchCondition = {};
   if (experience) {
     // searchCondition.candidateRevlentExperience = { [Op.lte]: experience };
@@ -133,7 +133,7 @@ exports.list = tryCatch(async (req, res) => {
     where,
     order: [["serviceId", "DESC"]],
   });
-  let totalCount = await reqServiceSequencesAcitve.count({ where });
+  const totalCount = await reqServiceSequencesAcitve.count({ where });
 
   if (candidates) {
     candidates = candidates.map((c) => {
@@ -149,7 +149,7 @@ exports.list = tryCatch(async (req, res) => {
   }
 
   if (report == 'true' && candidates) {
-    let head = [{ header: "Request Name", key: "requestName", width: 10 },
+    const head = [{ header: "Request Name", key: "requestName", width: 10 },
     { header: "Candidate First Name", key: "candidateFirstName", width: 25 },
     { header: "Candidate Last Name", key: "candidateLastName", width: 15 },
     { header: "Candidate Experience", key: "candidateExperience", width: 15 },
@@ -173,7 +173,7 @@ exports.list = tryCatch(async (req, res) => {
     },
     { header: "Candidate Station Status", key: "candidateStationStatus", width: 10 }];
 
-    let body = candidates.map((le) => {
+    const body = candidates.map((le) => {
       return {
         requestName: le['serviceRequest.requestName'],
         candidateFirstName: le['candidate.candidateFirstName'],
@@ -188,7 +188,7 @@ exports.list = tryCatch(async (req, res) => {
         candidateStationStatus: le['serviceStatus']
       };
     });
-    let name = `candidates_Technical_1_${moment().format('yyyymmddHHMMSS')}`;
+    const name = `candidates_Technical_1_${moment().format('yyyymmddHHMMSS')}`;
     excelGenerator(req, res, head, body, name);
     return;
   }
@@ -211,7 +211,7 @@ exports.addProgress = tryCatch(async (req, res) => {
     if (err) {
       return res.status(500).json({ error: "Error parsing form data" });
     }
-    let {
+    const {
       progressAssignee,
       // progressSkillTest,
       progressSkill,
@@ -240,13 +240,13 @@ exports.addProgress = tryCatch(async (req, res) => {
 
     let fileStoragePath = "";
     if (Object.keys(files).length !== 0) {
-      let currentTime = moment().format("YYYY_MM_DD_HH_mm_ss");
-      let fileExt = files.file[0].originalFilename.split(".").pop();
+      const currentTime = moment().format("YYYY_MM_DD_HH_mm_ss");
+      const fileExt = files.file[0].originalFilename.split(".").pop();
       fileStoragePath = `/uploads/${progressServiceId}_${progressAssignee}_${currentTime}.${fileExt}`;
-      let newPath = path.resolve(__dirname, "../..") + fileStoragePath;
+      const newPath = path.resolve(__dirname, "../..") + fileStoragePath;
 
-      let oldPath = files.file[0].filepath;
-      let rawData = fs.readFileSync(oldPath);
+      const oldPath = files.file[0].filepath;
+      const rawData = fs.readFileSync(oldPath);
 
       fs.writeFile(newPath, rawData, function (err) {
         if (err) throw new err();
@@ -283,7 +283,7 @@ exports.addProgress = tryCatch(async (req, res) => {
 });
 
 exports.addProgressV1 = tryCatch(async (req, res) => {
-  let {
+  const {
     progressAssignee,
     progressSkillTest, progressComment,
     progressSkill,
@@ -307,7 +307,7 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
       .status(400)
       .json({ result: false, message: "ProgressDescription required" });
 
-  let defaultData = {
+  const defaultData = {
 
     progressStation: 2,
     progressVerifiedBy: progressAssignee,
@@ -336,7 +336,7 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
     commentUserId: progressAssignee,
   });
   if (created) {
-    let candidate = await reqServiceSequence.findOne({ attributes: ['serviceCandidate', 'serviceServiceRequst'], where: { serviceId: progressServiceId } });
+    const candidate = await reqServiceSequence.findOne({ attributes: ['serviceCandidate', 'serviceServiceRequst'], where: { serviceId: progressServiceId } });
     logFunction(candidate.serviceCandidate, progressAssignee, 'Scores and Feedback added in Technical 1', 2, candidate.serviceServiceRequst);
     return res
       .status(200)
@@ -349,7 +349,7 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
 exports.updateProgressV1 = tryCatch(async (req, res) => {
   const { progressServiceId } = req.params;
 
-  let {
+  const {
     progressAssignee,
     progressSkillTest,
     progressComment,
@@ -379,7 +379,7 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
     });
 
   // find existing progress
-  let progress = await reqCandidateProgress.findOne({
+  const progress = await reqCandidateProgress.findOne({
     where: {
       // progressStation: 2,
       progressServiceSequence: progressServiceId,
@@ -393,14 +393,14 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
     });
   }
 
-  let oldData = {
+  const oldData = {
     progressVerifiedBy: progress.progressVerifiedBy,
     progressDescription: progress.progressDescription,
     progressScore: progress.progressScore,
     progressFile: progress.progressFile,
   };
 
-  let updateData = {
+  const updateData = {
     progressVerifiedBy: progressAssignee,
     progressDescription,
     progressScore,
@@ -427,7 +427,7 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
     const existingSkillIds = existingSkills.map(s => s.skillId);
     const incomingSkillIds = progressSkill.map(s => s.skillId);
 
-    for (let skill of progressSkill) {
+    for (const skill of progressSkill) {
       if (existingSkillIds.includes(skill.skillId)) {
         // UPDATE
         await reqProgressSkill.update(
@@ -483,7 +483,7 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
     );
   }
 
-  let changes = {
+  const changes = {
     before: oldData,
     after: {
       ...oldData,
@@ -511,7 +511,7 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
   //   commentUserId: progressAssignee,
   // });
 
-  let candidate = await reqServiceSequence.findOne({
+  const candidate = await reqServiceSequence.findOne({
     attributes: ["serviceCandidate"],
     where: { serviceId: progressServiceId },
   });
@@ -529,14 +529,14 @@ exports.updateProgressV1 = tryCatch(async (req, res) => {
 });
 
 exports.progressDetail = tryCatch(async (req, res) => {
-  let serviceId = req.query.serviceId;
+  const serviceId = req.query.serviceId;
   if (!serviceId) {
     return res
       .status(401)
       .json({ result: false, message: "Service should be mandatory" });
   }
 
-  let candidates = await reqServiceSequence.findOne({
+  const candidates = await reqServiceSequence.findOne({
     attributes: [
       "serviceId",
       "serviceStation",
@@ -609,8 +609,8 @@ exports.progressDetail = tryCatch(async (req, res) => {
   });
 
   if (candidates) {
-    let [skills, metadata] = await sequelize.query(`SELECT *  FROM "reqCandidateSkills" INNER JOIN "reqSkills" ON "candidateSkillId"="reqSkills"."id" WHERE "candidateId"=:candidateId `, { replacements: { candidateId: candidates.serviceCandidate } });
-    let [skillScore, scoreMetadata] = await sequelize.query(`SELECT *  FROM "reqProgressSkills" INNER JOIN "reqSkills" ON "reqProgressSkills"."skillId"="reqSkills"."id" WHERE "serviceSeqId"=:serviceId `, { replacements: { serviceId: serviceId } });
+    const [skills, metadata] = await sequelize.query(`SELECT *  FROM "reqCandidateSkills" INNER JOIN "reqSkills" ON "candidateSkillId"="reqSkills"."id" WHERE "candidateId"=:candidateId `, { replacements: { candidateId: candidates.serviceCandidate } });
+    const [skillScore, scoreMetadata] = await sequelize.query(`SELECT *  FROM "reqProgressSkills" INNER JOIN "reqSkills" ON "reqProgressSkills"."skillId"="reqSkills"."id" WHERE "serviceSeqId"=:serviceId `, { replacements: { serviceId: serviceId } });
     candidates.skills = skills;
     candidates.skillScore = skillScore;
     return res.status(200).json({
@@ -625,17 +625,17 @@ exports.progressDetail = tryCatch(async (req, res) => {
 });
 
 exports.approve = tryCatch(async (req, res) => {
-  let {
+  const {
     serviceSeqId,
     feedBack,
     feedBackBy, feedBackBcc,
     feedBackCc,
-    feedBackMailTemp,
     feedBackSubject, attachmentArray, date, pannelUser, interviewMode, recruiterId
   } = req.body;
+  let feedBackMailTemp = req.body.feedBackMailTemp;
 
   // date = moment(date, 'MM/DD/YYYY').toDate();
-  let serviceSeqence = await reqServiceSequence.findOne({
+  const serviceSeqence = await reqServiceSequence.findOne({
     include: [
       {
         model: reqCandidates,
@@ -663,17 +663,17 @@ exports.approve = tryCatch(async (req, res) => {
     commentUserId: feedBackBy,
   });
 
-  let getUsers = await reqUser.findOne({
+  const getUsers = await reqUser.findOne({
     attributes: ["userId", "userEmail", "userRole", "userWorkStation"],
     where: { userWorkStation: 2, userStatus: "active" },
     raw: true,
   });
 
-  let userId = pannelUser;
+  const userId = pannelUser;
   serviceSeqenceinterviewMode = interviewMode;
 
   //store the serviceScequence to view in next station and update current station candidate station
-  let nextStationSequeence = await commonFunction.nextStationSequence(
+  const nextStationSequeence = await commonFunction.nextStationSequence(
     userId,
     [serviceSeqence],
     date, feedBackBy
@@ -683,15 +683,15 @@ exports.approve = tryCatch(async (req, res) => {
       .status(401)
       .json({ result: false, message: "This is the last station" });
 
-  let interviewCcAttendee = Array.isArray(feedBackCc) && feedBackCc.length > 0
+  const interviewCcAttendee = Array.isArray(feedBackCc) && feedBackCc.length > 0
     ? feedBackCc.map(el => ({ email: el }))
     : [];
-  let interviewBccAttendee = Array.isArray(feedBackBcc) && feedBackBcc.length > 0
+  const interviewBccAttendee = Array.isArray(feedBackBcc) && feedBackBcc.length > 0
     ? feedBackBcc.map(el => ({ email: el }))
     : [];
 
   // Merging all attendees into one array, handling empty arrays
-  let attendees = [{ email: serviceSeqence['candidate.candidateEmail'] }, ...interviewCcAttendee, ...interviewBccAttendee];
+  const attendees = [{ email: serviceSeqence['candidate.candidateEmail'] }, ...interviewCcAttendee, ...interviewBccAttendee];
   feedBackMailTemp = await meetingLinkReplace(feedBackMailTemp, date, attendees);
 
 
@@ -705,7 +705,7 @@ exports.approve = tryCatch(async (req, res) => {
   await updateReportData('interviewConducted', feedBackBy, serviceSeqence.serviceServiceRequst);
   // await updateReportData('interviewScheduled', feedBackBy, serviceSeqence.serviceServiceRequst);
   await addExperiencInterviewScheduled(serviceSeqence.serviceServiceRequst, 1);
-  let candidate =
+  const candidate =
     await reqServiceSequence.findOne({
       attributes: [
         'serviceCandidate',
