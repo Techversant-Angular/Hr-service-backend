@@ -569,7 +569,7 @@ exports.dashBoardCard = tryCatch(async (req, res) => {
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM public."reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) ${userCondidtion} AND  "serviceServiceRequst"=${requestId} AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}') AS "totalApplicants",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE "serviceStatus"='done'  AND "serviceStation"=1 AND "serviceServiceRequst"=${requestId} ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}') AS "shortedListCandidates",
             ( SELECT COUNT(("serviceCandidate")) FROM "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE "serviceStation"=5 AND "serviceStatus"='done' AND "serviceServiceRequst"=${requestId} ${userCondidtion} AND DATE("reviewedJoiningDate") <= CURRENT_DATE AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}') AS "hiredCandidates",
-            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') AND "serviceServiceRequst"=${requestId}  ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}') AS "rejectedCandidates"
+            (SELECT COUNT(("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') AND "serviceServiceRequst"=${requestId}  ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}') AS "rejectedCandidates"
         FROM public."reqServiceRequests" INNER JOIN "reqTeams" ON "teamId"="requestTeam" WHERE "requestId"=${requestId}`;
   } else {
     query = `
@@ -577,7 +577,7 @@ exports.dashBoardCard = tryCatch(async (req, res) => {
 (SELECT COUNT(("serviceCandidate")) FROM public."reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" WHERE ("serviceStation"=1 OR "serviceStation" IS NULL)  ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}')  AS "totalApplicants",
 (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE "serviceStatus"='done'  AND "serviceStation"=1 ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}') AS "shortedListCandidates",
 ( SELECT COUNT(("serviceCandidate")) FROM "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE "serviceStation"=5 AND "serviceStatus"='done' ${userCondidtion} AND DATE("reviewedJoiningDate") <= CURRENT_DATE AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}' ) AS "hiredCandidates",
- (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}' ) AS "rejectedCandidates"
+ (SELECT COUNT(("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}' ) AS "rejectedCandidates"
  FROM public."reqServiceRequests" LIMIT 1;`;
   }
 

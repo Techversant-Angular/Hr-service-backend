@@ -514,6 +514,7 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
   try {
     const { positionId, status, limit = 10, page = 1, fromDate, toDate } = req.query;
     const offset = (page - 1) * limit;
+    const currentDate = moment().format("YYYY-MM-DDTHH:mm:ss.SSS[Z]");
 
     if (!status) {
       return res.status(400).json({ result: false, message: "Status required" });
@@ -538,6 +539,8 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
     const baseQuery = `
       FROM public."reqCandidates"
       INNER JOIN "reqServiceSequences" ON "serviceCandidate" = "candidateId"
+      LEFT JOIN "reqHrReviews" ON "serviceId" = "reviewedServiceId"
+      AND DATE("reviewedJoiningDate") <= '${currentDate}'
     `;
 
     let whereClause = '';
@@ -551,8 +554,10 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
       whereClause = `WHERE "serviceStation"=5 AND "serviceStatus"='done'  ${positionCondition}`;
     }
 
+    const selectKeyword = status === "shorted" ? 'SELECT DISTINCT ON ("candidateId")' : 'SELECT';
+
     const query = `
-      SELECT "candidateId", "candidateFirstName", "candidateLastName", "candidateEducation", 
+      ${selectKeyword} "candidateId", "candidateFirstName", "candidateLastName", "candidateEducation", 
              "candidateExperience", "candidatePreviousOrg", "candidatePreviousDesignation", 
              "candidateCity", "candidateStatus", "candidateRevlentExperience", 
              "candidateTotalExperience",
@@ -564,7 +569,9 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
       ORDER BY "candidateId" DESC LIMIT ${limit} OFFSET ${offset};
     `;
 
-    const countQuery = `SELECT COUNT(*) AS count ${baseQuery} ${whereClause};`;
+    const countQuery = status === "shorted"
+      ? `SELECT COUNT(DISTINCT "candidateId") AS count ${baseQuery} ${whereClause};`
+      : `SELECT COUNT(*) AS count ${baseQuery} ${whereClause};`;
 
     const [candidates] = await sequelize.query(query);
     const [countResult] = await sequelize.query(countQuery);
