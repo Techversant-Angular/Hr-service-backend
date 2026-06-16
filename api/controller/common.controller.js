@@ -536,10 +536,12 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
       positionCondition = `= ${positionId}`;
     }
 
+    const joinType = status === "hired" ? 'INNER JOIN' : 'LEFT JOIN';
+
     const baseQuery = `
       FROM public."reqCandidates"
       INNER JOIN "reqServiceSequences" ON "serviceCandidate" = "candidateId"
-      LEFT JOIN "reqHrReviews" ON "serviceId" = "reviewedServiceId"
+      ${joinType} "reqHrReviews" ON "serviceId" = "reviewedServiceId"
       AND DATE("reviewedJoiningDate") <= '${currentDate}'
     `;
 
@@ -554,7 +556,8 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
       whereClause = `WHERE "serviceStation"=5 AND "serviceStatus"='done'  ${positionCondition}`;
     }
 
-    const selectKeyword = status === "shorted" ? 'SELECT DISTINCT ON ("candidateId")' : 'SELECT';
+    const useDistinct = ["shorted", "hired"].includes(status);
+    const selectKeyword = useDistinct ? 'SELECT DISTINCT ON ("candidateId")' : 'SELECT';
 
     const query = `
       ${selectKeyword} "candidateId", "candidateFirstName", "candidateLastName", "candidateEducation", 
@@ -569,7 +572,7 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
       ORDER BY "candidateId" DESC LIMIT ${limit} OFFSET ${offset};
     `;
 
-    const countQuery = status === "shorted"
+    const countQuery = useDistinct
       ? `SELECT COUNT(DISTINCT "candidateId") AS count ${baseQuery} ${whereClause};`
       : `SELECT COUNT(*) AS count ${baseQuery} ${whereClause};`;
 
