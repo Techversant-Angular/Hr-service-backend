@@ -401,7 +401,7 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
                 AND "serviceStation" = 2  
                 AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}')
               ) AS "total_technicalselected"
-             FROM "reqServiceRequests"  ORDER BY "requestId" DESC ${report=="false" ?` OFFSET ${offset} LIMIT ${limit}`:""};`;
+             FROM "reqServiceRequests"  ORDER BY "requestId" DESC ${report == "false" ? ` OFFSET ${offset} LIMIT ${limit}` : ""};`;
 
     countQuery = `SELECT "requestName", "requestId", (SELECT COUNT(DISTINCT("serviceCandidate")) FROM public."reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" 
                   WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) ${userCondidtion} ${requestIdQueryCondition} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_totalsourced",
@@ -443,7 +443,7 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
                 AND "serviceStation" = 2  
                 AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}')
               ) AS "total_technicalselected"
-            FROM "reqUsers" WHERE  "userRole"='talent' ${adminQuery}  ${userBased} ${report=="false" ?` OFFSET ${offset} LIMIT ${limit}`:""} ;`;
+            FROM "reqUsers" WHERE  "userRole"='talent' ${adminQuery}  ${userBased} ${report == "false" ? ` OFFSET ${offset} LIMIT ${limit}` : ""} ;`;
 
     countQuery = `SELECT "userfirstName","userId",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM public."reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_totalsourced",
@@ -473,7 +473,7 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
 
   let [reqReportData, metaData] = await sequelize.query(query);
   let [countData, countMetaData] = await sequelize.query(countQuery);
- if (report == "true" && reqReportData) {
+  if (report == "true" && reqReportData) {
     let head = [
       { header: "requestId", key: "requestId", width: 10 },
       {
@@ -575,7 +575,7 @@ exports.dashBoardCard = tryCatch(async (req, res) => {
   } else {
     query = `
        SELECT COALESCE((SELECT SUM("requestVacancy") FROM public."reqServiceRequests" WHERE "requestStatus"='active' AND "requestDate" BETWEEN '${fromDate}' AND '${toDate}' ), 0) AS "requestVacancy",
-(SELECT COUNT(("serviceCandidate")) FROM public."reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" WHERE ("serviceStation"=1 OR "serviceStation" IS NULL)  ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}')  AS "totalApplicants",
+(SELECT COUNT(DISTINCT CONCAT("serviceCandidate", '-', "requestTeam")) FROM public."reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" INNER JOIN "reqServiceRequests" ON "serviceServiceRequst" = "requestId" INNER JOIN "reqTeams" ON "teamId" = "requestTeam" WHERE ("serviceStation"=1 OR "serviceStation" IS NULL)  ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}')  AS "totalApplicants",
 (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE "serviceStatus"='done'  AND "serviceStation"=1 ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}') AS "shortedListCandidates",
 ( SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE "serviceStation"=5 AND "serviceStatus"='done' ${userCondidtion} AND DATE("reviewedJoiningDate") <= '${CURRENT_DATE}' AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}' ) AS "hiredCandidates",
  (SELECT COUNT(("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}' ) AS "rejectedCandidates"
@@ -803,11 +803,11 @@ exports.sendFeedbackReminder = tryCatch(async (req, res) => {
   try {
     const { userId, candidateId } = req.body;
 
-    if(!userId || !candidateId) {
+    if (!userId || !candidateId) {
       return res.status(400).json({ message: 'User ID and Candidate ID is required' });
     }
     const user = await reqUser.findOne(
-      { where: { userId } } 
+      { where: { userId } }
     );
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
