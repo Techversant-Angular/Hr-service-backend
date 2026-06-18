@@ -1190,7 +1190,7 @@ exports.toDateInterviewList = tryCatch(async (req, res) => {
   // let fromDate = moment().subtract(7, 'days').format("YYYY-MM-DD 00:00:00+05:30"); // 7 days before today
 
   // Handle pagination
-  let offset = offset == 1 || offset == 0 ? 0 : (offset - 1) * limit;
+  offset = offset == 1 || offset == 0 ? 0 : (offset - 1) * limit;
 
   const where = {};
   const searchCondition = {};

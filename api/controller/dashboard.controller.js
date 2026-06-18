@@ -549,7 +549,6 @@ exports.dashBoardCard = tryCatch(async (req, res) => {
   const requestId = req.query.requestId;
   let fromDate = req.query.fromDate;
   let toDate = req.query.todate;
-  const userId = req.userId;
   const CURRENT_DATE = moment().format("YYYY-MM-DD");
   let userId = req.userId;
   let userCondidtion = "";
