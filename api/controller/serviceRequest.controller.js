@@ -96,17 +96,17 @@ exports.createService = tryCatch(async (req, res) => {
 });
 
 exports.listServices = tryCatch(async (req, res) => {
-  const search = req.query.search;
-  const toDate = new Date();
-  const fromDate = new Date();
-  fromDate.setMonth(fromDate.getMonth() - 3);
+  let search = req.query.search;
+  // const toDate = new Date();
+  // const fromDate = new Date();
+  // fromDate.setMonth(fromDate.getMonth() - 3);
   let where = {
     requestStatus: {
         [Op.in]: ["active"]
     },
-    requestDate: {
-        [Op.between]: [fromDate, toDate],
-      },
+    // requestDate: {
+    //     [Op.between]: [fromDate, toDate],
+    //   },
 };
   if (search)
     where = {
