@@ -530,10 +530,19 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
       });
     }
 
-    let positionCondition = ` `;
+    let positionCondition = ``;
+
     if (fromDate && toDate) {
-      positionCondition += `  AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}'`;
+      const nextDate = moment(toDate)
+        .add(1, "day")
+        .format("YYYY-MM-DD");
+
+      positionCondition += `
+    AND "insertOrUpdateDate" >= '${fromDate}'
+    AND "insertOrUpdateDate" < '${nextDate}'
+  `;
     }
+
     if (positionId) {
       positionCondition += ` AND "serviceServiceRequst" = ${positionId}`;
     }
