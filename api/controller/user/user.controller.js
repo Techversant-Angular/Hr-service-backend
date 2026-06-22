@@ -222,9 +222,9 @@ exports.listUsers = async (req, res, next) => {
             2: { [Op.in]: [1,2,3,4,5] }, // MANAGERS
             3: { [Op.in]: [2, 3, 5] } // PANEL
         };
-        if (userRole && workStationMap[userRole]) {
-            where.userWorkStation = workStationMap[userRole];
-        }
+        // if (userRole && workStationMap[userRole]) {
+        //     where.userWorkStation = workStationMap[userRole];
+        // }
         if (userRole == 2) {
             where[Op.and] = [
                 ...(where[Op.and] || []),
@@ -237,12 +237,33 @@ exports.listUsers = async (req, res, next) => {
             ];
         }
         // Apply search on both first name and last name
-        if (search) {
+        if(search){
             where[Op.or] = [
-                { userfirstName: { [Op.iLike]: `${search}%` } },
-                { userlastName: { [Op.iLike]: `${search}%` } },
+                {userfirstName:{[Op.iLike]:`%${search}%`}},
+                {userlastName: {[Op.iLike]: `%${search}%`}},
+                {userEmail : {[Op.iLike]: `%${search}%`}},
+                sequelize.where(
+                    sequelize.fn(
+                        'concat',
+                        sequelize.col('userfirstName'),
+                        ' ',
+                        sequelize.col('userlastName') 
+                    ),
+                    {[Op.iLike]:`%${search}%`}
+                )
             ];
         }
+        if (userRole) {
+            where.userRole = {
+                [Op.or]: [
+                    { [Op.eq]: userRole },
+                    { [Op.like]: `${userRole},%` },
+                    { [Op.like]: `%,${userRole}` },
+                    { [Op.like]: `%,${userRole},%` }
+                ]
+            };
+        }
+         
         if (mailSearch) {
             where[Op.or] = [
                 { userEmail: { [Op.iLike]: `%${mailSearch}%` } },
