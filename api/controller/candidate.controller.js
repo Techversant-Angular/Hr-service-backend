@@ -3,7 +3,8 @@ let {
   reqCandidates, reqCandidateResumeSource, reqUser,
   reqCandidateSkill, sequelize, Sequelize,
   reqSkill, reqStation, reqServiceRequest,
-  reqCandidateComments, reqServiceSequence, reqCandidateRequestion
+  reqCandidateComments, reqServiceSequence, reqCandidateRequestion,
+  reqJobApplicants
 } = require("../../models");
 const response = require("../../api/utils/responseMessages");
 const moment = require("moment");
@@ -1147,6 +1148,147 @@ exports.submitApplication = tryCatch(async (req, res) => {
     serviceScheduledBy: null // Since it's a website application
   };
   await reqServiceSequence.create(sequenceData);
+
+  const sourcedString = "Candidate Applied via Website";
+  // Log the application
+  logFunction(candidateId, null, sourcedString, 1, positionId);
+
+  // Update reports
+  await profileSourceReport(null, positionId, [4], today);
+
+  reqcuriterReport(
+    positionId,
+    today,
+    null,
+    "totalSourced",
+    1
+  );
+
+  return res.status(201).json({
+    status: true,
+    message: "Application submitted successfully",
+    data: {
+      candidateId: candidate.candidateId,
+      name: `${candidateFirstName} ${candidateLastName}`,
+      email: candidateEmail,
+      position: positionId,
+    },
+  });
+});
+
+exports.jobApply = tryCatch(async (req, res) => {
+  const { candidateFirstName, candidateLastName, candidateEmail, candidateMobileNo, appliedPosition } = req.body;
+
+  // Resolve position: accept either requestId (number) or requestName (string)
+  let positionId = appliedPosition;
+  if (isNaN(appliedPosition)) {
+    const position = await reqServiceRequest.findOne({
+      where: { requestName: appliedPosition },
+      attributes: ['requestId'],
+    });
+    if (!position) {
+      if (req.file) {
+        fs.unlinkSync(req.file.path);
+      }
+      return res.status(400).json({ status: false, message: "Invalid position. Please select a valid job position." });
+    }
+    positionId = position.requestId;
+  }
+
+  // Get the uploaded resume file path
+  if (!req.file) {
+    return res.status(400).json({ status: false, message: "CV/Resume file is required" });
+  }
+  const candidateResume = `/uploads/images/${req.file.filename}`;
+
+  // Check if candidate already applied with same email for the same position
+  const existingCandidate = await reqJobApplicants.findOne({
+    where: {
+      candidateEmail,
+      candidatesAddingAgainst: positionId,
+      candidateStatus: "active",
+    },
+  });
+
+  if (existingCandidate) {
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
+    return res.status(409).json({
+      status: false,
+      message: "Already applied for this position",
+    });
+  }
+
+  // Check if email already exists
+  const emailExists = await reqJobApplicants.findOne({
+    where: {
+      candidateEmail,
+      candidateStatus: "active",
+    },
+  });
+
+  if (emailExists) {
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
+    return res.status(409).json({
+      status: false,
+      message: "Email already exists",
+    });
+  }
+    const phNumberExists = await reqJobApplicants.findOne({
+    where: {
+      candidateMobileNo,
+      candidateStatus: "active",
+    },
+  });
+
+  if (phNumberExists) {
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
+    return res.status(409).json({
+      status: false,
+      message: "Phone number already exists",
+    });
+  }
+
+  // Create the candidate record
+  const candidate = await reqJobApplicants.create({
+    candidateFirstName,
+    candidateLastName,
+    candidateEmail,
+    candidateMobileNo,
+    candidatesAddingAgainst: positionId,
+    // candidateCoverLetter,
+    candidateResume,
+    candidateStatus: "active",
+    candidateInterviewStatus: "sourced"
+  });
+
+  const candidateId = candidate.candidateId;
+  const today = moment().format("YYYY-MM-DD");
+
+  // Add to candidate requestion table for visibility in list API
+
+  // await reqCandidateRequestion.create({
+  //   candidateId: candidateId,
+  //   serviceRequest: positionId,
+  //   interviewStatus: "inprogress"
+  // });
+
+  // Create the sequence entry for station 1 (Screening)
+
+  // const sequenceData = {
+  //   serviceCandidate: candidateId,
+  //   serviceServiceRequst: positionId,
+  //   serviceStatus: "pending",
+  //   insertOrUpdateDate: today,
+    serviceScheduledBy: null // Since it's a website application
+  // };
+
+  // await reqServiceSequence.create(sequenceData);
 
   const sourcedString = "Candidate Applied via Website";
   // Log the application

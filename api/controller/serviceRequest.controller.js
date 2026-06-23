@@ -14,6 +14,7 @@ const {
   reqServices,
   Sequelize,
   reqDesignation,
+  reqJobOpening,
 } = require("../../models");
 
 exports.createService = tryCatch(async (req, res) => {
@@ -86,6 +87,87 @@ exports.createService = tryCatch(async (req, res) => {
     flowStations: requestFlowStations,
   };
   await scheduleStations(flowObject);
+  if (service)
+    return res.status(200).json({
+      status: true,
+      message: responseMessage,
+      data: service,
+    });
+  throw new Error("Something went wrong while creating service request");
+});
+
+exports.createJobOpening = tryCatch(async (req, res) => {
+  const toDate = moment().format("YYYY-MM-DD");
+  const transformedObject = {
+    ...req.body,
+    requestSkills: req.body.requestSkills.join(","),
+  };
+  // console.log(req.userRole, "req.userRole");
+  // if (req.userRole != "manager" && req.userRole != "admin" &&req.userType!='admin')
+  //   return res
+  //     .status(401)
+  //     .json({
+  //       result: false,
+  //       message: "Only manager or Admin can create requstion",
+  //     });
+
+  // const requestFlowStations = req.body.requestFlowStations;
+  // const requestDesignation = req.body.requestDesignation;
+  let service;
+  let responseMessage = "";
+
+  // const team = await reqTeam.findOne({
+  //   where: { teamId: transformedObject.requestTeam },
+  //   raw: true,
+  // });
+
+  const serviceRequestName = transformedObject.requestName;
+  transformedObject.requestName = serviceRequestName;
+  const existingServiceRequest = await reqJobOpening.findOne({
+    where: { requestName: transformedObject.requestName },
+  });
+  //create designtion  if string
+  // if (/^\d+$/.test(requestDesignation) == false) {
+  //   const designation = await reqDesignation.create({
+  //     designationName: requestDesignation,
+  //   });
+  //   transformedObject.requestDesignation = designation.designationId;
+  // }
+  //keep entry in service table
+  const existingService = await reqServices.findOne({
+    where: { sericeName: transformedObject.requestName },
+  });
+  let serviceId = null;
+  // if (existingService) {
+  //   const [servicedata, metaData] = await sequelize.query(
+  //     `UPDATE "reqServices" SET "sericeName"=:sericeName 
+  //               WHERE "sericeName"=:sericeName RETURNING "sericeId"`,
+  //     {
+  //       replacements: {
+  //         sericeName: existingService.sericeName,
+  //       },
+  //     }
+  //   );
+  //   serviceId = servicedata[0]?.sericeId;
+  // } else {
+  //   serviceId = await reqServices.create({
+  //     sericeName: transformedObject.requestName,
+  //   });
+  //   serviceId = serviceId.sericeId;
+  // }
+  transformedObject.requestServiceId = serviceId;
+  if (existingServiceRequest) {
+    service = await existingServiceRequest.update(transformedObject);
+    responseMessage = "Service Request Updated Successfully";
+  } else {
+    service = await reqJobOpening.create(transformedObject);
+    responseMessage = "Service Request Created Successfully";
+  }
+  // const flowObject = {
+  //   flowServiceId: serviceId,
+  //   flowStations: requestFlowStations,
+  // };
+  // await scheduleStations(flowObject);
   if (service)
     return res.status(200).json({
       status: true,

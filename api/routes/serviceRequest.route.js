@@ -8,6 +8,8 @@ let { authenticate } = require('../middleware/auth');
 
 router.post('/create', createServiceValidation, authenticate, controller.createService);
 
+router.post('/job/openings', createServiceValidation, controller.createJobOpening);
+
 router.post('/edit', authenticate, controller.editService);
 
 router.post('/activateRequest', authenticate,activeServiceValidation, controller.requestActive);

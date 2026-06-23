@@ -5,7 +5,7 @@ let commonController = require('../controller/common.controller');
 let { createRemove, createCandidate, candidateEdit, candidateHistoryFetch, submitApplicationValidate } = require('../validation/candidate.validate');
 let { candidateForms, candidateFormsEdit } = require('../middleware/formData');
 let uploadResume = require('../middleware/uploadResume');
-let { authenticate,verifyAdmin } = require('../middleware/auth');
+let { authenticate, verifyAdmin } = require('../middleware/auth');
 let commonFunction = require('../utils/commonFunction.js');
 
 router.get('/list', authenticate, controller.listCandidates);
@@ -18,7 +18,7 @@ router.post('/edit', candidateEdit, authenticate, controller.editCandidate);
 
 router.get('/skills/list', authenticate, commonController.skillsList);
 
-router.post('/add/skill', verifyAdmin, controller.addNewSkill); 
+router.post('/add/skill', verifyAdmin, controller.addNewSkill);
 
 router.delete('/delete/skill/:id', verifyAdmin, controller.deleteSkill);
 
@@ -32,9 +32,11 @@ router.get('/mail/template', authenticate, commonFunction.fetchMail);
 
 router.post('/send-mail', authenticate, commonFunction.sendMail);
 
-router.get('/candidate-history', authenticate,candidateHistoryFetch, controller.candidateHistory);
+router.get('/candidate-history', authenticate, candidateHistoryFetch, controller.candidateHistory);
 
 router.post('/submit-application', uploadResume.single('candidateResume'), submitApplicationValidate, controller.submitApplication);
+
+router.post('/job/apply', uploadResume.single('candidateResume'), submitApplicationValidate, controller.jobApply);
 
 module.exports = router;
 
