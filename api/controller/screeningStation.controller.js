@@ -464,7 +464,7 @@ exports.batchCandidates = tryCatch(async (req, res) => {
 });
 
 exports.interviewDetail = tryCatch(async (req, res) => {
-  const { recruiterId, candidateId, noticePeriod, location, interviewTime, interViewPanel,
+  let { recruiterId, candidateId, noticePeriod, location, interviewTime, interViewPanel,
     interviewMode, rescheduleStatus, comments, position, serviceId, workMode, station,
     interviewCc, interviewMailTemp, interviewSubject, interviewBcc, attachmentArray } = req.body;
 
@@ -576,7 +576,7 @@ exports.interviewDetail = tryCatch(async (req, res) => {
   } else {
     await updateReportData("candidateContacted", recruiterId, position);
     await updateReportData("candidatesIntrested", recruiterId, position);
-    const sequenceWIthoutStation = await reqServiceSequence.findOne({
+    let sequenceWIthoutStation = await reqServiceSequence.findOne({
       where: {
         serviceCandidate: candidateId,
         serviceStatus: { [Op.notIn]: ["done", "rejected"] },
