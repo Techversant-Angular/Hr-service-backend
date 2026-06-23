@@ -595,9 +595,10 @@ exports.approve = async (req, res, next) => {
   try {
     const {
       serviceSeqId, feedBack, feedBackBy,
-      feedBackCc, feedBackMailTemp, feedBackSubject, feedBackBcc,
+      feedBackCc, feedBackSubject, feedBackBcc,
       attachmentArray, date, pannelUser, interviewMode
     } = req.body;
+    let feedBackMailTemp = req.body.feedBackMailTemp
 
     const requestionActive = await isRequestionClosed(serviceSeqId);
     if (!requestionActive) return res
