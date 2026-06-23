@@ -351,6 +351,10 @@ exports.progressDetail = async (req, res) => {
           sequelize.literal(`(SELECT COUNT(*)
             FROM "reqCandidateProgresses" AS "progress" WHERE "progress"."progressServiceSequence"="reqServiceSequence"."serviceId")`), 'progressStatus'
         ],
+        [
+          sequelize.literal(`(SELECT "stationName" FROM "reqServiceSequences" AS "sequence" INNER JOIN "reqStations" ON "stationId" = "serviceStation" 
+                                                                WHERE "sequence"."serviceCandidate" = "reqServiceSequence"."serviceCandidate" AND "sequence"."serviceServiceRequst" = "reqServiceSequence"."serviceServiceRequst" ORDER BY "serviceId" DESC LIMIT 1)`), "currentStation"
+        ],
         ["serviceDate", "interviewTime"],
         [
           Sequelize.literal(`CASE WHEN "interviewRescheduled" IS NULL THEN 'scheduled' ELSE 'rescheduled' END`),
