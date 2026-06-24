@@ -149,6 +149,9 @@ exports.teamList = tryCatch(async (req, res, next) => {
     ],
     raw: true,
   });
+  teamList.sort((firstTeam, secondTeam) =>
+    firstTeam.teamName.localeCompare(secondTeam.teamName, "en", { sensitivity: "base" })
+  );
   if (teamList.length > 0)
     return res
       .status(200)
