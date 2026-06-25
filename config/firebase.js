@@ -21,6 +21,7 @@ try {
   credential:
     admin.credential.cert(firebaseConfig)
 });
+console.log("✅ Firebase Admin Initialized");
 } catch (error) {
     console.warn("⚠️ Firebase Admin initialization failed. Make sure you placed your 'serviceAccountKey.json' in the same folder as this file.", error.message);
 }

@@ -5,6 +5,7 @@ let { jwtDecode } = require('jwt-decode');
 let mailFunction = require("../../utils/nodeMail");
 const { Op } = require('sequelize');
 const admin = require("../../../config/firebase");
+const pushUtil = require('../../utils/pushNotification');
 
 exports.login = async (req, res, next) => {
     try {
@@ -342,18 +343,25 @@ exports.googleLogin = async (req, res) => {
 exports.saveFcmToken = async (req, res, next) => {
     try {
         const { token, deviceType } = req.body;
+        const fcmToken = typeof token === 'string' ? token.trim() : token;
         const userId = req.userId || (req.decodedToken ? req.decodedToken.userId : null);
 
-        if (!token) {
+        if (!fcmToken) {
             return res.status(400).json({ result: false, message: 'FCM Token is required' });
         }
         if (!userId) {
             return res.status(401).json({ result: false, message: 'User not authenticated' });
         }
+        // if (!pushUtil.isValidFcmRegistrationToken(fcmToken)) {
+        //     return res.status(400).json({
+        //         result: false,
+        //         message: 'Invalid FCM registration token. Send the token returned by Firebase Messaging getToken().'
+        //     });
+        // }
 
         // Upsert the token
         const [fcmTokenRecord, created] = await reqNotificationToken.findOrCreate({
-            where: { token: token },
+            where: { token: fcmToken },
             defaults: {
                 userId: userId,
                 deviceType: deviceType || 'web'
@@ -391,21 +399,19 @@ exports.deleteFcmToken = async (req, res, next) => {
 
 exports.testPushNotification = async (req, res, next) => {
     try {
-        const pushUtil = require('../../utils/pushNotification');
-        const userId = req.userId || (req.decodedToken ? req.decodedToken.userId : null);
-        const { title, body } = req.body;
 
-        if (!userId) {
-            return res.status(401).json({ result: false, message: 'User not authenticated' });
-        }
-
-        const response = await pushUtil.sendPushNotification(userId, {
-            title: title || 'Test Push',
-            body: body || 'FCM notification triggered successfully!',
-            data: { test: 'true' }
+        // const userId = req.userId || (req.decodedToken ? req.decodedToken.userId : null);
+        const {userId, body,title } = req.body;
+        const result = await reqNotificationToken.findOne({
+            where: { userId: userId },
+            attributes: ['token']
         });
 
-        return res.status(200).json({ result: true, message: 'FCM notification sent successfully', details: response });
+        if (!result) {
+            return res.status(404).json({ result: false, message: 'No FCM token found for the user' });
+        }
+        await pushUtil.sendPushNotification(result.token, title,body);
+        return res.status(200).json({ result: true, message: ' notification sent successfully' });
     } catch (error) {
         next(error);
     }
