@@ -352,27 +352,17 @@ exports.saveFcmToken = async (req, res, next) => {
         if (!userId) {
             return res.status(401).json({ result: false, message: 'User not authenticated' });
         }
-        // if (!pushUtil.isValidFcmRegistrationToken(fcmToken)) {
-        //     return res.status(400).json({
-        //         result: false,
-        //         message: 'Invalid FCM registration token. Send the token returned by Firebase Messaging getToken().'
-        //     });
-        // }
 
-        // Upsert the token
-        const [fcmTokenRecord, created] = await reqNotificationToken.findOrCreate({
-            where: { token: fcmToken },
-            defaults: {
-                userId: userId,
-                deviceType: deviceType || 'web'
+    await reqNotificationToken.destroy({
+            where: {
+                userId: userId
             }
         });
-
-        if (!created) {
-            fcmTokenRecord.userId = userId;
-            if (deviceType) fcmTokenRecord.deviceType = deviceType;
-            await fcmTokenRecord.save();
-        }
+                await reqNotificationToken.create({
+            userId: userId,
+            token: fcmToken,
+            deviceType: deviceType || 'web'
+        });
 
         return res.status(200).json({ result: true, message: 'FCM token registered successfully' });
     } catch (error) {
@@ -410,6 +400,7 @@ exports.testPushNotification = async (req, res, next) => {
         if (!result) {
             return res.status(404).json({ result: false, message: 'No FCM token found for the user' });
         }
+        console.log("resultss", result.token)
         await pushUtil.sendPushNotification(result.token, title,body);
         return res.status(200).json({ result: true, message: ' notification sent successfully' });
     } catch (error) {
