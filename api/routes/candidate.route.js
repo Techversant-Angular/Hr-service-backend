@@ -36,7 +36,7 @@ router.get('/candidate-history', authenticate, candidateHistoryFetch, controller
 
 router.post('/submit-application', uploadResume.single('candidateResume'), submitApplicationValidate, controller.submitApplication);
 
-router.post('/job/apply', uploadResume.single('candidateResume'), submitApplicationValidate, controller.jobApply);
+router.post('/apply-job', uploadResume.single('candidateResume'), submitApplicationValidate, controller.jobApply);
 
 module.exports = router;
 
