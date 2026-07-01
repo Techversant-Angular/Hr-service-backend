@@ -45,14 +45,27 @@ exports.list = tryCatch(async (req, res) => {
     offset = (offset - 1) * limit;
   }
 
-  const where = { serviceStation: 5 };
+  let where = { serviceStation: 5 };
+  where.serviceId = {
+    [Op.in]: sequelize.literal(`(
+      SELECT MAX("serviceId")
+      FROM "reqServiceSequencesAcitves" AS "temp"
+      WHERE "temp"."serviceStation" = 5
+      GROUP BY "temp"."serviceCandidate"
+    )`)
+  };
   if (fromDate && toDate) where.serviceDate = { [Op.between]: [fromDate, toDate] }
   if (statusFilter) where.serviceStatus = statusFilter;
   if (position) where.serviceServiceRequst = position;
   let searchCondition = {};
   if (ids?.length) {
     ids = Array.isArray(ids) ? ids : [ids];
-    where.serviceId = { [Op.in]: ids }
+    where.serviceId = {
+      [Op.and]: [
+        where.serviceId,
+        { [Op.in]: ids }
+      ]
+    };
   }
   if (experience) {
     // searchCondition.candidateRevlentExperience = { [Op.lte]: experience };
