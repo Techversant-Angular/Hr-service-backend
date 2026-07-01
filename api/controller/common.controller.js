@@ -565,7 +565,7 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
     if (status === "total") {
       whereClause = `WHERE ("serviceStation"=1 OR "serviceStation" IS NULL)  ${positionCondition}`;
     } else if (status === "shorted") {
-      whereClause = `WHERE "serviceStatus" = 'done' AND "serviceStation" = 1  ${positionCondition}`;
+      whereClause = `WHERE "serviceStation" IN (2,3,4,5,6) AND "serviceStatus" NOT IN ('cancelled','pannel-rejection','shorted','rejected','back-off','hired','done')  ${positionCondition}`;
     } else if (status === "rejected") {
       whereClause = `WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection')  ${positionCondition}`;
     } else if (status === "hired") {
@@ -573,8 +573,8 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
     }
 
     const useDistinct = ["total", "shorted", "hired"].includes(status);
-    const selectKeyword = useDistinct ? 'SELECT DISTINCT ON ("candidateId", "requestTeam")' : 'SELECT';
-    const orderBy = useDistinct ? 'ORDER BY "candidateId" DESC, "requestTeam" DESC' : 'ORDER BY "candidateId" DESC';
+    const selectKeyword = useDistinct ? 'SELECT DISTINCT ON ("candidateId")' : 'SELECT';
+    const orderBy = useDistinct ? 'ORDER BY "candidateId", "serviceId" DESC' : 'ORDER BY "candidateId" DESC';
 
     const query = `
       ${selectKeyword} "candidateId", "candidateFirstName", "candidateLastName", "candidateEducation", 
