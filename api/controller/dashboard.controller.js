@@ -336,10 +336,11 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
   let userCondidtion = ` AND "serviceScheduledBy"="userId"	`;
   if (userId) {
     userBased = ` AND "userId"=${userId}`;
-    userCondidtion = ` AND "serviceScheduledBy"=${userId}	`;
+    userCondidtion = ` AND "serviceScheduledBy"=${userId}`;
   }
 
-  if (!dataBy || !dataBy == "position" || !dataBy == "user") {
+  // validate dataBy: must be either 'position' or 'user'
+  if (!(dataBy === "position" || dataBy === "user")) {
     return res.status(400).json({
       result: false,
       message: "dataBy is either 'position' or 'user' ",
@@ -380,26 +381,9 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation"=6  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_managementreject",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hrreject",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE ("serviceStatus"='done' OR "serviceStatus"='pending') ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_offerreleased",
-            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE  "serviceStation"=5 ${userCondidtion} ${requestIdQueryCondition} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "hr_total_technicalselected"  ,
-            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences"  WHERE "serviceStatus"='done' ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hired"  ,
-            ((SELECT COUNT(DISTINCT("serviceCandidate")) 
-                FROM "reqServiceSequences" 
-                WHERE "serviceStatus" = 'done' 
-                ${userCondidtion} ${requestIdQueryCondition}
-                AND "serviceStation" = 3  
-                AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') +
-              (SELECT COUNT(DISTINCT("serviceCandidate")) 
-                FROM "reqServiceSequences" 
-                WHERE  "serviceStatus" = 'done' ${userCondidtion} ${requestIdQueryCondition}
-                AND "serviceStation" = 4 
-                AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') +
-              (SELECT COUNT(DISTINCT("serviceCandidate")) 
-                FROM "reqServiceSequences" 
-                WHERE "serviceStatus" = 'done' 
-                ${userCondidtion} ${requestIdQueryCondition}
-                AND "serviceStation" = 2  
-                AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}')
-              ) AS "total_technicalselected"
+            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE  "serviceStation"=5 ${userCondidtion} ${requestIdQueryCondition} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "hr_total_technicalselected",
+            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences"  WHERE "serviceStatus"='done' ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hired",
+            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE "serviceStation" IN (2,3,4) AND "serviceStatus" NOT IN ('cancelled','pannel-rejection','shorted','rejected','back-off','done') ${userCondidtion} ${requestIdQueryCondition} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_technicalselected"
              FROM "reqServiceRequests"  ORDER BY "requestId" DESC ${report == "false" ? ` OFFSET ${offset} LIMIT ${limit}` : ""};`;
 
     countQuery = `SELECT "requestName", "requestId", (SELECT COUNT(DISTINCT("serviceCandidate")) FROM public."reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" 
@@ -410,8 +394,7 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
                   ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation"=5 AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_offerreleased", 
                   (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE "serviceStatus"='done' ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation"=5 AND "insertOrUpdateDate" 
                   BETWEEN '${start_date}' AND '${end_date}' ) AS "total_hired",
-                  ((SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE "serviceStatus" = 'done' ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation" IN (2,3, 4)  
-                  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}')) AS "total_technicalselected"FROM "reqServiceRequests"; `;
+                  (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE "serviceStation" IN (2,3,4) AND "serviceStatus" NOT IN ('cancelled','pannel-rejection','shorted','rejected','back-off','done') ${userCondidtion} ${requestIdQueryCondition} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_technicalselected" FROM "reqServiceRequests"; `;
   }
   if (dataBy == "user") {
     query = `SELECT "userfirstName","userId",
@@ -423,25 +406,9 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${userCondidtion} AND "serviceStation"=6  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_managementreject",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${userCondidtion} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hrreject",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE ("serviceStatus"='done' OR "serviceStatus"='pending') ${userCondidtion} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_offerreleased",
-            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE  "serviceStation"=5 ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "hr_total_technicalselected"  ,
-            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences"  WHERE "serviceStatus"='done' ${userCondidtion} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hired"  ,
-            ((SELECT COUNT(DISTINCT("serviceCandidate")) 
-                FROM "reqServiceSequences" 
-                WHERE "serviceStatus" = 'done' 
-                ${userCondidtion}
-                AND "serviceStation" = 3  
-                AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') +
-              (SELECT COUNT(DISTINCT("serviceCandidate")) 
-                FROM "reqServiceSequences" 
-                WHERE  "serviceStatus" = 'done' ${userCondidtion}
-                AND "serviceStation" = 4 
-                AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') +
-              (SELECT COUNT(DISTINCT("serviceCandidate")) 
-                FROM "reqServiceSequences" 
-                WHERE "serviceStatus" = 'done' ${userCondidtion} 
-                AND "serviceStation" = 2  
-                AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}')
-              ) AS "total_technicalselected"
+            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE  "serviceStation"=5 ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "hr_total_technicalselected",
+            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences"  WHERE "serviceStatus"='done' ${userCondidtion} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hired",
+            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE "serviceStation" IN (2,3,4) AND "serviceStatus" NOT IN ('cancelled','pannel-rejection','shorted','rejected','back-off') ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_technicalselected"
             FROM "reqUsers" WHERE  "userRole"='talent' ${adminQuery}  ${userBased} ${report == "false" ? ` OFFSET ${offset} LIMIT ${limit}` : ""} ;`;
 
     countQuery = `SELECT "userfirstName","userId",
@@ -453,20 +420,9 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${userCondidtion} AND "serviceStation"=6  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_managementreject",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${userCondidtion} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hrreject",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE ("serviceStatus"='done' OR "serviceStatus"='pending') ${userCondidtion} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_offerreleased",
-            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE  "serviceStation"=5 ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "hr_total_technicalselected"  ,
-            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences"  WHERE "serviceStatus"='done' ${userCondidtion} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hired"  ,
-            ((SELECT COUNT(DISTINCT("serviceCandidate")) 
-                FROM "reqServiceSequences" 
-                WHERE "serviceStatus" = 'done' 
-                ${userCondidtion}
-                AND "serviceStation" = 3  
-                AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') +
-              (SELECT COUNT(DISTINCT("serviceCandidate")) 
-                FROM "reqServiceSequences" 
-                WHERE  "serviceStatus" = 'done' ${userCondidtion}
-                AND "serviceStation" = 4 
-                AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}')
-              ) AS "total_technicalselected"
+            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE  "serviceStation"=5 ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "hr_total_technicalselected",
+            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences"  WHERE "serviceStatus"='done' ${userCondidtion} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hired",
+            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE "serviceStation" IN (2,3,4) AND "serviceStatus" NOT IN ('cancelled','pannel-rejection','shorted','rejected','back-off') ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_technicalselected"
             FROM "reqUsers" WHERE  "userRole"='talent' ${adminQuery} ${userBased}`;
   }
 
