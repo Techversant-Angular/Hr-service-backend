@@ -36,5 +36,7 @@ router.get('/candidate-history', authenticate,candidateHistoryFetch, controller.
 
 router.post('/submit-application', uploadResume.single('candidateResume'), submitApplicationValidate, controller.submitApplication);
 
+router.get('/sourced-candidates', authenticate, controller.sourcedCandidateList);
+
 module.exports = router;
 
