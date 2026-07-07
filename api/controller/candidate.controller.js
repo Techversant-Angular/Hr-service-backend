@@ -1176,73 +1176,85 @@ exports.submitApplication = tryCatch(async (req, res) => {
 });
 
 exports.sourcedCandidateList = tryCatch(async (req, res) => {
-  const sourcedCandidates = await reqServiceSequence.findAll({
-    where: {
-      serviceStatus: "sourced"
-    },
-    include: [
-      {
-        model: reqCandidates,
-        as: "candidate",
-        attributes: [
-          "candidateId",
-          "candidateFirstName",
-          "candidateLastName",
-          "candidateEmail",
-          "candidateMobileNo",
-          "candidatesAddingAgainst",
-          "resumeSourceId"
-        ]
-      }
-    ]
-  });
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const offset = (page - 1) * limit;
 
-  const candidates = sourcedCandidates.map(item => item.candidate);
+  const { count, rows: sourcedCandidates } =
+    await reqServiceSequence.findAndCountAll({
+      where: {
+        serviceStatus: "sourced"
+      },
+      include: [
+        {
+          model: reqCandidates,
+          as: "candidate",
+          attributes: [
+            "candidateId",
+            "candidateFirstName",
+            "candidateLastName",
+            "candidateEmail",
+            "candidateMobileNo",
+            "candidatesAddingAgainst",
+            "resumeSourceId"
+          ]
+        }
+      ],
+      limit,
+      offset,
+      distinct: true
+    });
 
-  if (candidates.length === 0) {
+  if (sourcedCandidates.length === 0) {
     return res.status(404).json({
       result: false,
       message: "No sourced candidates found"
     });
   }
 
- const data = await Promise.all(
-  candidates.map(async (candidate) => {
-    const requisition = await reqServiceRequest.findOne({
-      where: {
-        requestId: candidate.candidatesAddingAgainst,
-        requestStatus: "active"
-      },
-      attributes: ["requestName"]
-    });
+  const data = await Promise.all(
+    sourcedCandidates.map(async (item) => {
+      const candidate = item.candidate;
 
-    const resumeSource = await reqCandidateResumeSource.findOne({
-      where: {
-        sourceId: candidate.resumeSourceId
-      },
-      attributes: ["sourceName"]
-    });
+      const requisition = await reqServiceRequest.findOne({
+        where: {
+          requestId: candidate.candidatesAddingAgainst,
+          requestStatus: "active"
+        },
+        attributes: ["requestName"]
+      });
 
-return {
-  candidateId: candidate.candidateId,
-  candidateFirstName: candidate.candidateFirstName,
-  candidateLastName: candidate.candidateLastName,
-  candidateEmail: candidate.candidateEmail,
-  candidateMobileNo: candidate.candidateMobileNo,
-  requisitionId: candidate.candidatesAddingAgainst,
-  requisitionName: requisition
-    ? requisition.requestName
-    : null,
-  resumeSource: resumeSource
-    ? resumeSource.sourceName
-    : null
-};
-  })
-);
+      const resumeSource = await reqCandidateResumeSource.findOne({
+        where: {
+          sourceId: candidate.resumeSourceId
+        },
+        attributes: ["sourceName"]
+      });
+
+      return {
+        candidateId: candidate.candidateId,
+        candidateFirstName: candidate.candidateFirstName,
+        candidateLastName: candidate.candidateLastName,
+        candidateEmail: candidate.candidateEmail,
+        candidateMobileNo: candidate.candidateMobileNo,
+        requisitionId: candidate.candidatesAddingAgainst,
+        requisitionName: requisition
+          ? requisition.requestName
+          : null,
+        resumeSource: resumeSource
+          ? resumeSource.sourceName
+          : null
+      };
+    })
+  );
 
   return res.status(200).json({
     result: true,
     message: "Sourced candidates retrieved successfully",
+    totalRecords: count,
+    totalPages: Math.ceil(count / limit),
+    currentPage: page,
+    pageSize: limit,
     data
   });
 });
