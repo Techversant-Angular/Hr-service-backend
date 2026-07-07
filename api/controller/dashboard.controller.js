@@ -380,6 +380,8 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation"=4  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_techthreereject",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation"=6  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_managementreject",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hrreject",
+            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='back-off') ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hrbackoff",
+
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE ("serviceStatus"='done' OR "serviceStatus"='pending') ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_offerreleased",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE  "serviceStation"=5 ${userCondidtion} ${requestIdQueryCondition} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "hr_total_technicalselected",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences"  WHERE "serviceStatus"='done' ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hired",
@@ -405,6 +407,8 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${userCondidtion} AND "serviceStation"=4  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_techthreereject",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${userCondidtion} AND "serviceStation"=6  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_managementreject",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${userCondidtion} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hrreject",
+            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='back-off') ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hrbackoff",
+
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE ("serviceStatus"='done' OR "serviceStatus"='pending') ${userCondidtion} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_offerreleased",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE  "serviceStation"=5 ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "hr_total_technicalselected",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences"  WHERE "serviceStatus"='done' ${userCondidtion} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hired",
@@ -419,6 +423,8 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${userCondidtion} AND "serviceStation"=4  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_techthreereject",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${userCondidtion} AND "serviceStation"=6  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_managementreject",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${userCondidtion} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hrreject",
+            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='back-off') ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hrbackoff",
+
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE ("serviceStatus"='done' OR "serviceStatus"='pending') ${userCondidtion} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_offerreleased",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE  "serviceStation"=5 ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "hr_total_technicalselected",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences"  WHERE "serviceStatus"='done' ${userCondidtion} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hired",
@@ -455,6 +461,11 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
         width: 10,
       },
       {
+        header: "total_hrbackoff",
+        key: "total_hrbackoff",
+        width: 10,
+      },
+      {
         header: "total_hrreject",
         key: "total_hrreject",
         width: 10,
@@ -481,6 +492,7 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
         total_techthreereject: le.total_techthreereject,
         total_managementreject: le.total_managementreject,
         total_hrreject: le.total_hrreject,
+        total_hrbackoff: le.total_hrbackoff,
         total_offerreleased: le.total_offerreleased,
         hr_total_technicalselected: le.hr_total_technicalselected,
         total_hired: le.total_hired,
