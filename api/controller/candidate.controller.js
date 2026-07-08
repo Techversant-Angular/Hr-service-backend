@@ -1180,6 +1180,50 @@ exports.sourcedCandidateList = tryCatch(async (req, res) => {
   const limit = parseInt(req.query.limit) || 10;
   const offset = (page - 1) * limit;
 
+  const search = req.query.search
+    ? decodeURIComponent(req.query.search)
+    : "";
+
+  let candidateWhere = {};
+
+  if (search) {
+    candidateWhere = {
+      [Op.or]: [
+        {
+          candidateFirstName: {
+            [Op.iLike]: `%${search}%`
+          }
+        },
+        {
+          candidateLastName: {
+            [Op.iLike]: `%${search}%`
+          }
+        },
+        {
+          candidateEmail: {
+            [Op.iLike]: `%${search}%`
+          }
+        },
+        {
+          candidateMobileNo: {
+            [Op.iLike]: `%${search}%`
+          }
+        },
+        sequelize.where(
+          sequelize.fn(
+            "concat",
+            sequelize.col("candidate.candidateFirstName"),
+            " ",
+            sequelize.col("candidate.candidateLastName")
+          ),
+          {
+            [Op.iLike]: `%${search}%`
+          }
+        )
+      ]
+    };
+  }
+
   const { count, rows: sourcedCandidates } =
     await reqServiceSequence.findAndCountAll({
       where: {
@@ -1189,6 +1233,7 @@ exports.sourcedCandidateList = tryCatch(async (req, res) => {
         {
           model: reqCandidates,
           as: "candidate",
+          where: candidateWhere,
           attributes: [
             "candidateId",
             "candidateFirstName",
@@ -1205,7 +1250,7 @@ exports.sourcedCandidateList = tryCatch(async (req, res) => {
       distinct: true
     });
 
-  if (sourcedCandidates.length === 0) {
+  if (!sourcedCandidates.length) {
     return res.status(404).json({
       result: false,
       message: "No sourced candidates found"
