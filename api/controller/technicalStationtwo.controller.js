@@ -54,6 +54,9 @@ exports.list = tryCatch(async (req, res) => {
   }
 
   const where = { serviceStation: 4 };
+  if (req.userId && req.userRole !== '1' && req.userRole !== '6') {
+    where.serviceAssignee = req.userId;
+  }
   let searchCondition = {};
   if (experience) {
     // searchCondition.candidateRevlentExperience = { [Op.lte]: experience };
@@ -141,6 +144,7 @@ exports.list = tryCatch(async (req, res) => {
           : c.serviceStatus;
 
       c.serviceStatus = c.serviceStatus == "sourced" ? "pending" : c.serviceStatus;
+      c.serviceAssignee = c.serviceAssignee;
       return c;
     });
   }
@@ -168,6 +172,7 @@ exports.list = tryCatch(async (req, res) => {
       key: "candidateCurrentStation",
       width: 25,
     },
+    { header: "Candidate Assignee", key: "serviceAssignee", width: 20 },
     { header: "Candidate Station Status", key: "candidateStationStatus", width: 10 }];
 
     const body = candidates.map((le) => {
@@ -182,6 +187,7 @@ exports.list = tryCatch(async (req, res) => {
         candidatePreviousDesignation: le['candidate.candidatePreviousDesignation'],
         candidateInterviewStatus: le['candidate.candidateInterviewStatus'],
         candidateCurrentStation: le['currentStation'],
+        serviceAssignee: le.serviceAssignee,
         candidateStationStatus: le['serviceStatus']
       };
     });
