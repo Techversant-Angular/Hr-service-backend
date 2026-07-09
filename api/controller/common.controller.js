@@ -529,8 +529,14 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
     }
 
     let positionCondition = ` `;
+    let joiningDateCondition = `AND DATE("reviewedJoiningDate") <= '${currentDate}'`;
+
     if (fromDate && toDate) {
-      positionCondition += `  AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}'`;
+      if (status === "hired") {
+        joiningDateCondition = `AND DATE("reviewedJoiningDate") BETWEEN '${fromDate}' AND '${toDate}'`;
+      } else {
+        positionCondition += `  AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}'`;
+      }
     }
     if (positionId) {
       positionCondition += ` AND "serviceServiceRequst" = ${positionId}`;
@@ -544,7 +550,7 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
       INNER JOIN "reqServiceRequests" ON "serviceServiceRequst" = "requestId"
       INNER JOIN "reqTeams" ON "teamId" = "requestTeam"
       ${joinType} "reqHrReviews" ON "serviceId" = "reviewedServiceId"
-      AND DATE("reviewedJoiningDate") <= '${currentDate}'
+      ${joiningDateCondition}
     `;
 
     let whereClause = '';
