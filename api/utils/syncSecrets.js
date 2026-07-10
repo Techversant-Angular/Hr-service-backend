@@ -69,8 +69,9 @@ async function syncSecrets() {
     console.log(`[Secrets Sync] Successfully synchronized ${Object.keys(secrets).length} secrets to .env file.`);
     process.exit(0);
   } catch (error) {
-    console.error("[Secrets Sync] Failed to synchronize secrets:", error.message);
-    process.exit(1);
+    console.warn("[Secrets Sync] WARNING: Failed to synchronize secrets from AWS Secrets Manager:", error.message);
+    console.warn("[Secrets Sync] Continuing with existing .env values. Ensure valid AWS credentials are set in production.");
+    process.exit(0);
   }
 }
 

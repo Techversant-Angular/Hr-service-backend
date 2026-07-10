@@ -9,38 +9,21 @@ const { NodeHttpHandler } = require("@smithy/node-http-handler");
 const { Agent: HttpsAgent } = require("https");
 
 let cachedClient = null;
-let cachedAccessKeyId = undefined;
 
-// Create a function to get the client with proper credentials and IPv4 routing
+// Returns a SecretsManagerClient using the EC2 IAM instance profile (no explicit keys needed).
+// The AWS SDK automatically resolves credentials from the instance metadata service (IMDS)
+// when running on EC2, ECS, or any other AWS compute with an attached IAM role.
 function getSecretsManagerClient() {
-  const region = process.env.AWS_REGION || "us-east-1";
-  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-
-  if (!cachedClient || cachedAccessKeyId !== accessKeyId) {
-    if (process.env.DEBUG === "true" || process.env.LOG_SECRETS_DEBUG === "true") {
-      console.log("🔧 Initializing SecretsManagerClient", {
-        region,
-        hasCredentials: !!(accessKeyId && secretAccessKey),
-      });
-    }
+  if (!cachedClient) {
+    const region = process.env.AWS_REGION || "us-east-1";
+    console.log(`[Secrets Manager] Initializing client in region: ${region}`);
 
     cachedClient = new SecretsManagerClient({
       region,
       requestHandler: new NodeHttpHandler({
         httpsAgent: new HttpsAgent({ family: 4 }),
       }),
-      ...(accessKeyId && secretAccessKey
-        ? {
-            credentials: {
-              accessKeyId,
-              secretAccessKey,
-            },
-          }
-        : {}),
     });
-
-    cachedAccessKeyId = accessKeyId;
   }
 
   return cachedClient;
