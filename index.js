@@ -1,3 +1,13 @@
+// Synchronously fetch and write secrets from AWS Secrets Manager to .env before anything else is required
+try {
+  const { execSync } = require('child_process');
+  const path = require('path');
+  execSync(`node "${path.join(__dirname, 'api/utils/syncSecrets.js')}"`, { stdio: 'inherit' });
+} catch (err) {
+  console.error("Critical: Failed to synchronize Secrets Manager secrets at startup:", err.message);
+  process.exit(1);
+}
+
 let express = require('express');
 var cors = require('cors')
 let app = express();

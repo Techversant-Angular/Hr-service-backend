@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1026.0",
+    "@aws-sdk/client-secrets-manager": "^3.1084.0",
     "@aws-sdk/s3-request-presigner": "^3.1026.0",
     "@google-apps/meet": "^0.3.0",
     "@google-cloud/local-auth": "^2.1.0",
