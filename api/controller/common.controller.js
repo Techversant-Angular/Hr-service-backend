@@ -534,16 +534,24 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
     }
 
     let positionCondition = ``;
+    let joiningDateCondition = `AND DATE("reviewedJoiningDate") <= '${currentDate}'`;
 
     if (fromDate && toDate) {
       const nextDate = moment(toDate)
         .add(1, "day")
         .format("YYYY-MM-DD");
 
-      positionCondition += `
+      if (status === "hired") {
+        joiningDateCondition = `
+    AND DATE("reviewedJoiningDate") >= '${fromDate}'
+    AND DATE("reviewedJoiningDate") < '${nextDate}'
+  `;
+      } else {
+        positionCondition += `
     AND "insertOrUpdateDate" >= '${fromDate}'
     AND "insertOrUpdateDate" < '${nextDate}'
   `;
+      }
     }
 
     if (positionId) {
@@ -558,7 +566,7 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
       INNER JOIN "reqServiceRequests" ON "serviceServiceRequst" = "requestId"
       INNER JOIN "reqTeams" ON "teamId" = "requestTeam"
       ${joinType} "reqHrReviews" ON "serviceId" = "reviewedServiceId"
-      AND DATE("reviewedJoiningDate") <= '${currentDate}'
+      ${joiningDateCondition}
     `;
 
     let whereClause = '';
