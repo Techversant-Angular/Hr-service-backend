@@ -1180,9 +1180,9 @@ exports.jobApply = tryCatch(async (req, res) => {
   const { candidateFirstName, candidateLastName, candidateEmail, candidateMobileNo, appliedPosition } = req.body;
 
   // Resolve position: accept either requestId (number) or requestName (string)
-  let positionId = appliedPosition;
+  let positionId;
   if (isNaN(appliedPosition)) {
-    // change reqServiceRequest -> reqJobOpening
+    // Lookup by name in reqJobOpenings
     const position = await reqJobOpening.findOne({
       where: { requestName: appliedPosition },
       attributes: ['requestId'],
@@ -1191,7 +1191,20 @@ exports.jobApply = tryCatch(async (req, res) => {
       if (req.file) {
         fs.unlinkSync(req.file.path);
       }
-      return res.status(400).json({ status: false, message: "Invalid position. Please select a valid job position." });
+      return res.status(400).json({ result: false, message: "Invalid position. Please select a valid job position." });
+    }
+    positionId = position.requestId;
+  } else {
+    // Validate numeric ID actually exists in reqJobOpenings
+    const position = await reqJobOpening.findOne({
+      where: { requestId: appliedPosition },
+      attributes: ['requestId'],
+    });
+    if (!position) {
+      if (req.file) {
+        fs.unlinkSync(req.file.path);
+      }
+      return res.status(400).json({ result: false, message: "Invalid position. Please select a valid job position." });
     }
     positionId = position.requestId;
   }
