@@ -7,7 +7,12 @@ module.exports = (sequelize, DataTypes) => {
       reqJobApplicants.belongsTo(models.reqUser, { foreignKey: 'candidateCreatedby', as: 'createdBy' });
       reqJobApplicants.hasMany(models.reqCandidateSkill, { foreignKey: 'candidateId', as: 'candidateSkill' });
       reqJobApplicants.hasOne(models.reqServiceSequence, { foreignKey: 'serviceCandidate', as: 'serviceSequence' });
-      reqJobApplicants.belongsTo(models.reqServiceRequest, { foreignKey: 'candidatesAddingAgainst' });
+      // reqJobApplicants.belongsTo(models.reqServiceRequest, { foreignKey: 'candidatesAddingAgainst' });
+      reqJobApplicants.belongsTo(models.reqJobOpening, {
+        foreignKey: 'candidatesAddingAgainst',
+        targetKey: 'requestId',
+        as: 'jobOpening'
+      });
       reqJobApplicants.hasMany(models.reqCandidateRequestion, { foreignKey: 'candidateId', as: 'candidateReqst' });
     }
   }
@@ -85,7 +90,7 @@ module.exports = (sequelize, DataTypes) => {
     candidatesAddingAgainst: {
       type: DataTypes.INTEGER,
       references: {
-        model: 'reqServiceRequest',
+        model: 'reqJobOpenings',
         key: 'requestId'
       }
     },
