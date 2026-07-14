@@ -135,7 +135,7 @@ exports.deleteUser = async (req, res, next) => {
 
 
 exports.UpdateUser = async (req, res, next) => {
-    let { userfirstName, userlastName, userEmail, userDOB, userWorkStation, userRole } = req.body;
+    let { userfirstName, userlastName, userEmail, userDOB, userWorkStation, userRole, userStatus } = req.body;
     let { userId } = req.query;
     try {
         const userIspresent = await reqUser.findOne({
@@ -152,7 +152,7 @@ exports.UpdateUser = async (req, res, next) => {
         if (userEmail) userData.userEmail = userEmail;
         if (userDOB) userData.userDOB = userDOB;
         if (userWorkStation) userData.userWorkStation = userWorkStation;
-        
+        if (userStatus) userData.userStatus = userStatus;
         let roleIds = [];
         if (userRole) {
             let rolesArray = Array.isArray(userRole) ? userRole : (typeof userRole === 'string' ? userRole.split(',') : [userRole]);
