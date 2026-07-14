@@ -4,7 +4,7 @@ let {
   reqCandidateSkill, sequelize, Sequelize,
   reqSkill, reqStation, reqServiceRequest,
   reqCandidateComments, reqServiceSequence, reqCandidateRequestion,
-  reqJobApplicants
+  reqJobApplicants,reqJobOpening
 } = require("../../models");
 const response = require("../../api/utils/responseMessages");
 const moment = require("moment");
@@ -1182,7 +1182,8 @@ exports.jobApply = tryCatch(async (req, res) => {
   // Resolve position: accept either requestId (number) or requestName (string)
   let positionId = appliedPosition;
   if (isNaN(appliedPosition)) {
-    const position = await reqServiceRequest.findOne({
+    // change reqServiceRequest -> reqJobOpening
+    const position = await reqJobOpening.findOne({
       where: { requestName: appliedPosition },
       attributes: ['requestId'],
     });
