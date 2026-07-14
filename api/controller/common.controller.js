@@ -587,17 +587,25 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
     }
 
     const useDistinct = ["total", "shorted", "hired"].includes(status);
-    const selectKeyword = useDistinct ? 'SELECT DISTINCT ON ("candidateId")' : 'SELECT';
-    const orderBy = useDistinct ? 'ORDER BY "candidateId", "serviceId" DESC' : 'ORDER BY "candidateId" DESC';
-
+    const selectKeyword = useDistinct
+      ? (positionId
+        ? 'SELECT DISTINCT ON ("candidateId")'
+        : 'SELECT DISTINCT ON ("candidateId", "requestTeam")')
+      : 'SELECT';
+    const orderBy = useDistinct
+      ? (positionId
+        ? 'ORDER BY "candidateId", "serviceId" DESC'
+        : 'ORDER BY "candidateId", "requestTeam", "serviceId" DESC')
+      : 'ORDER BY "candidateId" DESC';
+ 
     const query = `
-      ${selectKeyword} "candidateId", "candidateFirstName", "candidateLastName", "candidateEducation", 
-             "candidateExperience", "candidatePreviousOrg", "candidatePreviousDesignation", 
-             "candidateCity", "candidateStatus", "candidateRevlentExperience", 
+      ${selectKeyword} "candidateId", "candidateFirstName", "candidateLastName", "candidateEducation",
+             "candidateExperience", "candidatePreviousOrg", "candidatePreviousDesignation",
+             "candidateCity", "candidateStatus", "candidateRevlentExperience",
              "candidateTotalExperience",
-             (SELECT "stationName" FROM "reqServiceSequences" 
-              INNER JOIN "reqStations" ON "stationId" = "serviceStation" 
-              WHERE "serviceCandidate" = "candidateId" 
+             (SELECT "stationName" FROM "reqServiceSequences"
+              INNER JOIN "reqStations" ON "stationId" = "serviceStation"
+              WHERE "serviceCandidate" = "candidateId"
               ORDER BY "serviceId" DESC LIMIT 1) AS "currentStation"
       ${baseQuery} ${whereClause}
       ${orderBy} LIMIT ${limit} OFFSET ${offset};
