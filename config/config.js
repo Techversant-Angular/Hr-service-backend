@@ -26,6 +26,7 @@ const s3Client = new S3Client(s3Config);
 module.exports = {
     development: config,
     test: config,
+    qa: config,
     production: config,
     s3Client
 }
