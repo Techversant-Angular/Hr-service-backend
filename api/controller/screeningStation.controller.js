@@ -152,7 +152,7 @@ exports.groupListsv1 = tryCatch(async (req, res) => {
   const query = `
     WITH requestion_filter AS (
       SELECT 
-        "requestId", "requestName", "requestSkills", "requestDate", 
+        "requestId", "requestName", "requestSkills", "requestPostingDate" AS "requestDate", 
         "requestTeam", "requestCode", "teamId", "teamName",
         "requestStatus" AS "status", "requestVacancy", "requestHiredCount",
         CONCAT("userfirstName", ' ', "userlastName") AS assignTo,
@@ -170,7 +170,7 @@ exports.groupListsv1 = tryCatch(async (req, res) => {
       LEFT JOIN "reqUsers" ON "reqUsers"."userId" = "service"."requestAssignTo" 
       ${whereClause}
       GROUP BY "requestId", "requestName", "requestSkills", "requestTeam", 
-               "requestCode", "requestDate", "teamId", "teamName",
+               "requestCode", "requestPostingDate", "teamId", "teamName",
                "requestStatus", "requestVacancy", "requestHiredCount", 
                "userfirstName", "userlastName", "requestPriority"
       ORDER BY ${orderBy}
