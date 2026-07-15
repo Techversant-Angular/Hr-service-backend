@@ -1330,3 +1330,35 @@ exports.jobApply = tryCatch(async (req, res) => {
     },
   });
 });
+
+exports.uploadResume = async (req, res) => {
+  try {
+    // Check if a file was uploaded
+    if (!req.file) {
+      return res.status(400).json({
+        result: false,
+        message: "Please upload a resume (.pdf, .doc, .docx)."
+      });
+    }
+
+    return res.status(200).json({
+      result: true,
+      message: "Resume uploaded successfully.",
+      data: {
+        originalName: req.file.originalname,
+        fileName: req.file.filename,
+        filePath: req.file.path,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype
+      }
+    });
+  } catch (error) {
+    console.error("Resume Upload Error:", error);
+
+    return res.status(500).json({
+      result: false,
+      message: "Failed to upload resume.",
+      error: error.message
+    });
+  }
+};

@@ -38,5 +38,8 @@ router.post('/submit-application', uploadResume.single('candidateResume'), submi
 
 router.post('/apply-job', uploadResume.single('candidateResume'), submitApplicationValidate, controller.jobApply);
 
+router.post('/resume/upload', uploadResume.single('candidateResume'), controller.uploadResume);
+
+
 module.exports = router;
 
