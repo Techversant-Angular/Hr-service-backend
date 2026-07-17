@@ -26,6 +26,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/qa_uploads_docs', express.static(path.join(__dirname, '../../../development_hosting/nodejs/qa_uploads_docs')));
 
 let userRoutes = require("./api/routes/users.route");
 app.use("/user", userRoutes);
