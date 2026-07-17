@@ -8,7 +8,7 @@ let helmet = require('helmet');
 app.use(cors({
   origin: '*',  // Allow all domains
   methods: ['GET', 'POST', 'PUT', 'DELETE','PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-env']
 }));
 
 require('dotenv').config();
