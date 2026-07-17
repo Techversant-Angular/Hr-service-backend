@@ -65,8 +65,8 @@ async function syncSecrets() {
     }
 
     // Write back to the .env file
-    fs.writeFileSync(dotenvPath, outputLines.join('\n'), 'utf-8');
-    console.log(`[Secrets Sync] Successfully synchronized ${Object.keys(secrets).length} secrets to .env file.`);
+    // fs.writeFileSync(dotenvPath, outputLines.join('\n'), 'utf-8');
+    // console.log(`[Secrets Sync] Successfully synchronized ${Object.keys(secrets).length} secrets to .env file.`);
     process.exit(0);
   } catch (error) {
     console.warn("[Secrets Sync] WARNING: Failed to synchronize secrets from AWS Secrets Manager:", error.message);
