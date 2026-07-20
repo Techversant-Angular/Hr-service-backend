@@ -1,5 +1,5 @@
 const moment = require("moment");
-const { Op, Sequelize } = require("sequelize");
+const { Op, Sequelize, where } = require("sequelize");
 let mailFunction = require("../utils/nodeMail");
 const { tryCatch } = require("../utils/trycatch");
 let { addContactedCount, logFunction, updateReportData, reqcuriterReport } = require("../utils/commonFunction");
@@ -143,6 +143,9 @@ exports.skillsList = tryCatch(async (req, res, next) => {
 
 exports.teamList = tryCatch(async (req, res, next) => {
   const teamList = await reqTeam.findAll({
+    where:{
+      status:true
+    },
     attributes: [
       [Sequelize.fn("DISTINCT", Sequelize.col("teamName")), "teamName"],
       "teamId",
@@ -437,12 +440,302 @@ exports.candidateCommentsUpdate = tryCatch(async (req, res, next) => {
 
 exports.designationList = tryCatch(async (req, res, next) => {
   const { search } = req.query;
-  const designations = await reqDesignation.findAll({ where: { designationName: { [Op.iLike]: `%${search}%` } } });
+  const designations = await reqDesignation.findAll({ where: { designationName: { [Op.iLike]: `%${search}%` }, status:true } });
   if (designations)
     return res
       .status(200)
       .json({ result: true, message: response.DATA_RETRIEVED, data: designations });
   return res.status(401).json({ result: true, message: response.DATA_NOT_FOUND });
+});
+
+// designation CRUD 
+exports.designationManagementList = tryCatch(async (req, res, next) => {
+  const { search, page = 1, limit=10 } = req.query;
+  const where = {
+    status:true
+  };
+
+  if(search?.trim()){
+    where.designationName = {
+      [Op.iLike]: `%${search.trim()}%`,
+    };
+  }
+
+  const offset = (Number(page)-1) * Number(limit);
+
+  const { count, rows:designations } = await reqDesignation.findAndCountAll({
+    where,
+    limit:Number(limit),
+    offset,
+    order:[["designationName","ASC"]]
+  });
+
+  return res.status(200).json({
+    result:true,
+    message:response.DATA_RETRIEVED,
+    count,
+    totalPages:Math.ceil(count/limit),
+    currentPage: Number(page),
+    data:designations
+  });
+
+});
+
+exports.createDesignation = tryCatch(async (req,res) =>{
+  const { designationName } = req.body;
+  if(!designationName?.trim()){
+    return res.status(400).json({
+      result:false,
+      message:"Designation name is required."
+    })
+  }
+  const existingDesignation = await reqDesignation.findOne({
+    where:{
+      designationName:{
+        [Op.iLike]:designationName.trim()
+      },
+      status:true
+    }
+  })
+  if(existingDesignation){
+    return res.status(409).json({
+      result:false,
+      message: "Designation already exists."
+    })
+  }
+
+  const designation = await reqDesignation.create({
+    designationName: designationName.trim()
+  });
+
+  return res.status(201).json({
+    result:true,
+    message:"Designation created successfully.",
+    data:designation
+  })
+});
+
+exports.updateDesignation = tryCatch(async (req,res) =>{
+  const { designationId }  = req.params;
+  const { designationName } = req.body;
+
+  if(!designationName?.trim()){
+    return res.status(400).json({
+      result: false,
+      message:"Designation name is required."
+    })
+  }
+
+  const designation = await reqDesignation.findByPk(designationId);
+
+  if(!designation){
+    return res.status(404).json({
+      result: false,
+      message: "Designation not found."
+    })
+  }
+
+  const existingDesignation = await reqDesignation.findOne({
+    where:{
+      designationName:{
+        [Op.iLike]:designationName.trim()
+      },
+      designationId:{
+        [Op.ne]:designationId
+      },
+      status:true
+    }
+  })
+
+  if(existingDesignation){
+    return res.status(409).json({
+      result:false,
+      message:"Designation already exists."
+    })
+  }
+
+  designation.designationName = designationName.trim();
+  await designation.save();
+
+  return res.status(200).json({
+    result:true,
+    message:"Designation updated successfully.",
+    data: designation
+  })
+
+
+});
+
+exports.deleteDesignation = tryCatch(async (req,res)=>{
+  const { designationId } = req.params;
+  const designation = await reqDesignation.findByPk(designationId);
+
+  if(!designation){
+    return res.status(404).json({
+      result: false,
+      message:"Designation not found."
+    })
+  }
+
+  // const isDesignationInUse = await reqServiceRequest.findOne({
+  //   where: {
+  //     requestDesignation: designationId,
+  //   },
+  // });
+
+  // if (isDesignationInUse) {
+  //   return res.status(400).json({
+  //     result: false,
+  //     message:
+  //       "Designation cannot be deleted because it is associated with one or more service requests.",
+  //   });
+  // }
+  await designation.update({
+    status: false,
+  });
+  return res.status(200).json({
+    result:true,
+    message:"Designation deleted successfully."
+  })
+
+});
+
+// department CRUD 
+exports.departmentList = tryCatch(async (req, res) => {
+  const { search, page = 1, limit = 10 } = req.query;
+  const where = {
+    status:true
+  };
+  if (search?.trim()) {
+    where.teamName = {
+      [Op.iLike]: `%${search.trim()}%`,
+    };
+  }
+  const offset = (Number(page) - 1) * Number(limit);
+  const { count, rows: departments } = await reqTeam.findAndCountAll({
+    where,
+    limit: Number(limit),
+    offset,
+    order: [["teamName", "ASC"]],
+  });
+  return res.status(200).json({
+    result: true,
+    message: response.DATA_RETRIEVED,
+    count,
+    totalPages: Math.ceil(count / Number(limit)),
+    currentPage: Number(page),
+    data: departments,
+  });
+});
+
+exports.createDepartment = tryCatch(async (req,res)=>{
+  const { departmentName } = req.body;
+  if (!departmentName?.trim()) {
+    return res.status(400).json({
+      result: false,
+      message: "Department name is required.",
+    });
+  }
+  const existingDepartment = await reqTeam.findOne({
+    where: {
+      teamName: {
+        [Op.iLike]: departmentName.trim(),
+      },
+    status: true,
+    },
+  });
+  if (existingDepartment) {
+    return res.status(409).json({
+      result: false,
+      message: "Department already exists.",
+    });
+  }
+  const department = await reqTeam.create({
+    teamName: departmentName.trim(),
+  });
+  return res.status(201).json({
+    result: true,
+    message: "Department created successfully.",
+    data: department,
+  });
+});
+
+exports.updateDepartment = tryCatch(async (req,res)=>{
+  const { teamId } = req.params;
+  const { departmentName } = req.body;
+
+  if (!departmentName?.trim()) {
+    return res.status(400).json({
+      result: false,
+      message: "Department name is required.",
+    });
+  }
+  const department = await reqTeam.findByPk(teamId);
+  if (!department) {
+    return res.status(404).json({
+      result: false,
+      message: "Department not found.",
+    });
+  }
+  const existingDepartment = await reqTeam.findOne({
+    where: {
+      teamName: {
+        [Op.iLike]: departmentName.trim(),
+      },
+      teamId: {
+        [Op.ne]: teamId,
+      },
+      status: true,
+    },
+  });
+  if (existingDepartment) {
+    return res.status(409).json({
+      result: false,
+      message: "Department already exists.",
+    });
+  }
+
+  department.teamName = departmentName.trim();
+  await department.save();
+
+  return res.status(200).json({
+    result:true,
+    message:"Department updated successfully.",
+    data:department
+  })
+
+});
+
+exports.deleteDepartment = tryCatch(async (req,res) =>{
+  const { teamId } = req.params;
+  const department = await reqTeam.findByPk(teamId);
+
+  if(!department){
+    res.status(404).json({
+      result:false,
+      message:"Department not found."
+    })
+  }
+  // const isDepartmentInUse = await reqServiceRequest.findOne({
+  //   where: {
+  //     requestTeam: teamId,
+  //   },
+  // });
+  // if (isDepartmentInUse) {
+  //   return res.status(400).json({
+  //     result: false,
+  //     message:
+  //       "Department cannot be deleted because it is associated with one or more service requests.",
+  //   });
+  // }
+  await department.update({
+    status: false,
+  });
+  return res.status(200).json({
+    result:true,
+    message:'Department deactivated successfully.'
+  })
+
 });
 
 exports.skipCurrentStation = tryCatch(async (req, res, next) => {
