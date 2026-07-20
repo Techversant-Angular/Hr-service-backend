@@ -1,4 +1,4 @@
-const dotenv = (require("dotenv").config()).parsed
+require("dotenv").config();
 // const jwt = require('jwt-simple');
 const jwt = require("jsonwebtoken");
 
@@ -12,7 +12,7 @@ let secret = 'xxx';
 //     return token;
 // }
 exports.jwtToken = async (userObj) => {
-    const token = jwt.sign(userObj, dotenv.TOKEN_SECRET);
+    const token = jwt.sign(userObj, process.env.TOKEN_SECRET);
     return token;
 }
 
@@ -29,7 +29,7 @@ exports.jwtToken = async (userObj) => {
 // Verify access token
 exports.jwtVerifyToken = async (token) => {
     try {
-        const verified = jwt.verify(token, dotenv.TOKEN_SECRET);
+        const verified = jwt.verify(token, process.env.TOKEN_SECRET);
         return verified;
     } catch (err) {
         if (err.name === 'TokenExpiredError') {

@@ -1,11 +1,11 @@
-const dotenv = (require("dotenv").config()).parsed
+require("dotenv").config();
 const { S3Client } = require("@aws-sdk/client-s3");
 
 let config = {
-    username: dotenv.DEV_DB_USER,
-    password: dotenv.DEV_DB_PASSWORD,
-    database: dotenv.DEV_DB_NAME,
-    host: dotenv.DEV_DB_HOST,
+    username: process.env.DEV_DB_USER,
+    password: process.env.DEV_DB_PASSWORD,
+    database: process.env.DEV_DB_NAME,
+    host: process.env.DEV_DB_HOST,
     dialect: 'postgres',
     migrationStorageTableName: "SequelizeMeta",
     // timezone: '+05:30', //timezone added on 20-09-2024

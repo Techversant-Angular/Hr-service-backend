@@ -1,80 +1,67 @@
-// Synchronously fetch and write secrets from AWS Secrets Manager to .env before anything else is required
-try {
-  const { execSync } = require('child_process');
-  const path = require('path');
-  execSync(`node "${path.join(__dirname, 'api/utils/syncSecrets.js')}"`, { stdio: 'inherit' });
-} catch (err) {
-  console.error("Critical: Failed to synchronize Secrets Manager secrets at startup:", err.message);
-  process.exit(1);
-}
+require('dotenv').config();
 
-let express = require('express');
-var cors = require('cors')
-let app = express();
-let errorHandler = require("./api/middleware/error");
+const express = require('express');
+const cors = require('cors');
 const path = require('path');
-let helmet = require('helmet');
+const helmet = require('helmet');
+const errorHandler = require('./api/middleware/error');
+const { loadSecretToEnv } = require('./api/utils/secretManager');
+
+const app = express();
 
 app.use(cors({
   origin: '*',  // Allow all domains
-  methods: ['GET', 'POST', 'PUT', 'DELETE','PATCH'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-require('dotenv').config();
-let port = process.env.APP_PORT;
 app.use(express.json());
 app.use(helmet());
-const sampleData = {
-  message: 'Hello, this is a sample API!',
-  timestamp: new Date().toISOString(),
-};
 
-let gmeet = require("./api/utils/gmeetConfiguration");
-app.get('/', (req, res) => {
-  res.json(sampleData);
-});
+async function startServer() {
+  // Load secrets from AWS Secrets Manager into process.env before anything else
+  try {
+    await loadSecretToEnv();
+  } catch (err) {
+    console.warn('[Startup] Could not load secrets from AWS Secrets Manager. Continuing with existing .env values:', err.message);
+  }
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+  const port = process.env.APP_PORT;
 
-let userRoutes = require("./api/routes/users.route");
-app.use("/user", userRoutes);
+  const sampleData = {
+    message: 'Hello, this is a sample API!',
+    timestamp: new Date().toISOString(),
+  };
 
-let candidateRoutes = require("./api/routes/candidate.route");
-app.use("/candidate", candidateRoutes);
+  require('./api/utils/gmeetConfiguration');
 
-let serviceRequestRoutes = require("./api/routes/serviceRequest.route");
-app.use("/service-request", serviceRequestRoutes);
+  app.get('/', (req, res) => {
+    res.json(sampleData);
+  });
 
-let screeningStationRoute = require("./api/routes/screeningStation.route");
-app.use("/screening-station", screeningStationRoute);
+  app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-let writtenStationRoute = require("./api/routes/writtenStation.route");
-app.use("/written-station", writtenStationRoute);
+  app.use('/user', require('./api/routes/users.route'));
+  app.use('/candidate', require('./api/routes/candidate.route'));
+  app.use('/service-request', require('./api/routes/serviceRequest.route'));
+  app.use('/screening-station', require('./api/routes/screeningStation.route'));
+  app.use('/written-station', require('./api/routes/writtenStation.route'));
+  app.use('/technical-station', require('./api/routes/technicalStation.route'));
+  app.use('/technical-station-two', require('./api/routes/technicalStationTwo.route'));
+  app.use('/management-station', require('./api/routes/management.route'));
+  app.use('/dashboard', require('./api/routes/dashboard.route'));
+  app.use('/report', require('./api/routes/report.route'));
+  app.use('/hr-station', require('./api/routes/hrStation.route'));
 
-let technicalStationRoute = require("./api/routes/technicalStation.route");
-app.use("/technical-station", technicalStationRoute);
+  app.all('*', (req, res) => {
+    return res.status(404).json({ result: false, message: `Can't find this ${req.originalUrl} on the server!` });
+  });
 
-let technicalStationTwoRoute = require("./api/routes/technicalStationTwo.route");
-app.use("/technical-station-two", technicalStationTwoRoute);
+  app.use(errorHandler);
 
-let managementStationRoute = require("./api/routes/management.route");
-app.use("/management-station", managementStationRoute);
+  app.listen(port, () => {
+    console.log(`Server Running on Port ${port}-aws`);
+  });
+}
 
-let dashBoardRoute = require("./api/routes/dashboard.route");
-app.use("/dashboard", dashBoardRoute);
-
-let reportRoute = require("./api/routes/report.route");
-app.use("/report", reportRoute);
-
-app.use("/hr-station", require("./api/routes/hrStation.route"));
-
-app.all('*', (req, res, next) => {
-  return res.status(404).json({ result: false, message: `Can't find this ${req.originalUrl} on the server!` })
-})
-
-app.use(errorHandler);
-
-app.listen(port, () => {
-  console.log(`Server Running on Port ${port}-aws`);
-});
+startServer();
