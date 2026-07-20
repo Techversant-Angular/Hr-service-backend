@@ -9,7 +9,7 @@ exports.routerInterceptor = async (req, res, next) => {
   if (req.headers['x-api-env'] === 'live') {
     return commonController.generatePresignedUrl(req, res, next);
   } else if (req.headers['x-api-env'] === 'others') {
-    uploadResume.single("fileName")(req, res, (err) => {
+    uploadResume.single("file")(req, res, (err) => {
       if (err) {
         return res.status(400).json({
           result: false,
