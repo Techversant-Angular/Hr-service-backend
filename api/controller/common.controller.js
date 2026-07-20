@@ -641,6 +641,7 @@ exports.createDepartment = tryCatch(async (req,res)=>{
       teamName: {
         [Op.iLike]: departmentName.trim(),
       },
+    status: true,
     },
   });
   if (existingDepartment) {
@@ -684,6 +685,7 @@ exports.updateDepartment = tryCatch(async (req,res)=>{
       teamId: {
         [Op.ne]: teamId,
       },
+      status: true,
     },
   });
   if (existingDepartment) {
@@ -714,18 +716,18 @@ exports.deleteDepartment = tryCatch(async (req,res) =>{
       message:"Department not found."
     })
   }
-  const isDepartmentInUse = await reqServiceRequest.findOne({
-    where: {
-      requestTeam: teamId,
-    },
-  });
-  if (isDepartmentInUse) {
-    return res.status(400).json({
-      result: false,
-      message:
-        "Department cannot be deleted because it is associated with one or more service requests.",
-    });
-  }
+  // const isDepartmentInUse = await reqServiceRequest.findOne({
+  //   where: {
+  //     requestTeam: teamId,
+  //   },
+  // });
+  // if (isDepartmentInUse) {
+  //   return res.status(400).json({
+  //     result: false,
+  //     message:
+  //       "Department cannot be deleted because it is associated with one or more service requests.",
+  //   });
+  // }
   await department.update({
     status: false,
   });
