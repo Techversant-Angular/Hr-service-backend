@@ -1341,15 +1341,18 @@ exports.uploadResume = async (req, res) => {
       });
     }
 
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const relativePath = `qa_uploads_docs/${req.file.filename}`;
+    const fileUrl = `${protocol}://${host}/${relativePath}`;
+
     return res.status(200).json({
       result: true,
       message: "Resume uploaded successfully.",
       data: {
-        originalName: req.file.originalname,
         fileName: req.file.filename,
-        filePath: req.file.path,
-        fileSize: req.file.size,
-        mimeType: req.file.mimetype
+        filePath: relativePath,
+        fileUrl: fileUrl
       }
     });
   } catch (error) {
