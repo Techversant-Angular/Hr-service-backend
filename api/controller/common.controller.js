@@ -595,7 +595,7 @@ exports.deleteDesignation = tryCatch(async (req,res)=>{
   });
   return res.status(200).json({
     result:true,
-    message:"Designation deleted successfully."
+    message:"Designation deactivated successfully.'"
   })
 
 });
