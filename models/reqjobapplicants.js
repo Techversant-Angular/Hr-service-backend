@@ -14,6 +14,13 @@ module.exports = (sequelize, DataTypes) => {
         as: 'jobOpening'
       });
       reqJobApplicants.hasMany(models.reqCandidateRequestion, { foreignKey: 'candidateId', as: 'candidateReqst' });
+      reqJobApplicants.hasMany(models.reqJobApplicantsOpening, { foreignKey: 'reqJobApplicantsId', as: 'jobApplicantOpenings' });
+      reqJobApplicants.belongsToMany(models.reqJobOpening, {
+        through: models.reqJobApplicantsOpening,
+        foreignKey: 'reqJobApplicantsId',
+        otherKey: 'reqJobOpeningId',
+        as: 'jobOpeningsList'
+      });
     }
   }
 
