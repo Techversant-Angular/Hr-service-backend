@@ -135,7 +135,7 @@ exports.deleteUser = async (req, res, next) => {
 
 
 exports.UpdateUser = async (req, res, next) => {
-    let { userfirstName, userlastName, userEmail, userDOB, userWorkStation, userRole } = req.body;
+    let { userfirstName, userlastName, userEmail, userDOB, userWorkStation, userRole, userStatus } = req.body;
     let { userId } = req.query;
     try {
         const userIspresent = await reqUser.findOne({
@@ -152,6 +152,16 @@ exports.UpdateUser = async (req, res, next) => {
         if (userEmail) userData.userEmail = userEmail;
         if (userDOB) userData.userDOB = userDOB;
         if (userWorkStation) userData.userWorkStation = userWorkStation;
+        if (userStatus) {
+            const allowedStatus = ['active', 'inactive'];
+            if (!allowedStatus.includes(userStatus.toLowerCase())) {
+                return res.status(400).send({
+                    status: false,
+                    message: 'Invalid user status.'
+                });
+            }
+            userData.userStatus = userStatus.toLowerCase();
+        }
         let roleIds = [];
         if (userRole) {
             let rolesArray = Array.isArray(userRole) ? userRole : (typeof userRole === 'string' ? userRole.split(',') : [userRole]);
