@@ -40,6 +40,8 @@ router.post('/apply-job', uploadResume.single('candidateResume'), submitApplicat
 
 router.post('/resume/upload', uploadResume.single('candidateResume'), controller.uploadResume);
 
+router.get('/sourced-candidates', authenticate, controller.sourcedCandidates);
 
+router.get('/careers/job/openings', controller.jobOpeningCareers);
 module.exports = router;
 

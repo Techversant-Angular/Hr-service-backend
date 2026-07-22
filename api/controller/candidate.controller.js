@@ -1365,3 +1365,207 @@ exports.uploadResume = async (req, res) => {
     });
   }
 };
+
+exports.sourcedCandidates = tryCatch(async (req, res) => {
+  const report = req.query.report;
+  let limit = req.query.limit || 100;
+  let offset = req.query.page || 0;
+  const experience = req.query.exprience;
+  let ids = req.query.ids;
+
+  const search = req.query.search ? decodeURIComponent(req.query.search) : req.query.search;
+  const skills = req.query.skills;
+  const recuriter = req.query.recuriter;
+  const serviceRequestId = req.query.serviceRequestId;
+  const where = {
+    candidateStatus: "active",
+    candidateInterviewStatus: "sourced",
+  };
+  if (limit && offset) {
+    limit = limit;
+    offset = (offset - 1) * limit;
+  }
+  // this statement is used to filter candidates in service request
+  const data = req.url.split("/");
+  const urlCandidates = data.includes("candidates");
+  if (urlCandidates) {
+    where.candidateStation = {
+      [Op.is]: null,
+    };
+  }
+  if (serviceRequestId)
+    where.candidatesAddingAgainst = { [Op.eq]: serviceRequestId };
+  if (experience) {
+    if (experience == 0) {
+      where.candidateExperience = { [Op.eq]: experience };
+    } else {
+      where.candidateExperience = { [Op.gte]: experience };
+    }
+  }
+  if (ids?.length) {
+    ids = Array.isArray(ids) ? ids : [ids];
+    where.candidateId = { [Op.in]: ids };
+  }
+  if (search) {
+    const searchLower = search.toLowerCase();
+    where[Op.or] = [
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateFirstName')), { [Op.like]: `%${searchLower}%` }),
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateLastName')), { [Op.like]: `%${searchLower}%` }),
+      Sequelize.where(
+        Sequelize.fn('LOWER', Sequelize.fn("concat", Sequelize.col("candidateFirstName"), " ", Sequelize.col("candidateLastName"))),
+        { [Op.like]: `%${searchLower}%` }
+      ),
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateEmail')), { [Op.like]: `%${searchLower}%` }),
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateMobileNo')), { [Op.like]: `%${searchLower}%` }),
+      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidatePreviousOrg')), { [Op.like]: `%${searchLower}%` }),
+    ];
+  }
+  const recuriterCondition = { where: {} };
+  if (recuriter) {
+    recuriterCondition.where = { userId: recuriter };
+  }
+  const candidateSkill = {};
+  if (skills) {
+    candidateSkill.candidateSkillId = skills;
+  }
+  const include = [
+    { model: reqServiceRequest, attributes: ["requestName", "requestId"] },
+    {
+      model: reqCandidateRequestion,as: "candidateReqst",
+      include: [{ model: reqServiceRequest,as:'serviceRequestion', attributes: ["requestName", "requestId"] }]
+    },
+    {
+      model: reqUser,
+      as: "createdBy",
+      required: false,
+      where: recuriterCondition.where,
+      attributes: ['userEmail', 'userFullName', 'userfirstName', 'userlastName'],
+    },
+    {
+      model: reqCandidateSkill,
+      as: "candidateSkill",
+      required: false,
+      attributes: ["candidateSkillType", "candidateSkillId"],
+      where: candidateSkill,
+      include: { model: reqSkill, as: "skills" },
+    },
+  ];
+
+  const subQuery = `SELECT MAX("candidateId") as "candidateId" FROM "reqCandidates" GROUP BY "candidateEmail"`;
+
+  const [results] = await sequelize.query(subQuery);
+
+  where.candidateId = {
+    [Op.in]: results.map((result) => result.candidateId),
+  };
+
+  const candidateCount = await reqCandidates.count({
+    include,
+    where,
+    distinct: true,
+  });
+
+  const candidates = await reqCandidates.findAll({
+    include,
+    attributes: { exclude: ["candidateCurrentSalary", "candidateExpectedSalary"] },
+    where,
+    ...(report == "true" ? {} : {
+      limit: limit,
+      offset: offset
+    }),
+    distinct: true,
+    order: [["candidateId", "DESC"]],
+  });
+
+  if (report == "true" && candidates) {
+    const head = [
+      { header: "Candidate Id", key: "candidateId", width: 10 },
+      {
+        header: "Candidate First Name",
+        key: "candidateFirstName",
+        width: 25,
+      },
+      { header: "Candidate Last Name", key: "candidateLastName", width: 15 },
+      {
+        header: "Candidate Experience",
+        key: "candidateExperience",
+        width: 15,
+      },
+      { header: "Candidate Email", key: "candidateEmail", width: 25 },
+      { header: "Candidate Mobile", key: "candidateMobileNo", width: 25 },
+      {
+        header: "Candidate Prev Org",
+        key: "candidatePreviousOrg",
+        width: 25,
+      },
+      {
+        header: "Candidate Designation",
+        key: "candidatePreviousDesignation",
+        width: 25,
+      },
+      {
+        header: "Candidate Current Salary",
+        key: "candidateCurrentSalary",
+        width: 25,
+      },
+      {
+        header: "Candidate Expected Salary",
+        key: "candidateExpectedSalary",
+        width: 25,
+      },
+      { header: "candidate City", key: "candidateCity", width: 10 },
+      { header: "candidate Education", key: "candidateEducation", width: 10 },
+    ];
+
+    const body = candidates.map((le) => {
+      return {
+        candidateId: le.candidateId,
+        candidateFirstName: le.candidateFirstName,
+        candidateLastName: le.candidateLastName,
+        candidateExperience: le.candidateExperience,
+        candidateEmail: le.candidateEmail,
+        candidateMobileNo: le.candidateMobileNo,
+        candidatePreviousOrg: le.candidatePreviousOrg,
+        candidatePreviousDesignation: le.candidatePreviousDesignation,
+        candidateCurrentSalary: le.candidateCurrentSalary,
+        candidateExpectedSalary: le.candidateExpectedSalary,
+        candidateCity: le.candidateCity,
+        candidateEducation: le.candidateEducation,
+      };
+    });
+    const name = `candidates${moment().format("yyyymmddHHMMSS")}`;
+    excelGenerator(req, res, head, body, name);
+    return;
+  }
+  if (candidates)
+    return res.status(200).json({
+      result: true,
+      message: "Candidates found",
+      candidateCount,
+      candidates: candidates.map((el) => {
+        // Convert reqServiceRequest to an array and merge with candidateReqst
+        const serviceRequests = [
+          ...(Array.isArray(el.candidateReqst) ? el.candidateReqst.map(req => req.serviceRequestion) : []),
+        ];
+        return {
+          ...el.toJSON(),
+          reqServiceRequest: serviceRequests
+        };
+      }),
+    });
+  throw new Error(response.CANDIDATES_NOTFOUND);
+});
+
+exports.jobOpeningCareers = tryCatch(async (req, res) => {
+  const jobOpenings = await reqJobOpening.findAll({
+  });
+
+  if (jobOpenings) {
+    return res.status(200).json({
+      result: true,
+      message: response.DATA_RETRIEVED,
+      data: jobOpenings,
+    });
+  }
+  throw new Error(response.JOB_OPENINGS_NOT_FOUND);
+});
