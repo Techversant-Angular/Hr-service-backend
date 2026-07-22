@@ -1465,6 +1465,11 @@ exports.sourcedCandidates = tryCatch(async (req, res) => {
     distinct: true,
   });
 
+  const pageCount =
+  report === "true"
+    ? 1
+    : Math.ceil(candidateCount / Number(limit));
+
   const candidates = await reqCandidates.findAll({
     include,
     attributes: { exclude: ["candidateCurrentSalary", "candidateExpectedSalary"] },
@@ -1542,6 +1547,7 @@ exports.sourcedCandidates = tryCatch(async (req, res) => {
       result: true,
       message: "Candidates found",
       candidateCount,
+      pageCount,
       candidates: candidates.map((el) => {
         // Convert reqServiceRequest to an array and merge with candidateReqst
         const serviceRequests = [
@@ -1557,15 +1563,36 @@ exports.sourcedCandidates = tryCatch(async (req, res) => {
 });
 
 exports.jobOpeningCareers = tryCatch(async (req, res) => {
-  const jobOpenings = await reqJobOpening.findAll({
+  let limit = Number(req.query.limit) || 100;
+  let page = Number(req.query.page) || 1;
+  const report = req.query.report;
+
+  const offset = (page - 1) * limit;
+
+  const { count, rows: jobOpenings } = await reqJobOpening.findAndCountAll({
+    ...(report === "true"
+      ? {}
+      : {
+          limit,
+          offset,
+        }),
+    order: [["requestId", "DESC"]], // Change to your preferred column if needed
   });
 
-  if (jobOpenings) {
+  const totalPages =
+    report === "true" ? 1 : Math.ceil(count / limit);
+
+  if (jobOpenings.length) {
     return res.status(200).json({
       result: true,
       message: response.DATA_RETRIEVED,
+      totalCount: count,
+      totalPages,
+      currentPage: report === "true" ? 1 : page,
+      pageSize: limit,
       data: jobOpenings,
     });
   }
+
   throw new Error(response.JOB_OPENINGS_NOT_FOUND);
 });
