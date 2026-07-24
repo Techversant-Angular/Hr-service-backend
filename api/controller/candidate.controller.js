@@ -1596,3 +1596,38 @@ exports.jobOpeningCareers = tryCatch(async (req, res) => {
 
   throw new Error(response.JOB_OPENINGS_NOT_FOUND);
 });
+
+exports.jobCareerApplications = tryCatch(async (req, res) => {
+  let limit = Number(req.query.limit) || 100;
+  let page = Number(req.query.page) || 1;
+  const report = req.query.report;
+
+  const offset = (page - 1) * limit;
+
+  const { count, rows: jobApplicants } = await reqJobApplicants.findAndCountAll({
+    ...(report === "true"
+      ? {}
+      : {
+          limit,
+          offset,
+        }),
+    order: [["candidateId", "DESC"]], // Change to your preferred column if needed
+  });
+
+  const totalPages =
+    report === "true" ? 1 : Math.ceil(count / limit);
+
+  if (jobApplicants.length) {
+    return res.status(200).json({
+      result: true,
+      message: response.DATA_RETRIEVED,
+      totalCount: count,
+      totalPages,
+      currentPage: report === "true" ? 1 : page,
+      pageSize: limit,
+      data: jobApplicants,
+    });
+  }
+
+  throw new Error(response.JOB_OPENINGS_NOT_FOUND);
+});
