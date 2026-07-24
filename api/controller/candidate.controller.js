@@ -1598,6 +1598,7 @@ exports.jobOpeningCareers = tryCatch(async (req, res) => {
 });
 
 exports.jobCareerApplications = tryCatch(async (req, res) => {
+try{
   let limit = Number(req.query.limit) || 100;
   let page = Number(req.query.page) || 1;
   const report = req.query.report;
@@ -1605,6 +1606,9 @@ exports.jobCareerApplications = tryCatch(async (req, res) => {
   const offset = (page - 1) * limit;
 
   const { count, rows: jobApplicants } = await reqJobApplicants.findAndCountAll({
+        where: {
+      candidateInterviewStatus: "sourced",
+    },
     ...(report === "true"
       ? {}
       : {
@@ -1627,7 +1631,17 @@ exports.jobCareerApplications = tryCatch(async (req, res) => {
       pageSize: limit,
       data: jobApplicants,
     });
+  } else {
+    return res.status(404).json({
+      result: false,
+      message: "No job career applications found.",
+    });
   }
-
-  throw new Error(response.JOB_OPENINGS_NOT_FOUND);
+} catch (error) {
+  console.error("Error fetching job career applications:", error);
+  return res.status(500).json({
+    result: false,
+    message: "An error occurred while fetching job career applications.",
+  });
+}
 });
