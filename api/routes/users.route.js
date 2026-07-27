@@ -4,15 +4,15 @@ let controller = require('../controller/user/user.controller');
 let authController = require('../controller/user/auth.controller');
 let commonController = require('../controller/common.controller');
 let { authenticate, verifyAdmin } = require('../middleware/auth');
-let { updateUser, changePswd, flows, skipStation } = require('../validation/user.validate');
+let { updateUser, changePswd, forgotPassword, resetPassword, flows, skipStation } = require('../validation/user.validate');
 
 router.post('/login', authController.login);
 
 router.post('/changePassword', changePswd, authenticate, authController.changePassword);
 
-router.post("/forgotPassword", authController.forgotPassword);
+router.post("/forgotPassword", forgotPassword, authController.forgotPassword);
 
-router.post("/resetPassword", authController.resetPassword);
+router.post("/resetPassword", resetPassword, authController.resetPassword);
 
 // router.post('/refresh-token', authController.refreshToken);
 
