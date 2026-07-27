@@ -2,9 +2,12 @@ const express = require('express');
 const router = express.Router();
 let controller = require('../controller/candidate.controller.js');
 let commonController = require('../controller/common.controller');
+let attachmentController = require('../controller/candidateAttachment.controller.js');
 let { createRemove, createCandidate, candidateEdit, candidateHistoryFetch, submitApplicationValidate } = require('../validation/candidate.validate');
+let { createAttachmentValidate, listAttachmentsValidate, deleteAttachmentValidate } = require('../validation/candidateAttachment.validate.js');
 let { candidateForms, candidateFormsEdit } = require('../middleware/formData');
 let uploadResume = require('../middleware/uploadResume');
+let uploadAttachment = require('../middleware/uploadAttachment.js');
 let { authenticate, verifyAdmin } = require('../middleware/auth');
 let commonFunction = require('../utils/commonFunction.js');
 
@@ -43,5 +46,14 @@ router.post('/resume/upload', uploadResume.single('candidateResume'), controller
 router.get('/sourced-candidates', authenticate, controller.sourcedCandidates);
 
 router.get('/careers/job/openings', controller.jobOpeningCareers);
+
+// candidate attachments
+router.get('/attachment/types', authenticate, attachmentController.getAttachmentTypes);
+router.post('/attachment', authenticate, uploadAttachment.single('file'), createAttachmentValidate, attachmentController.createAttachment);
+router.get('/attachment', authenticate, listAttachmentsValidate, attachmentController.getAttachments);
+router.delete('/attachment/:attachmentId', authenticate, deleteAttachmentValidate, attachmentController.deleteAttachment);
+
+
+
 module.exports = router;
 
