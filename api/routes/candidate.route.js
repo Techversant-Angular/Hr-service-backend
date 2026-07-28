@@ -7,7 +7,6 @@ let { createRemove, createCandidate, candidateEdit, candidateHistoryFetch, submi
 let { createAttachmentValidate, listAttachmentsValidate, deleteAttachmentValidate } = require('../validation/candidateAttachment.validate.js');
 let { candidateForms, candidateFormsEdit } = require('../middleware/formData');
 let uploadResume = require('../middleware/uploadResume');
-let uploadAttachment = require('../middleware/uploadAttachment.js');
 let { authenticate, verifyAdmin } = require('../middleware/auth');
 let commonFunction = require('../utils/commonFunction.js');
 
@@ -49,7 +48,7 @@ router.get('/careers/job/openings', controller.jobOpeningCareers);
 
 // candidate attachments
 router.get('/attachment/types', authenticate, attachmentController.getAttachmentTypes);
-router.post('/attachment', authenticate, uploadAttachment.single('file'), createAttachmentValidate, attachmentController.createAttachment);
+router.post('/attachment', authenticate, createAttachmentValidate, attachmentController.createAttachment);
 router.get('/attachment', authenticate, listAttachmentsValidate, attachmentController.getAttachments);
 router.delete('/attachment/:attachmentId', authenticate, deleteAttachmentValidate, attachmentController.deleteAttachment);
 
