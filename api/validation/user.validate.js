@@ -67,6 +67,31 @@ exports.changePswd = [
     }
 ];
 
+exports.forgotPassword = [
+    body('userEmail').trim().isEmail().withMessage('A valid email address is required'),
+    (req, res, next) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ status: false, errors: errors.array() });
+        next();
+    }
+];
+
+exports.resetPassword = [
+    body('userEmail').trim().isEmail().withMessage('A valid email address is required'),
+    body('otp').trim().matches(/^\d{6}$/).withMessage('OTP must be a 6-digit number'),
+    body('password').isStrongPassword({ minLength: 8, minLowercase: 1, minUppercase: 1, minNumbers: 1, minSymbols: 1 })
+        .withMessage('Password must be at least 8 characters and include uppercase, lowercase, number, and symbol'),
+    body('confirmPassword').custom((value, { req }) => {
+        if (value !== req.body.password) throw new Error('Passwords do not match');
+        return true;
+    }),
+    (req, res, next) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ status: false, errors: errors.array() });
+        next();
+    }
+];
+
 
 exports.skipStation=[
     body('serviceId').notEmpty().isInt(),

@@ -26,7 +26,8 @@ const {
   reqTeam,
   reqExperienceReport,
   reqCandidateRequestion,
-  reqCandidateLog
+  reqCandidateLog,
+  reqJobApplicants
 } = require("../../models");
 
 // Utility Functions
@@ -996,6 +997,63 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
   const newMappings = [];
 
   for (let el of candidates) {
+    let candidateId = el.candidatesId;
+
+    // Check if candidate exists in reqCandidates
+    let candidateInReq = await reqCandidates.findByPk(candidateId);
+    let jobApplicant = null;
+
+    if (!candidateInReq || req.body.isCareer || el.isCareer) {
+      jobApplicant = await reqJobApplicants.findByPk(candidateId);
+    }
+
+    if (jobApplicant) {
+      let existingInReq = null;
+      if (jobApplicant.candidateEmail) {
+        existingInReq = await reqCandidates.findOne({
+          where: { candidateEmail: jobApplicant.candidateEmail }
+        });
+      }
+
+      if (existingInReq) {
+        candidateId = existingInReq.candidateId;
+      } else {
+        const newCand = await reqCandidates.create({
+          candidateFirstName: jobApplicant.candidateFirstName,
+          candidateLastName: jobApplicant.candidateLastName,
+          candidateEmail: jobApplicant.candidateEmail,
+          candidateMobileNo: jobApplicant.candidateMobileNo,
+          candidateExperience: jobApplicant.candidateExperience,
+          candidatePreviousOrg: jobApplicant.candidatePreviousOrg,
+          candidatePreviousDesignation: jobApplicant.candidatePreviousDesignation,
+          candidateEducation: jobApplicant.candidateEducation,
+          candidateCurrentSalary: jobApplicant.candidateCurrentSalary,
+          candidateExpectedSalary: jobApplicant.candidateExpectedSalary,
+          candidateAddress: jobApplicant.candidateAddress,
+          candidateResume: jobApplicant.candidateResume,
+          candidateNoticePeriodByDays: jobApplicant.candidateNoticePeriodByDays,
+          candidateGender: jobApplicant.candidateGender,
+          candidatesAddingAgainst: requiementId || jobApplicant.candidatesAddingAgainst,
+          candidateStatus: "active",
+          candidateInterviewStatus: "inprogress",
+          candidateCity: jobApplicant.candidateCity,
+          candidateDistrict: jobApplicant.candidateDistrict,
+          candidateState: jobApplicant.candidateState,
+          candidatePreferlocation: jobApplicant.candidatePreferlocation,
+          candidateRevlentExperience: jobApplicant.candidateRevlentExperience,
+          candidateTotalExperience: jobApplicant.candidateTotalExperience,
+          candidateCreatedby: candidateCreatedby || jobApplicant.candidateCreatedby,
+          resumeSourceId: jobApplicant.resumeSourceId
+        });
+        candidateId = newCand.candidateId;
+      }
+
+      await jobApplicant.update({ candidateInterviewStatus: "inprogress" });
+      el.candidatesId = candidateId;
+      if (jobApplicant.resumeSourceId && !el.resumeSource) {
+        el.resumeSource = jobApplicant.resumeSourceId;
+      }
+    }
 
     const lastMapping = await reqServiceSequence.findOne({
       where: {

@@ -22,7 +22,12 @@ module.exports = (sequelize, DataTypes) => {
         primaryKey: true,
         type: DataTypes.INTEGER
       },
-      designationName: DataTypes.STRING
+      designationName: DataTypes.STRING,
+      status:{
+        type:DataTypes.BOOLEAN,
+        allowNull:false,
+        defaultValue:true
+      }
     }, {
     sequelize,
     modelName: 'reqDesignation',

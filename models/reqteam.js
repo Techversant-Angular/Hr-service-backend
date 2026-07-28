@@ -21,11 +21,16 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true,
       type: DataTypes.INTEGER
     },
-    teamName: DataTypes.STRING
+    teamName: DataTypes.STRING,
+    status:{
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue:true
+    }
   }, {
     sequelize,
     modelName: 'reqTeam',
-    timestamps:false
+    timestamps:true
   });
   return reqTeam;
 };
