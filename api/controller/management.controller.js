@@ -698,7 +698,7 @@ exports.approve = async (req, res, next) => {
       feedBackCc, attachmentArray
     );
 
-    await updateReportData('interviewConducted', feedBackBy, serviceSeqence.serviceServiceRequst);
+    await updateReportData('interviewConducted', feedBackBy, serviceSeqence.serviceServiceRequst,serviceSeqence.serviceCandidate);
 
     await addExperiencInterviewScheduled(serviceSeqence.serviceServiceRequst, 1);
 

@@ -6,7 +6,7 @@ let {
   reqReport, reqExperienceReport,
   reqCandidateLog,
 } = require("../../models");
-const { Op, where } = require("sequelize");
+const { Op, where, fn, col } = require("sequelize");
 let moment = require("moment");
 let date = moment().format("YYYY-MM-DD");
 const db = require("../../models/index");
@@ -153,18 +153,19 @@ let nextStationSequence = async (
   }
 };
 
-let addContactedCount = async (userId, serviceServiceRequst, positionHc) => {
+let addContactedCount = async (userId, serviceServiceRequst, positionHc, candidateId) => {
   try {
     let targetDate = new Date(date);
     let where = {
       recruiter: userId,
       position: serviceServiceRequst,
-      date: {
-        [Op.between]: [
-          targetDate,
-          new Date(targetDate.getTime() + 24 * 60 * 60 * 1000),
-        ],
-      },
+      candidateId, // Added candidateId
+      // date: {
+      //   [Op.between]: [
+      //     targetDate,
+      //     new Date(targetDate.getTime() + 24 * 60 * 60 * 1000),
+      //   ],
+      // },
     };
     let getIntervieExistCount = await reqReport.findOne({
       attributes: ["candidateContacted"],
@@ -184,6 +185,7 @@ let addContactedCount = async (userId, serviceServiceRequst, positionHc) => {
         candidateContacted: totalScheduledCount,
         recruiter: userId,
         position: serviceServiceRequst,
+        candidateId, // Save candidateId
         date,
         positionHc,
       });
@@ -254,26 +256,24 @@ let sendMail = async (req, res) => {
 async function profileSourceReport(
   candidateCreatedby,
   candidatesAddingAgainst,
-  resumeSourceId, date
+  resumeSourceId, date, candidateId
 ) {
   try {
     let dateWithTz = moment(date).format("YYYY-MM-DD HH:mm:ssZ");
     let startDate = moment(date).format("YYYY-MM-DD 00:00:00Z");
     let endDate = moment(date).format("YYYY-MM-DD 23:59:59Z");
 
-    let [reportExist, metaData] = await sequelize.query(
-      `SELECT * FROM public."reqReports" 
-      WHERE "date" BETWEEN '${startDate}' AND '${endDate}'
-      AND "recruiter" = :recruiter 
-      AND "position" = :position`,
-      {
-        replacements: {
-          recruiter: candidateCreatedby,
-          position: candidatesAddingAgainst,
+    let reportExist = await reqReport.findOne({
+      where: {
+        date: {
+          [Op.between]: [startDate, endDate],
         },
-        type: sequelize.QueryTypes.SELECT,
-      }
-    );
+        recruiter: candidateCreatedby || null,
+        position: candidatesAddingAgainst || null,
+        candidateId: candidateId || null,
+      },
+      raw: true
+    });
 
     let positionCount = await reqServiceRequest.findOne({
       where: { requestId: candidatesAddingAgainst },
@@ -288,6 +288,7 @@ async function profileSourceReport(
         position: candidatesAddingAgainst,
         positionHc: noOfVacancy,
         date: dateWithTz,
+        candidateId: candidateId || null,
       };
       reportData.sourcedScreened = resumeSourceId.length;
       let naukriResumeCount = 0;
@@ -321,7 +322,7 @@ async function profileSourceReport(
       reportData.indeedResume = indeedResumeCount;
       reportData.candidateResume = candidateResumeCount;
       reportData.inHouseResume = inHouseResumeCount;
-      reqReport.create(reportData);
+      await reqReport.create(reportData);
     } else {
       //update on existing report
       let dataToUpdate = {
@@ -370,15 +371,31 @@ async function updateReportData(
   actionType,
   candidateCreatedby,
   candidatesAddingAgainst,
+  candidateId,
   dateFrom
 ) {
   try {
-    const dateWithTz = moment(dateFrom).format("YYYY-MM-DD HH:mm:ssZ");
-    const date = moment(dateFrom).format("YYYY-MM-DD");
+    const targetDate = dateFrom ? moment(dateFrom) : moment();
+    const dateWithTz = targetDate.format("YYYY-MM-DD HH:mm:ssZ");
+    const startDate = targetDate.clone().startOf("day").toDate();
+    const endDate = targetDate.clone().endOf("day").toDate();
 
-    const [reportExist, metaData] = await sequelize.query(`
-      SELECT * FROM public."reqReports" WHERE DATE("date") ='${date}'
-      AND "recruiter"=${candidateCreatedby} AND "position"=${candidatesAddingAgainst}`);
+    const whereClause = {
+      // date: {
+      //   [Op.between]: [startDate, endDate],
+      // },
+      recruiter: candidateCreatedby || null,
+      position: candidatesAddingAgainst || null,
+    };
+
+    if (candidateId) {
+      whereClause.candidateId = candidateId;
+    }
+
+    const reportExist = await reqReport.findOne({
+      where: whereClause,
+      raw: true,
+    });
 
     const positionCount = await reqServiceRequest.findOne({
       where: { requestId: candidatesAddingAgainst },
@@ -386,34 +403,23 @@ async function updateReportData(
     });
 
     const noOfVacancy = positionCount ? positionCount.requestVacancy : null;
-    let reportData;
 
-    if (reportExist.length == 0) {
-      reportData = {
+    if (!reportExist) {
+      const reportData = {
         recruiter: candidateCreatedby,
         position: candidatesAddingAgainst,
         positionHc: noOfVacancy,
         date: dateWithTz,
+        candidateId: candidateId || null,
         [actionType]: 1,
       };
       await reqReport.create(reportData);
     } else {
-      const updatedCount = reportExist[0][actionType] + 1;
-      await sequelize.query(
-        `
-          UPDATE "reqReports" 
-          SET "${actionType}" = :updatedCount
-          WHERE "recruiter" = :candidateCreatedby 
-          AND "position" = :candidatesAddingAgainst 
-          AND DATE("date") = :date`,
-        {
-          replacements: {
-            updatedCount,
-            candidateCreatedby,
-            candidatesAddingAgainst,
-            date,
-          },
-        }
+      const currentCount = Number(reportExist[actionType]) || 0;
+      const updatedCount = currentCount + 1;
+      await reqReport.update(
+        { [actionType]: updatedCount },
+        { where: { id: reportExist.id } }
       );
     }
   } catch (error) {

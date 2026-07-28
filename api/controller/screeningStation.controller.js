@@ -297,7 +297,7 @@ exports.batchCandidates = tryCatch(async (req, res) => {
       { serviceStation: station },
       { serviceStation: { [Op.is]: null } }
     ];
-  }else {
+  } else {
     where.serviceStation = station;
   }
 
@@ -319,7 +319,7 @@ exports.batchCandidates = tryCatch(async (req, res) => {
     "pannel_rejection": "pannel-rejection",
     "back_off": "back-off"
   };
-  
+
   if (status) {
     let normalizedStatus = status.toLowerCase().trim();
     if (statusMap[normalizedStatus]) {
@@ -331,7 +331,7 @@ exports.batchCandidates = tryCatch(async (req, res) => {
   if (normalizedSearch && statusMap[normalizedSearch]) {
     where.serviceStatus = statusMap[normalizedSearch];
   }
-  
+
   if (search && !statusMap[normalizedSearch]) {
     candidateWhere.where = {
       [Op.or]: [
@@ -340,7 +340,7 @@ exports.batchCandidates = tryCatch(async (req, res) => {
         Sequelize.where(
           Sequelize.fn("concat", Sequelize.col("candidateFirstName"), " ", Sequelize.col("candidateLastName")),
           { [Op.iLike]: `${search}%` }
-        ),  
+        ),
         { candidateEmail: { [Op.iLike]: `${search}%` } },
         { candidateMobileNo: { [Op.iLike]: `${search}%` } },
         { candidatePreviousOrg: { [Op.iLike]: `${search}%` } },
@@ -568,14 +568,14 @@ exports.interviewDetail = tryCatch(async (req, res) => {
       attachmentArray,
       logData
     );
-    await updateReportData("interviewReScheduled", recruiterId, position);
+    await updateReportData("interviewReScheduled", recruiterId, position, candidateId);
     logFunction(candidateId, recruiterId, `Interview Re-Scheduled in ${jsonData.stationList[station]}`, station);
     return res
       .status(200)
       .json({ result: true, message: "interview Re-Scheduled" });
   } else {
-    await updateReportData("candidateContacted", recruiterId, position);
-    await updateReportData("candidatesIntrested", recruiterId, position);
+    await updateReportData("candidateContacted", recruiterId, position, candidateId);
+    await updateReportData("candidatesIntrested", recruiterId, position, candidateId);
     let sequenceWIthoutStation = await reqServiceSequence.findOne({
       where: {
         serviceCandidate: candidateId,
@@ -598,7 +598,7 @@ exports.interviewDetail = tryCatch(async (req, res) => {
     }
 
     if (sequenceWIthoutStation) {
-      await updateReportData("interviewScheduled", recruiterId, position);
+      await updateReportData("interviewScheduled", recruiterId, position, candidateId);
       // await interviewScheduledCount(recruiterId, position, toDate, 1);
       await addExperiencInterviewScheduled(position, 1);
       position = service.requestServiceId;
@@ -1083,14 +1083,14 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
     candidatesAginstRequest.filter(({ candidateId }) => !existingCandidateIds.includes(candidateId)),
     { raw: true }
   );
-//inprogress status update in the first mapping
+  //inprogress status update in the first mapping
   if (insertedItems) {
     await reqCandidates.update(
       { candidateInterviewStatus: "inprogress" },
       { where: { candidateId: { [Op.in]: candidatesIds } } }
     )
   }
- 
+
   const addCandidateRequirement = [...insertedItems, ...existingCandidateRequestions];
 
   const insertedCandidatesIds = addCandidateRequirement
@@ -1132,32 +1132,42 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
   await reqServiceSequence.bulkCreate(sequenceData);
 
 
-// if (candidatesIds.length) {
-//     if (newMappings.length) {
-//     await reqServiceSequence.destroy({
-//       where: {
-//         serviceCandidate: { [Op.in]: candidatesIds },
-//         serviceServiceRequst: { [Op.is]: null },
-//         serviceStatus: "sourced"
-//       }
-//     });
-//     await reqServiceSequence.bulkCreate(newMappings);
-//   }
-// }
+  // if (candidatesIds.length) {
+  //     if (newMappings.length) {
+  //     await reqServiceSequence.destroy({
+  //       where: {
+  //         serviceCandidate: { [Op.in]: candidatesIds },
+  //         serviceServiceRequst: { [Op.is]: null },
+  //         serviceStatus: "sourced"
+  //       }
+  //     });
+  //     await reqServiceSequence.bulkCreate(newMappings);
+  //   }
+  // }
 
 
   if (insertedCandidatesIds.length) {
-    const reSourcesIds = [];
-    await insertedCandidatesIds.map(async (element) => {
+    const candidateDetails = await reqCandidates.findAll({
+      where: {
+        candidateId: {
+          [Op.in]: insertedCandidatesIds
+        }
+      },
+      attributes: ["candidateId", "resumeSourceId"],
+      raw: true
+    });
+
+    for (const candidate of candidateDetails) {
       logFunction(
-        element.candidatesId,
+        candidate.candidateId,
         candidateCreatedby,
-        `Candidate mapped `,
+        'Candidate mapped',
         1
       );
-      reSourcesIds.push(element.resumeSource);
-    });
-    await profileSourceReport(candidateCreatedby, requiementId, reSourcesIds);
+
+      const reSourcesIds = candidate.resumeSourceId ? [candidate.resumeSourceId] : [];
+      await profileSourceReport(candidateCreatedby, requiementId, reSourcesIds, today, candidate.candidateId);
+    }
 
     reqcuriterReport(
       requiementId,
@@ -1304,7 +1314,7 @@ exports.removeAfterMapped = tryCatch(async (req, res) => {
     .status(400)
     .json({ result: false, message: response.CANDIDATES_NOTFOUND });
 
-    const requestId = isServiceSquence.serviceServiceRequst;
+  const requestId = isServiceSquence.serviceServiceRequst;
 
   await reqServiceSequence.update(
     {

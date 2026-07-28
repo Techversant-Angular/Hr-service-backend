@@ -226,7 +226,8 @@ exports.rejectCandidate = tryCatch(async (req, res, next) => {
     await updateReportData(
       "candidateContacted",
       userId,
-      sequence.serviceServiceRequst
+      sequence.serviceServiceRequst,
+      sequence.serviceCandidate
     );
     stationId = null;
     await reqServiceSequence.update({
@@ -269,11 +270,14 @@ exports.rejectCandidate = tryCatch(async (req, res, next) => {
       message: `Candidate Already Moved to Next Station Or Rejected`,
     });
   // if (updateingStaus == candidateStaion.serviceStatus) return res.status(404).json({ result: false, message: `Candidate Already ${status}` });
-  await addContactedCount(
-    userId,
-    candidateStaion.serviceServiceRequst,
-    candidateStaion["serviceRequest.requestVacancy"]
-  );
+    // await addContactedCount(
+    //   userId,
+    //   candidateStaion.serviceServiceRequst,
+    //   candidateStaion["serviceRequest.requestVacancy"],
+    //   sequence.serviceCandidate
+    // );
+
+
   if (feedBack) {
     await reqCandidateComments.create({
       commentSeqenceId: serviceId,

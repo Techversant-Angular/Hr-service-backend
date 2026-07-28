@@ -527,7 +527,7 @@ exports.approve = tryCatch(async (req, res) => {
       feedBackSubject,
       feedBackMailTemp, feedBackCc, feedBackBcc, attachmentArray
     );
-  await updateReportData('interviewConducted', feedBackBy, serviceSeqence.serviceServiceRequst);
+  await updateReportData('interviewConducted', feedBackBy, serviceSeqence.serviceServiceRequst, serviceSeqence.serviceCandidate);
   // await updateReportData('interviewScheduled', feedBackBy, serviceSeqence.serviceServiceRequst);
   const candidate =
     await reqServiceSequence.findOne({

@@ -325,7 +325,7 @@ exports.candidateOffers = tryCatch(async (req, res) => {
     }
   });
 
-  await updateReportData('offerReleased', offerRleasedBy, serviceSeq.serviceServiceRequst);
+  await updateReportData('offerReleased', offerRleasedBy, serviceSeq.serviceServiceRequst,serviceSeq.serviceCandidate);
   const getCandidateMail = await reqCandidates.findOne({ where: { candidateId: serviceSeq.serviceCandidate } });
   if (getCandidateMail) {
 

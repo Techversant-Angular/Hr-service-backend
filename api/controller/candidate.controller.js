@@ -1154,7 +1154,7 @@ exports.submitApplication = tryCatch(async (req, res) => {
   logFunction(candidateId, null, sourcedString, 1, positionId);
 
   // Update reports
-  await profileSourceReport(null, positionId, [4], today);
+  await profileSourceReport(null, positionId, [4], today, candidateId);
 
   reqcuriterReport(
     positionId,
@@ -1309,7 +1309,7 @@ exports.jobApply = tryCatch(async (req, res) => {
   logFunction(candidateId, null, sourcedString, 1, positionId);
 
   // Update reports
-  await profileSourceReport(null, positionId, [4], today);
+  await profileSourceReport(null, positionId, [4], today, candidateId);
 
   reqcuriterReport(
     positionId,

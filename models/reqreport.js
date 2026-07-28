@@ -13,6 +13,7 @@ module.exports = (sequelize, DataTypes) => {
       // define association here
       reqReport.belongsTo(models.reqUser, { foreignKey: 'recruiter', as: 'recruiterName' });
       reqReport.belongsTo(models.reqServiceRequest, { foreignKey: 'position', as: 'positionName' });
+      reqReport.belongsTo(models.reqCandidates, { foreignKey: 'candidateId', as: 'candidateName' });
     }
   }
 
@@ -20,6 +21,10 @@ module.exports = (sequelize, DataTypes) => {
     recruiter: DataTypes.INTEGER,
     position: DataTypes.INTEGER,
     positionHc: DataTypes.INTEGER,
+    candidateId: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
     naukriResume: {
       type: DataTypes.INTEGER,
       defaultValue: 0
