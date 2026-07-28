@@ -1335,7 +1335,7 @@ exports.uploadResume = async (req, res) => {
   try {
     // Check if a file was uploaded
     if (!req.file) {
-      return res.status(400).json({
+      return res.status(400).json({ 
         result: false,
         message: "Please upload a resume (.pdf, .doc, .docx)."
       });

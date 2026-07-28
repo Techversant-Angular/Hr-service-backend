@@ -1109,7 +1109,10 @@ exports.generatePresignedUrl = tryCatch(async (req, res, next) => {
       data: {
         uploadUrl: presignedUrl,
         publicUrl: publicUrl,
-        fileName: fileName
+        fileName: key, // returning the generated S3 key to avoid losing it
+        originalFileName: fileName,
+        filePath: key,
+        fileUrl: publicUrl
       }
     });
   } catch (error) {

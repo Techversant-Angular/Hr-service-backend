@@ -18,11 +18,32 @@ exports.getAttachmentTypes = tryCatch(async (req, res) => {
 });
 
 exports.createAttachment = tryCatch(async (req, res) => {
-  const isLive = req.headers["x-api-env"] === "live";
-  const { candidateId, attachmentType, notes, fileName, originalFileName, mimeType, fileSize, filePath } = req.body;
-
+  const {
+    candidateId,
+    attachmentTypeId,
+    notes,
+    fileName,
+    originalFileName,
+    mimeType,
+    fileSize,
+    filePath,
+    fileUrl,
+  } = req.body;
+  const attachmentTypeObj = ALLOWED_ATTACHMENT_TYPES.find(
+    (item) => item.id === Number(attachmentTypeId)
+  );
+  if (!attachmentTypeObj) {
+    return res.status(400).json({
+      result: false,
+      message: "Invalid attachment type",
+    });
+  }
+  const attachmentType = attachmentTypeObj.name;
   if (!fileName || !originalFileName) {
-    return res.status(400).json({ result: false, message: "File details (fileName, originalFileName) are required" });
+    return res.status(400).json({
+      result: false,
+      message: "File details (fileName, originalFileName) are required",
+    });
   }
 
   const fileData = {
@@ -33,54 +54,51 @@ exports.createAttachment = tryCatch(async (req, res) => {
     fileSize: fileSize || 0,
   };
 
-  // Extract and decode token to get the logged-in user ID
+  // Extract logged-in user
   const authHeader = req.headers.authorization;
   if (!authHeader) {
-    return res
-      .status(401)
-      .json({ result: false, message: "Authorization header missing" });
+    return res.status(401).json({
+      result: false,
+      message: "Authorization header missing",
+    });
   }
+
   const token = authHeader.split(" ")[1];
   const decoded = await jwtVerifyToken(token);
-  const userId = decoded.userId;
 
-  const user = await reqUser.findOne({ where: { userId } });
+  const user = await reqUser.findOne({
+    where: { userId: decoded.userId },
+  });
+
   if (!user) {
-    return res
-      .status(401)
-      .json({ result: false, message: "Unauthorized! User not found" });
+    return res.status(401).json({
+      result: false,
+      message: "Unauthorized! User not found",
+    });
+  }
+
+  const candidate = await reqCandidates.findOne({
+    where: { candidateId },
+  });
+
+  if (!candidate) {
+    return res.status(404).json({
+      result: false,
+      message: "Candidate not found",
+    });
   }
 
   const actionBy = user.userId;
 
-  const candidate = await reqCandidates.findOne({ where: { candidateId } });
-  if (!candidate) {
-    return res
-      .status(404)
-      .json({ result: false, message: "Candidate not found" });
-  }
-
-  let relativePath = "";
-  let fileUrl = "";
-
-  if (isLive) {
-    const BUCKET_NAME = process.env.AWS_BUCKET_NAME;
-    const region = process.env.AWS_REGION;
-    relativePath = fileData.fileName;
-    fileUrl = `https://${BUCKET_NAME}.s3.${region}.amazonaws.com/${fileData.fileName}`;
-  } else {
-    relativePath = `qa_uploads_docs/${fileData.fileName}`;
-    const protocol = req.headers["x-forwarded-proto"] || req.protocol;
-    const host = req.headers["x-forwarded-host"] || req.get("host");
-    fileUrl = `${protocol}://${host}/${relativePath}`;
-  }
+  const responseFilePath = filePath || fileData.filePath;
+  const responseFileUrl = fileUrl || responseFilePath;
 
   const attachment = await reqCandidateAttachment.create({
     candidateId,
     attachmentType,
     fileName: fileData.fileName,
     originalFileName: fileData.originalFileName,
-    filePath: fileData.filePath,
+    filePath: responseFilePath,
     mimeType: fileData.mimeType,
     fileSize: fileData.fileSize,
     notes: notes || null,
@@ -93,9 +111,13 @@ exports.createAttachment = tryCatch(async (req, res) => {
     result: true,
     message: "Candidate attachment uploaded successfully",
     data: {
-      ...attachment.toJSON(),
-      filePath: relativePath,
-      fileUrl: fileUrl,
+      id: attachment.id,
+      candidateId: attachment.candidateId,
+      attachmentType: attachment.attachmentType,
+      fileName: attachment.fileName,
+      filePath: attachment.filePath,
+      notes: attachment.notes,
+      status: attachment.status,
       creator: {
         userId: user.userId,
         userfirstName: user.userfirstName,
@@ -117,6 +139,17 @@ exports.getAttachments = tryCatch(async (req, res) => {
 
   let attachments = await reqCandidateAttachment.findAll({
     where: { candidateId, status: true },
+    attributes: {
+      exclude: [
+        "originalFileName",
+        "fileSize",
+        "createdBy",
+        "updatedBy",
+        "createdAt",
+        "updatedAt",
+        'filePath'
+      ],
+    },
     include: [
       {
         model: reqUser,
@@ -125,25 +158,6 @@ exports.getAttachments = tryCatch(async (req, res) => {
       },
     ],
     order: [["createdAt", "DESC"]],
-  });
-
-  const isLive = req.headers["x-api-env"] === "live";
-  const protocol = req.headers["x-forwarded-proto"] || req.protocol;
-  const host = req.headers["x-forwarded-host"] || req.get("host");
-  const BUCKET_NAME = process.env.AWS_BUCKET_NAME;
-  const region = process.env.AWS_REGION;
-
-  // Attach dynamically generated URL
-  attachments = attachments.map((att) => {
-    const data = att.toJSON();
-    if (isLive) {
-      data.filePath = data.fileName;
-      data.fileUrl = `https://${BUCKET_NAME}.s3.${region}.amazonaws.com/${data.fileName}`;
-    } else {
-      data.filePath = `qa_uploads_docs/${data.fileName}`;
-      data.fileUrl = `${protocol}://${host}/${data.filePath}`;
-    }
-    return data;
   });
 
   return res.status(200).json({
@@ -181,12 +195,10 @@ exports.deleteAttachment = tryCatch(async (req, res) => {
   });
 
   if (!attachment) {
-    return res
-      .status(404)
-      .json({
-        result: false,
-        message: "Attachment not found or already deleted",
-      });
+    return res.status(404).json({
+      result: false,
+      message: "Attachment not found or already deleted",
+    });
   }
 
   await reqCandidateAttachment.update(
