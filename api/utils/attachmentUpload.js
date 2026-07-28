@@ -22,8 +22,11 @@ exports.attachmentRouterInterceptor = async (req, res, next) => {
         message: "Attachment uploaded successfully.",
         data: {
           fileName: req.file.filename,
+          originalFileName: req.file.originalname,
           filePath: relativePath,
-          fileUrl: `${protocol}://${host}/${relativePath}`
+          fileUrl: `${protocol}://${host}/${relativePath}`,
+          mimeType: req.file.mimetype,
+          fileSize: req.file.size
         }
       });
     });
