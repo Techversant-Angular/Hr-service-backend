@@ -21,6 +21,7 @@ const getTransporter = () => {
 
 exports.sendEmail = async (mailId, subject, message, cc, bcc, attachmentArray, logData = {}) => {
   const transporter = getTransporter();
+  return 0;
   return transporter.sendMail({
     from: process.env.MAIL_FROM || process.env.SMTP_USER,
     to: mailId,

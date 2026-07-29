@@ -889,7 +889,7 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
     if (status === "total") {
       whereClause = `WHERE ("serviceStation"=1 OR "serviceStation" IS NULL)  ${positionCondition}`;
     } else if (status === "shorted") {
-      whereClause = `WHERE "serviceStation" IN (2,3,4,5,6) AND "serviceStatus" IN ('done')
+      whereClause = `WHERE "serviceStation" IN (2,3,4)
       AND NOT EXISTS (
     SELECT 1
     FROM "reqServiceSequences" rs2
