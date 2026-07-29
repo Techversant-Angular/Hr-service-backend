@@ -22,7 +22,7 @@ exports.resumeSourceData = tryCatch(async (req, res) => {
   }
   // return
   const [results, metadata] =
-    await sequelize.query(`SELECT  "sourceId","sourceName", COUNT("resumeSourceId") AS sourceCount FROM public."reqCandidateResumeSources" 
+    await sequelize.query(`SELECT  "sourceId","sourceName", COUNT(DISTINCT "candidateId") AS sourceCount FROM public."reqCandidateResumeSources" 
       INNER JOIN public."reqCandidates" ON "resumeSourceId" = "sourceId" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" 
       WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) ${userCondidtion} AND  "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}' ${request} 
       GROUP BY  "sourceId", "sourceName";`);
@@ -384,7 +384,7 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
 
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE ("serviceStatus"='done' OR "serviceStatus"='pending') ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_offerreleased",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE  "serviceStation"=5 ${userCondidtion} ${requestIdQueryCondition} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "hr_total_technicalselected",
-            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences"  WHERE "serviceStatus"='done' ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hired",
+            (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE "serviceStatus"='done' ${userCondidtion} ${requestIdQueryCondition} AND "serviceStation"=5  AND DATE("reviewedJoiningDate") <= CURRENT_DATE AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hired",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE "serviceStation" IN (2,3,4) AND "serviceStatus" NOT IN ('cancelled','pannel-rejection','shorted','rejected','back-off','done') ${userCondidtion} ${requestIdQueryCondition} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_technicalselected"
              FROM "reqServiceRequests"  ORDER BY "requestId" DESC ${report == "false" ? ` OFFSET ${offset} LIMIT ${limit}` : ""};`;
 
@@ -626,14 +626,14 @@ exports.dashBoardCard = tryCatch(async (req, res) => {
 exports.recruiterChart = tryCatch(async (req, res) => {
   const { start_date, end_date, recruiter, position, last_six_month } =
     req.query;
-
+ 
   if (recruiter === "true" && (!start_date || !end_date)) {
     return res.status(400).json({
       result: false,
       message: "Start date and end date are mandatory "
     });
   }
-
+ 
   if (
     !last_six_month ||
     (last_six_month !== "true" && last_six_month !== "false")
@@ -643,31 +643,89 @@ exports.recruiterChart = tryCatch(async (req, res) => {
       message: "last_six_month is mandatory and should be 'true' or 'false'",
     });
   }
-
+ 
   const userId = req.userId;
   let userCondidtion = "";
   if (userId) {
-    userCondidtion = ` AND "userId"=${userId}	`;
+    userCondidtion = ` AND "userId"=${userId} `;
   }
-
+ 
   let startDate = start_date + ' 00:00:00Z';
   let endDate = end_date + ' 23:59:59Z';
-
+ 
   if (last_six_month == "true") {
     const sixMonthsAgo = moment().subtract(6, 'months').format('YYYY-MM-DD');
     startDate = sixMonthsAgo + ' 00:00:00Z';
     endDate = moment().format('YYYY-MM-DD') + ' 23:59:59Z';
   }
-
-  const [totalSourced, metadata] = await sequelize.query(`SELECT "userfirstName",COUNT(*) as total_totalSourced FROM public."reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate" = "candidateId" INNER JOIN "reqUsers" ON "userId" = "serviceScheduledBy" WHERE ("serviceStation" = 1 OR "serviceStation" IS NULL) ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}' GROUP BY "userfirstName" ORDER BY total_totalSourced DESC;`);
-
-  const [hiredSourced, hiredMetadata] = await sequelize.query(`SELECT "userfirstName",COUNT(*) as total_hired FROM  "reqServiceSequences" INNER JOIN "reqUsers" ON "userId" = "serviceScheduledBy" WHERE "serviceStation" = 5 AND "serviceStatus"='done' ${userCondidtion} AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}' GROUP BY "userfirstName" ORDER BY total_hired DESC;`);
-
-  const [offerSourced, offerMetadata] = await sequelize.query(`SELECT "userfirstName",COUNT(*) as total_offerReleased FROM public."reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate" = "candidateId" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" INNER JOIN "reqUsers" ON "userId" = "serviceScheduledBy" WHERE "serviceStation" = 5  ${userCondidtion} AND  "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}' GROUP BY "userfirstName" ORDER BY total_offerReleased DESC;`);
-
+ 
+  const [totalSourced, metadata] = await sequelize.query(`SELECT
+        u."userfirstName",
+        COUNT(*) AS total_totalSourced
+    FROM public."reqCandidates" c
+    INNER JOIN public."reqServiceSequences" ss
+        ON ss."serviceCandidate" = c."candidateId"
+    INNER JOIN public."reqUsers" u
+        ON u."userId" = c."candidateCreatedby"
+    INNER JOIN public."reqUserRoles" ur
+        ON ur."roleUserId"::varchar = u."userRole"
+    WHERE
+        (ss."serviceStation" = 1 OR ss."serviceStation" IS NULL)
+        ${userCondidtion}
+        AND u."userRole" = '6'
+        AND ss."insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'
+    GROUP BY
+        u."userfirstName"
+    ORDER BY
+        total_totalSourced DESC;`);
+ 
+  const [hiredSourced, hiredMetadata] = await sequelize.query(`SELECT
+    u."userfirstName",
+    u."userRole",
+    COUNT(*) AS total_hired
+FROM "reqServiceSequences" ss
+INNER JOIN "reqUsers" u
+    ON u."userId" = ss."serviceScheduledBy"
+INNER JOIN "reqUserRoles" ur
+    ON ur."roleUserId"::varchar = u."userRole"
+WHERE
+    ss."serviceStation" = 5
+    AND u."userRole" = '6'
+    AND ss."serviceStatus" = 'done'
+    ${userCondidtion}
+    AND ss."insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'
+GROUP BY
+    u."userfirstName",
+    u."userRole"
+ORDER BY
+    total_hired DESC;
+`);
+ 
+  const [offerSourced, offerMetadata] = await sequelize.query(`SELECT
+        u."userfirstName",
+        COUNT(*) AS total_offerReleased
+    FROM public."reqCandidates" c
+    INNER JOIN public."reqServiceSequences" ss
+        ON ss."serviceCandidate" = c."candidateId"
+    INNER JOIN public."reqHrReviews" hr
+        ON ss."serviceId" = hr."reviewedServiceId"
+    INNER JOIN public."reqUsers" u
+        ON u."userId" = ss."serviceScheduledBy"
+    INNER JOIN public."reqUserRoles" ur
+        ON ur."roleUserId"::varchar = u."userRole"
+    WHERE
+        ss."serviceStation" = 5
+        ${userCondidtion}
+        AND u."userRole" = '6'
+        AND ss."insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'
+    GROUP BY
+        u."userfirstName"
+    ORDER BY
+        total_offerReleased DESC;`);
+ 
   // Initialize a result array
   const result = [];
-
+ 
   // Function to find or create an entry in the result array
   function findOrCreateEntry(name) {
     let entry = result.find(item => item.userfirstName === name);
@@ -682,25 +740,25 @@ exports.recruiterChart = tryCatch(async (req, res) => {
     }
     return entry;
   }
-
+ 
   // Merge totalsourced data
   totalSourced.forEach(item => {
     const entry = findOrCreateEntry(item.userfirstName);
     entry.total_totalsourced = item.total_totalsourced;
   });
-
+ 
   // Merge totalhired data
   hiredSourced.forEach(item => {
     const entry = findOrCreateEntry(item.userfirstName);
     entry.total_hired = item.total_hired;
   });
-
+ 
   // Merge totalofferreleased data
   offerSourced.forEach(item => {
     const entry = findOrCreateEntry(item.userfirstName);
     entry.total_offerreleased = item.total_offerreleased;
   });
-
+ 
   return res
     .status(200)
     .json({ result: true, message: response.DATA_RETRIEVED, data: result });

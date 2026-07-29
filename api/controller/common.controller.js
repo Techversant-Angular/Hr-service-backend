@@ -890,12 +890,12 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
       whereClause = `WHERE ("serviceStation"=1 OR "serviceStation" IS NULL)  ${positionCondition}`;
     } else if (status === "shorted") {
       whereClause = `WHERE "serviceStation" IN (2,3,4)
-      AND NOT EXISTS (
-    SELECT 1
-    FROM "reqServiceSequences" rs2
-    WHERE rs2."serviceCandidate" = "reqServiceSequences"."serviceCandidate"
-    AND rs2."serviceStatus" IN ('rejected', 'back-off', 'pannel-rejection', 'cancelled')
-)  ${positionCondition}`;
+        AND "serviceStatus" NOT IN (
+        'rejected',
+        'back-off',
+        'pannel-rejection',
+        'cancelled'
+    )  ${positionCondition}`;
     } else if (status === "rejected") {
       whereClause = `WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection')  ${positionCondition}`;
     } else if (status === "hired") {
@@ -904,7 +904,7 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
 
     const useDistinct = ["total", "shorted", "hired"].includes(status);
     const selectKeyword = useDistinct
-      ? (positionId
+      ? (positionId || status === 'shorted'
         ? 'SELECT DISTINCT ON ("candidateId")'
         : 'SELECT DISTINCT ON ("candidateId", "requestTeam")')
       : 'SELECT';
