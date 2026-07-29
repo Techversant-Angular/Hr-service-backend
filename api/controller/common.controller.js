@@ -611,6 +611,36 @@ exports.deleteDesignation = tryCatch(async (req, res) => {
 
 });
 
+exports.toggleDesignationStatus = tryCatch(async (req, res) => {
+  const { designationId } = req.params;
+  const { status } = req.body;
+
+  if (typeof status !== "boolean") {
+    return res.status(400).json({
+      result: false,
+      message: "Status must be either true or false.",
+    });
+  }
+
+  const designation = await reqDesignation.findByPk(designationId);
+
+  if (!designation) {
+    return res.status(404).json({
+      result: false,
+      message: "Designation not found.",
+    });
+  }
+
+  await designation.update({ status });
+
+  return res.status(200).json({
+    result: true,
+    message: status
+      ? "Designation activated successfully."
+      : "Designation deactivated successfully.",
+  });
+});
+
 // department CRUD 
 exports.departmentList = tryCatch(async (req, res) => {
   const { search, page = 1, limit = 10 } = req.query;
@@ -755,6 +785,36 @@ exports.deleteDepartment = tryCatch(async (req, res) => {
     message: 'Department deactivated successfully.'
   })
 
+});
+
+exports.toggleDepartmentStatus = tryCatch(async (req, res) => {
+  const { teamId } = req.params;
+  const { status } = req.body;
+
+  if (typeof status !== "boolean") {
+    return res.status(400).json({
+      result: false,
+      message: "Status must be either true or false."
+    });
+  }
+
+  const department = await reqTeam.findByPk(teamId);
+
+  if (!department) {
+    return res.status(404).json({
+      result: false,
+      message: "Department not found."
+    });
+  }
+
+  await department.update({ status });
+
+  return res.status(200).json({
+    result: true,
+    message: status
+      ? "Department activated successfully."
+      : "Department deactivated successfully."
+  });
 });
 
 exports.skipCurrentStation = tryCatch(async (req, res, next) => {

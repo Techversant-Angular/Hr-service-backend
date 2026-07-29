@@ -203,7 +203,7 @@ exports.listCandidates = tryCatch(async (req, res) => {
 
   const candidates = await reqCandidates.findAll({
     include,
-    attributes: { exclude: ["candidateCurrentSalary", "candidateExpectedSalary"] },
+    attributes: { exclude: ["candidateExpectedSalary"] },
     where,
     ...(report == "true" ? {} : {
       limit: limit,
@@ -542,6 +542,8 @@ exports.viewCandidate = tryCatch(async (req, res) => {
         "reqCandidates"."candidateDistrict",
         "reqCandidates"."candidateState",
         "reqCandidates"."candidateInterviewStatus",
+        "reqCandidates"."candidateCurrentSalary",
+        "reqCandidates"."candidateExpectedSalary",
         "reqCandidates"."candidateResume",(SELECT "stationName" FROM "reqServiceSequences"  INNER JOIN "reqStations" ON "serviceStation"="stationId" WHERE "serviceCandidate"= "reqCandidates"."candidateId" ORDER BY "serviceId" DESC LIMIT 1) AS "currentStation",
         (SELECT "sourceName" FROM "reqCandidateResumeSources" WHERE "sourceId"="reqCandidates"."resumeSourceId") AS "resumeSourecd",
         "reqServiceRequests"."requestName"  AS "position",
