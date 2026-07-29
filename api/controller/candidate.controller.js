@@ -1156,7 +1156,7 @@ exports.submitApplication = tryCatch(async (req, res) => {
   logFunction(candidateId, null, sourcedString, 1, positionId);
 
   // Update reports
-  await profileSourceReport(null, positionId, [4], today);
+  await profileSourceReport(null, positionId, [4], today, candidateId);
 
   reqcuriterReport(
     positionId,
@@ -1311,7 +1311,7 @@ exports.jobApply = tryCatch(async (req, res) => {
   logFunction(candidateId, null, sourcedString, 1, positionId);
 
   // Update reports
-  await profileSourceReport(null, positionId, [4], today);
+  await profileSourceReport(null, positionId, [4], today, candidateId);
 
   reqcuriterReport(
     positionId,
@@ -1597,4 +1597,53 @@ exports.jobOpeningCareers = tryCatch(async (req, res) => {
   }
 
   throw new Error(response.JOB_OPENINGS_NOT_FOUND);
+});
+
+exports.jobCareerApplications = tryCatch(async (req, res) => {
+try{
+  let limit = Number(req.query.limit) || 100;
+  let page = Number(req.query.page) || 1;
+  const report = req.query.report;
+
+  const offset = (page - 1) * limit;
+
+  const { count, rows: jobApplicants } = await reqJobApplicants.findAndCountAll({
+        where: {
+      candidateInterviewStatus: "sourced",
+    },
+    ...(report === "true"
+      ? {}
+      : {
+          limit,
+          offset,
+        }),
+    order: [["candidateId", "DESC"]], // Change to your preferred column if needed
+  });
+
+  const totalPages =
+    report === "true" ? 1 : Math.ceil(count / limit);
+
+  if (jobApplicants.length) {
+    return res.status(200).json({
+      result: true,
+      message: response.DATA_RETRIEVED,
+      totalCount: count,
+      totalPages,
+      currentPage: report === "true" ? 1 : page,
+      pageSize: limit,
+      data: jobApplicants,
+    });
+  } else {
+    return res.status(404).json({
+      result: false,
+      message: "No job career applications found.",
+    });
+  }
+} catch (error) {
+  console.error("Error fetching job career applications:", error);
+  return res.status(500).json({
+    result: false,
+    message: "An error occurred while fetching job career applications.",
+  });
+}
 });

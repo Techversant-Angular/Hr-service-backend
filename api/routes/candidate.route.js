@@ -53,6 +53,7 @@ router.get('/attachment', authenticate, listAttachmentsValidate, attachmentContr
 router.delete('/attachment/:attachmentId', authenticate, deleteAttachmentValidate, attachmentController.deleteAttachment);
 
 
+router.get('/careers/job/applications', controller.jobCareerApplications);
 
 module.exports = router;
 

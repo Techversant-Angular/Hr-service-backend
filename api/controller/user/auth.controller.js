@@ -1,6 +1,7 @@
 let { reqUser, Sequelize, reqUserRoleMapping, reqUserRole } = require('../../../models');
 let { jwtToken } = require('../../utils/jwt');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 let { jwtDecode } = require('jwt-decode');
 let mailFunction = require("../../utils/nodeMail");
 const { Op } = require('sequelize');
@@ -101,31 +102,34 @@ exports.changePassword = async (req, res, next) => {
 
 exports.forgotPassword = async (req, res, next) => {
     try {
-        let { userName } = req.body;
-        let isValidUser = await reqUser.findOne({ where: { userEmail: userName, userStatus: 'active' } });
+        const userEmail = req.body.userEmail?.trim().toLowerCase();
+        const isValidUser = await reqUser.findOne({ where: { userEmail, userStatus: 'active' } });
 
         if (!isValidUser) {
-            return res.status(400).json({ status: false, message: 'Not a Valid User' });
+            // Do not reveal whether an account exists for an email address.
+            return res.status(200).json({ status: true, message: 'If an active account exists, an OTP has been sent.' });
         }
-        let userId = isValidUser.userId;
-        let userMail = isValidUser.userEmail;
-        const otpExpier = new Date();
-        otpExpier.setMinutes(otpExpier.getMinutes() + 1);
+        const otpExpiry = new Date();
+        otpExpiry.setMinutes(otpExpiry.getMinutes() + (Number(process.env.PASSWORD_RESET_OTP_MINUTES) || 10));
+        const otp = crypto.randomInt(100000, 1000000).toString();
+        const hashedOtp = await bcrypt.hash(otp, 10);
 
-        const otp = Math.floor(1000 + Math.random() * 9000);
-        let otpStored = await reqUser.update({ userOtp: otp, useOtpExpire: otpExpier }, { where: { userId } });
-        let mailSubject = `Re-set Password`;
-        let mailBody = `<div><h3>OTP:${otp}</h3><br><h4>Otp will Expire in One minute</h4></div>`
-        await mailFunction.sendEmail(
-            userMail,
-            mailSubject,
-            mailBody,
-            "",
-            "",
-            [], {}
-        );
+        await isValidUser.update({ userOtp: hashedOtp, useOtpExpire: otpExpiry });
+        try {
+            await mailFunction.sendEmail(
+                isValidUser.userEmail,
+                'Password reset OTP',
+                `<p>Use this OTP to reset your password:</p><h2>${otp}</h2><p>This OTP expires in ${Number(process.env.PASSWORD_RESET_OTP_MINUTES) || 10} minutes. Do not share it with anyone.</p>`,
+                '',
+                '',
+                []
+            );
+        } catch (mailError) {
+            await isValidUser.update({ userOtp: null, useOtpExpire: null });
+            throw mailError;
+        }
 
-        if (otpStored) return res.status(200).json({ status: true, message: 'Otp Mail Send Successfully' });
+        return res.status(200).json({ status: true, message: 'If an active account exists, an OTP has been sent.' });
 
     } catch (error) {
         next(error);
@@ -134,27 +138,18 @@ exports.forgotPassword = async (req, res, next) => {
 
 exports.resetPassword = async (req, res, next) => {
     try {
-        let { otp, password, confirmPassword } = req.body;
-        if (password.localeCompare(confirmPassword) != 0) return res.status(400).json({ result: false, message: 'passwords are not equal' });
+        const { userEmail, otp, password, confirmPassword } = req.body;
+        if (password !== confirmPassword) return res.status(400).json({ status: false, message: 'Passwords do not match.' });
 
-
-        // OTP expiration to be fixed.
-
-        let isValidOtp = await reqUser.findOne({
-            where: {
-                userOtp: otp,
-                // useOtpExpire: {
-                //     [Op.gt]: new Date()
-                // }
-            }
+        const isValidOtp = await reqUser.findOne({
+            where: { userEmail, userStatus: 'active', useOtpExpire: { [Op.gt]: new Date() } }
         });
-        if (!isValidOtp) return res.status(400).json({ status: false, message: 'Otp Not Valid' });
+        if (!isValidOtp || !isValidOtp.userOtp || !await bcrypt.compare(String(otp), isValidOtp.userOtp)) {
+            return res.status(400).json({ status: false, message: 'OTP is invalid or has expired.' });
+        }
         const hashedNewPassword = await bcrypt.hash(confirmPassword, 10);
-        let isCanged = await reqUser.update({
-            userPassword: hashedNewPassword, userOtp: null, useOtpExpire
-                : null
-        }, { where: { userOtp: otp } });
-        if (isCanged) return res.status(200).json({ status: true, message: 'Password Changed Successfully' });
+        await isValidOtp.update({ userPassword: hashedNewPassword, userOtp: null, useOtpExpire: null });
+        return res.status(200).json({ status: true, message: 'Password changed successfully.' });
     } catch (error) {
         next(error);
     }

@@ -229,7 +229,8 @@ exports.rejectCandidate = tryCatch(async (req, res, next) => {
     await updateReportData(
       "candidateContacted",
       userId,
-      sequence.serviceServiceRequst
+      sequence.serviceServiceRequst,
+      sequence.serviceCandidate
     );
     stationId = null;
     await reqServiceSequence.update({
@@ -272,11 +273,14 @@ exports.rejectCandidate = tryCatch(async (req, res, next) => {
       message: `Candidate Already Moved to Next Station Or Rejected`,
     });
   // if (updateingStaus == candidateStaion.serviceStatus) return res.status(404).json({ result: false, message: `Candidate Already ${status}` });
-  await addContactedCount(
-    userId,
-    candidateStaion.serviceServiceRequst,
-    candidateStaion["serviceRequest.requestVacancy"]
-  );
+    // await addContactedCount(
+    //   userId,
+    //   candidateStaion.serviceServiceRequst,
+    //   candidateStaion["serviceRequest.requestVacancy"],
+    //   sequence.serviceCandidate
+    // );
+
+
   if (feedBack) {
     await reqCandidateComments.create({
       commentSeqenceId: serviceId,
@@ -945,7 +949,7 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
     if (status === "total") {
       whereClause = `WHERE ("serviceStation"=1 OR "serviceStation" IS NULL)  ${positionCondition}`;
     } else if (status === "shorted") {
-      whereClause = `WHERE "serviceStation" IN (2,3,4,5,6) AND "serviceStatus" IN ('done')
+      whereClause = `WHERE "serviceStation" IN (2,3,4)
       AND NOT EXISTS (
     SELECT 1
     FROM "reqServiceSequences" rs2

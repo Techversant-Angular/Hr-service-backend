@@ -540,7 +540,7 @@ exports.approve = tryCatch(async (req, res) => {
       feedBackMailTemp,
       feedBackCc, attachmentArray
     );
-  await updateReportData('interviewConducted', feedBackBy, serviceSeqence.serviceServiceRequst);
+  await updateReportData('interviewConducted', feedBackBy, serviceSeqence.serviceServiceRequst, serviceSeqence.serviceCandidate);
   // await updateReportData('interviewScheduled', feedBackBy, serviceSeqence.serviceServiceRequst);
   await addExperiencInterviewScheduled(serviceSeqence.serviceServiceRequst, 1);
     const candidate =

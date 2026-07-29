@@ -342,8 +342,21 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
     commentUserId: progressAssignee,
   });
   if (created) {
-    const candidate = await reqServiceSequence.findOne({ attributes: ['serviceCandidate', 'serviceServiceRequst'], where: { serviceId: progressServiceId } });
-    logFunction(candidate.serviceCandidate, progressAssignee, 'Scores and Feedback added in Technical 1', 2, candidate.serviceServiceRequst);
+    const serviceSequence = await reqServiceSequence.findOne({
+      attributes: ['serviceCandidate', 'serviceServiceRequst'],
+      where: { serviceId: progressServiceId }
+    });
+    const candidate = await reqCandidates.findByPk(serviceSequence.serviceCandidate, {
+      attributes: ['candidateId', 'candidateCreatedby', 'candidatesAddingAgainst']
+    });
+
+    await updateReportData(
+      'interviewConducted',
+      candidate?.candidateCreatedby || progressAssignee,
+      candidate?.candidatesAddingAgainst || serviceSequence.serviceServiceRequst,
+      serviceSequence.serviceCandidate
+    );
+    logFunction(serviceSequence.serviceCandidate, progressAssignee, 'Scores and Feedback added in Technical 1', 2, serviceSequence.serviceServiceRequst);
     return res
       .status(200)
       .json({ result: true, message: "Technical 1 Progress added" });
@@ -708,7 +721,7 @@ exports.approve = tryCatch(async (req, res) => {
       feedBackMailTemp,
       feedBackCc, attachmentArray
     );
-  await updateReportData('interviewConducted', feedBackBy, serviceSeqence.serviceServiceRequst);
+  await updateReportData('interviewConducted', feedBackBy, serviceSeqence.serviceServiceRequst, serviceSeqence.serviceCandidate);
   // await updateReportData('interviewScheduled', feedBackBy, serviceSeqence.serviceServiceRequst);
   await addExperiencInterviewScheduled(serviceSeqence.serviceServiceRequst, 1);
   const candidate =
