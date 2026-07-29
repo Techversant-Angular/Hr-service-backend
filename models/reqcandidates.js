@@ -13,6 +13,7 @@ module.exports = (sequelize, DataTypes) => {
       reqCandidates.hasOne(models.reqServiceSequence, { foreignKey: 'serviceCandidate', as: 'serviceSequence' });
       reqCandidates.belongsTo(models.reqServiceRequest,{foreignKey:'candidatesAddingAgainst'})
       reqCandidates.hasMany(models.reqCandidateRequestion, { foreignKey: 'candidateId', as: 'candidateReqst' });
+      reqCandidates.hasMany(models.reqCandidateAttachment, { foreignKey: 'candidateId', as: 'attachments'} )
 
     }
   }

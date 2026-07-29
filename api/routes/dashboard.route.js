@@ -4,6 +4,7 @@ let controller = require("../controller/dashboard.controller");
 let commonController = require('../controller/common.controller');
 let { authenticate } = require('../middleware/auth');
 const {routerInterceptor}  = require('../utils/upload');
+const { attachmentRouterInterceptor } = require('../utils/attachmentUpload');
 
 router.get('/resume-source', authenticate, controller.resumeSourceData);
 
@@ -30,5 +31,7 @@ router.get('/department-chart', authenticate, controller.departmentChart);
 router.post('/send-feedback-reminderMail', authenticate, controller.sendFeedbackReminder);
 
 router.post('/generate-presigned-url', authenticate, routerInterceptor);
+
+router.post('/generate-attachment-url', authenticate, attachmentRouterInterceptor);
 
 module.exports = router;

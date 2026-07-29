@@ -35,12 +35,15 @@ router.get('/designation-management/list', authenticate, commonController.design
 router.post('/designation/create', authenticate, commonController.createDesignation);
 router.put('/designation/update/:designationId', authenticate, commonController.updateDesignation);
 router.delete('/designation/delete/:designationId', authenticate, commonController.deleteDesignation);
-
+router.put('/department/status/:teamId', authenticate, commonController.toggleDepartmentStatus
+);
 // department CRUD
 router.get('/department/list', authenticate, commonController.departmentList);
 router.post('/department/create', authenticate, commonController.createDepartment);
 router.put('/department/update/:teamId', authenticate, commonController.updateDepartment);
 router.delete('/department/delete/:teamId', authenticate, commonController.deleteDepartment);
+router.put('/designation/status/:designationId', authenticate, commonController.toggleDesignationStatus
+);
 
 // used to edit after candidate added to requestion
 router.patch('/edit-requestion/:requestionId',  authenticate, controller.partialServiceEdit);
