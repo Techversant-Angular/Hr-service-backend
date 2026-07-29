@@ -203,7 +203,7 @@ exports.listCandidates = tryCatch(async (req, res) => {
 
   const candidates = await reqCandidates.findAll({
     include,
-    attributes: { exclude: ["candidateCurrentSalary", "candidateExpectedSalary"] },
+    attributes: { exclude: ["candidateExpectedSalary"] },
     where,
     ...(report == "true" ? {} : {
       limit: limit,
@@ -542,6 +542,8 @@ exports.viewCandidate = tryCatch(async (req, res) => {
         "reqCandidates"."candidateDistrict",
         "reqCandidates"."candidateState",
         "reqCandidates"."candidateInterviewStatus",
+        "reqCandidates"."candidateCurrentSalary",
+        "reqCandidates"."candidateExpectedSalary",
         "reqCandidates"."candidateResume",(SELECT "stationName" FROM "reqServiceSequences"  INNER JOIN "reqStations" ON "serviceStation"="stationId" WHERE "serviceCandidate"= "reqCandidates"."candidateId" ORDER BY "serviceId" DESC LIMIT 1) AS "currentStation",
         (SELECT "sourceName" FROM "reqCandidateResumeSources" WHERE "sourceId"="reqCandidates"."resumeSourceId") AS "resumeSourecd",
         "reqServiceRequests"."requestName"  AS "position",
@@ -1335,7 +1337,7 @@ exports.uploadResume = async (req, res) => {
   try {
     // Check if a file was uploaded
     if (!req.file) {
-      return res.status(400).json({
+      return res.status(400).json({ 
         result: false,
         message: "Please upload a resume (.pdf, .doc, .docx)."
       });
