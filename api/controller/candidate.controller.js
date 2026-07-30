@@ -1600,25 +1600,44 @@ exports.jobOpeningCareers = tryCatch(async (req, res) => {
 });
 
 exports.jobCareerApplications = tryCatch(async (req, res) => {
-try{
-  let limit = Number(req.query.limit) || 100;
-  let page = Number(req.query.page) || 1;
-  const report = req.query.report;
+  try {
+    let limit = Number(req.query.limit) || 100;
+    let page = Number(req.query.page) || 1;
+    const report = req.query.report;
+    const search = req.query.search;
 
-  const offset = (page - 1) * limit;
+    const offset = (page - 1) * limit;
 
-  const { count, rows: jobApplicants } = await reqJobApplicants.findAndCountAll({
-        where: {
+    const whereCondition = {
       candidateInterviewStatus: "sourced",
-    },
-    ...(report === "true"
-      ? {}
-      : {
-          limit,
-          offset,
-        }),
-    order: [["candidateId", "DESC"]], // Change to your preferred column if needed
-  });
+    };
+
+    if (search && search.trim() !== "") {
+      const searchPattern = `%${search.trim()}%`;
+      whereCondition[Op.or] = [
+        { candidateFirstName: { [Op.iLike]: searchPattern } },
+        { candidateLastName: { [Op.iLike]: searchPattern } },
+        Sequelize.where(
+          Sequelize.fn("concat", Sequelize.col("candidateFirstName"), " ", Sequelize.col("candidateLastName")),
+          { [Op.iLike]: searchPattern }
+        ),
+        { candidateEmail: { [Op.iLike]: searchPattern } },
+        { candidateMobileNo: { [Op.iLike]: searchPattern } },
+        { candidatePreviousOrg: { [Op.iLike]: searchPattern } },
+        { candidatePreviousDesignation: { [Op.iLike]: searchPattern } },
+      ];
+    }
+
+    const { count, rows: jobApplicants } = await reqJobApplicants.findAndCountAll({
+      where: whereCondition,
+      ...(report === "true"
+        ? {}
+        : {
+            limit,
+            offset,
+          }),
+      order: [["candidateId", "DESC"]],
+    });
 
   const totalPages =
     report === "true" ? 1 : Math.ceil(count / limit);
