@@ -312,23 +312,34 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
     .status(400)
     .json({ result: false, message: "Requestion is closed No action Can be taken." })
 
+  const isHold = progressDescription === "Hold";
+
   let defaultData = {
     progressStation: 3,
     progressVerifiedBy: progressAssignee,
     progressDescription: progressDescription,
     progressServiceSequence: progressServiceId,
-  }
-  if (progressSkill.length) {
-    const formattedSkills = progressSkill.map(skill => ({ ...skill, serviceSeqId: progressServiceId }));
-    await reqProgressSkill.bulkCreate(formattedSkills);
-  }
-  if (file) {
-    defaultData.progressFile = file;
+  };
+  if (!isHold) {
+
+    if (progressSkill && progressSkill.length) {
+      const formattedSkills = progressSkill.map(skill => ({ ...skill, serviceSeqId: progressServiceId }));
+      await reqProgressSkill.bulkCreate(formattedSkills);
+    }
+
+    if (file) {
+      defaultData.progressFile = file;
+    }
+
+    if (progressScore) {
+      defaultData.progressScore = progressScore;
+    }
   }
 
-  if (progressScore) {
-    defaultData.progressScore = progressScore;
-  }
+  await reqServiceSequence.update(
+    { serviceStatus: progressDescription },
+    { where: { serviceId: progressServiceId } }
+  );
 
   const [progress, created] = await reqCandidateProgress.findOrCreate({
     where: {
@@ -337,17 +348,24 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
     },
     defaults: defaultData
   });
+
+  if (!created) {
+    await progress.update(defaultData);
+  }
+
+
+
   await reqCandidateComments.create({
     commentSeqenceId: progressServiceId,
     commentComment: progressComment,
     commentUserId: progressAssignee,
   });
   if (created) {
-    const candidate = await reqServiceSequence.findOne({ attributes: ['serviceCandidate','serviceServiceRequst',"serviceStation"], where: { serviceId: progressServiceId } });
+    const candidate = await reqServiceSequence.findOne({ attributes: ['serviceCandidate', 'serviceServiceRequst', "serviceStation"], where: { serviceId: progressServiceId } });
     if (candidate.serviceStation == 3) {
-      logFunction(candidate.serviceCandidate, progressAssignee, 'Scores and Feedback added in Technical 2', 3,candidate.serviceServiceRequst);
-    }else{
-      logFunction(candidate.serviceCandidate, progressAssignee, 'Scores and Feedback added in Technical 3', 4,candidate.serviceServiceRequst);
+      logFunction(candidate.serviceCandidate, progressAssignee, 'Scores and Feedback added in Technical 2', 3, candidate.serviceServiceRequst);
+    } else {
+      logFunction(candidate.serviceCandidate, progressAssignee, 'Scores and Feedback added in Technical 3', 4, candidate.serviceServiceRequst);
     }
     return res
       .status(200)
