@@ -1237,38 +1237,38 @@ exports.jobApply = tryCatch(async (req, res) => {
   }
 
   // Check if email already exists
-  const emailExists = await reqJobApplicants.findOne({
-    where: {
-      candidateEmail,
-      candidateStatus: "active",
-    },
-  });
+  // const emailExists = await reqJobApplicants.findOne({
+  //   where: {
+  //     candidateEmail,
+  //     candidateStatus: "active",
+  //   },
+  // });
 
-  if (emailExists) {
-    if (req.file) {
-      fs.unlinkSync(req.file.path);
-    }
-    return res.status(409).json({
-      status: false,
-      message: "Email already exists",
-    });
-  }
-    const phNumberExists = await reqJobApplicants.findOne({
-    where: {
-      candidateMobileNo,
-      candidateStatus: "active",
-    },
-  });
+  // if (emailExists) {
+  //   if (req.file) {
+  //     fs.unlinkSync(req.file.path);
+  //   }
+  //   return res.status(409).json({
+  //     status: false,
+  //     message: "Email already exists",
+  //   });
+  // }
+  //   const phNumberExists = await reqJobApplicants.findOne({
+  //   where: {
+  //     candidateMobileNo,
+  //     candidateStatus: "active",
+  //   },
+  // });
 
-  if (phNumberExists) {
-    if (req.file) {
-      fs.unlinkSync(req.file.path);
-    }
-    return res.status(409).json({
-      status: false,
-      message: "Phone number already exists",
-    });
-  }
+  // if (phNumberExists) {
+  //   if (req.file) {
+  //     fs.unlinkSync(req.file.path);
+  //   }
+  //   return res.status(409).json({
+  //     status: false,
+  //     message: "Phone number already exists",
+  //   });
+  // }
 
   // Create the candidate record
   const candidate = await reqJobApplicants.create({
