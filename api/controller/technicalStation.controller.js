@@ -312,15 +312,12 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
     .status(400)
     .json({ result: false, message: "Requestion is closed No action Can be taken." })
 
-  const isHold = progressDescription === "Hold";
-
   let defaultData = {
     progressStation: 3,
     progressVerifiedBy: progressAssignee,
     progressDescription: progressDescription,
     progressServiceSequence: progressServiceId,
   };
-  if (!isHold) {
 
     if (progressSkill && progressSkill.length) {
       const formattedSkills = progressSkill.map(skill => ({ ...skill, serviceSeqId: progressServiceId }));
@@ -333,7 +330,6 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
 
     if (progressScore) {
       defaultData.progressScore = progressScore;
-    }
   }
 
   await reqServiceSequence.update(

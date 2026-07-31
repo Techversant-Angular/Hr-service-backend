@@ -2,10 +2,10 @@ const moment = require("moment");
 const { Op, Sequelize, where } = require("sequelize");
 let mailFunction = require("../utils/nodeMail");
 const { tryCatch } = require("../utils/trycatch");
-let { addContactedCount, logFunction, updateReportData, reqcuriterReport } = require("../utils/commonFunction");
+let { addContactedCount, logFunction, updateReportData, reqcuriterReport, isRequestionClosed } = require("../utils/commonFunction");
 let { reqServiceSequence, reqTask, reqCandidates, reqServiceRequest, reqTeam,
   reqSkill, sequelize, reqDesignation, reqUser, reqStation, reqCandidateComments,
-  reqRejectReason, reqFeedbacks, reqProgressSkill
+  reqRejectReason, reqFeedbacks, reqProgressSkill, reqCandidateProgress
 } = require("../../models");
 const response = require("../../api/utils/responseMessages");
 const { sendFeedbackAcknowledgement } = require("../utils/commonFunction");
@@ -1064,6 +1064,112 @@ exports.prefferedList = tryCatch(async (req, res, next) => {
   return res
     .status(200)
     .json({ result: true, message: response.DATA_RETRIEVED, data: locationLists });
+});
+
+// Put a candidate's current service sequence on hold without requiring
+// station-specific feedback, scoring, or skills.
+exports.holdProgress = tryCatch(async (req, res) => {
+  const { progressAssignee, progressServiceId, progressDescription, holdDescription } = req.body;
+
+  if (!progressAssignee) {
+    return res.status(400).json({ result: false, message: response.PROGRESS_ASSIGNEE_REQUIRED });
+  }
+  if (!progressServiceId) {
+    return res.status(400).json({ result: false, message: "ProgressServiceId required" });
+  }
+  if (!progressDescription) {
+    return res.status(400).json({ result: false, message: "ProgressDescription required" });
+  }
+  if (!holdDescription) {
+    return res.status(400).json({ result: false, message: "HoldDescription required" });
+  }
+  if (!(await isRequestionClosed(progressServiceId))) {
+    return res.status(400).json({ result: false, message: "Requestion is closed. No action can be taken." });
+  }
+
+  const serviceSequence = await reqServiceSequence.findOne({
+    where: { serviceId: progressServiceId },
+  });
+  if (!serviceSequence) {
+    return res.status(404).json({ result: false, message: "Service sequence not found" });
+  }
+
+  await sequelize.transaction(async (transaction) => {
+    await serviceSequence.update({ serviceStatus: "hold" }, { transaction });
+
+    const progress = await reqCandidateProgress.findOne({
+      where: { progressServiceSequence: progressServiceId },
+      transaction,
+    });
+    const progressData = {
+      progressStation: serviceSequence.serviceStation,
+      progressVerifiedBy: progressAssignee,
+      progressDescription,
+      progressServiceSequence: progressServiceId,
+    };
+
+    if (progress) {
+      await progress.update(progressData, { transaction });
+    } else {
+      await reqCandidateProgress.create(progressData, { transaction });
+    }
+
+    await reqCandidateComments.create({
+      commentSeqenceId: progressServiceId,
+      commentComment: holdDescription,
+      commentUserId: progressAssignee,
+    }, { transaction });
+  });
+
+  await logFunction(
+    serviceSequence.serviceCandidate,
+    progressAssignee,
+    "Hold",
+    serviceSequence.serviceStation,
+    serviceSequence.serviceServiceRequst,
+  );
+
+  return res.status(200).json({ result: true, message: "Candidate put on hold" });
+});
+
+// Returns the comment history, including the hold reason, for a station's
+// service sequence.
+exports.holdComments = tryCatch(async (req, res) => {
+  const { progressServiceId } = req.query;
+
+  if (!progressServiceId) {
+    return res.status(400).json({ result: false, message: "ProgressServiceId required" });
+  }
+
+  const serviceSequence = await reqServiceSequence.findOne({
+    attributes: ["serviceId", "serviceStation", "serviceStatus"],
+    where: { serviceId: progressServiceId },
+  });
+  if (!serviceSequence) {
+    return res.status(404).json({ result: false, message: "Service sequence not found" });
+  }
+
+  const comments = await reqCandidateComments.findAll({
+    attributes: ["commentId", "commentComment", "commentUserId", "commentDate"],
+    where: { commentSeqenceId: progressServiceId },
+    include: [{
+      model: reqUser,
+      attributes: ["userId", "userfirstName", "userlastName", "userFullName"],
+      required: false,
+    }],
+    order: [["commentDate", "DESC"], ["commentId", "DESC"]],
+  });
+
+  return res.status(200).json({
+    result: true,
+    message: response.DATA_RETRIEVED,
+    data: {
+      serviceId: serviceSequence.serviceId,
+      stationId: serviceSequence.serviceStation,
+      serviceStatus: serviceSequence.serviceStatus,
+      comments,
+    },
+  });
 });
 
 exports.editProgressV1 = tryCatch(async (req, res) => {

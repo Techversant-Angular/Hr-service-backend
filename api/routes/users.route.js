@@ -40,6 +40,10 @@ router.get('/preffer-location', authenticate, commonController.prefferedList);
 
 router.post('/edit-progress',authenticate,commonController.editProgressV1);
 
+router.post('/hold', authenticate, commonController.holdProgress);
+
+router.get('/hold/comments', authenticate, commonController.holdComments);
+
 router.post('/google-login', authController.googleLogin)
 
 

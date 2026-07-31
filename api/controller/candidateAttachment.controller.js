@@ -146,8 +146,8 @@ exports.getAttachments = tryCatch(async (req, res) => {
         "createdBy",
         "updatedBy",
         "createdAt",
-        "updatedAt",
-        'filePath'
+        // "updatedAt",
+        // 'filePath'
       ],
     },
     include: [
