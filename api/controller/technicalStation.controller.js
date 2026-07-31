@@ -331,11 +331,13 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
     if (progressScore) {
       defaultData.progressScore = progressScore;
   }
-
-  // await reqServiceSequence.update(
-  //   { serviceStatus: progressDescription },
-  //   { where: { serviceId: progressServiceId } }
-  // );
+if (progressDescription == 'Hold') {
+   await reqServiceSequence.update(
+    { serviceStatus: progressDescription },
+    { where: { serviceId: progressServiceId } }
+  );
+}
+ 
 
   const [progress, created] = await reqCandidateProgress.findOrCreate({
     where: {
