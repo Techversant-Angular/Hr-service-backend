@@ -216,6 +216,14 @@ exports.fetchFinalCandidte = tryCatch(async (req, res) => {
       "serviceCandidate",
       "serviceAssignee",
       [
+        Sequelize.literal(`(SELECT "holdDescription"
+          FROM "reqCandidateProgresses" AS "progress"
+          WHERE "progress"."progressServiceSequence" = "reqServiceSequence"."serviceId"
+          ORDER BY "progress"."progressId" DESC
+          LIMIT 1)`),
+        "holdDescription"
+      ],
+      [
         Sequelize.literal(`(
         SELECT CONCAT("userfirstName", ' ', "userlastName") FROM "reqUsers" WHERE "userId"="serviceAssignee" )`),
         "pannelName"
@@ -473,6 +481,7 @@ exports.addProgress = tryCatch(async (req, res) => {
     progressServiceId,
     progressScore,
     progressDescription,
+    holdDescription,
     progressComment,
     file,
   } = req.body;
@@ -486,30 +495,39 @@ exports.addProgress = tryCatch(async (req, res) => {
       .status(400)
       .json({ result: false, message: "ProgressServiceId required" });
 
-  if (!progressDescription)
-    return res
-      .status(400)
-      .json({ result: false, message: "ProgressDescription required" });
+  // if (!progressDescription)
+  //   return res
+  //     .status(400)
+  //     .json({ result: false, message: "ProgressDescription required" });
 
   const requestionActive = await isRequestionClosed(progressServiceId);
   if (!requestionActive) return res
     .status(400)
     .json({ result: false, message: "Requestion is closed No action Can be taken." })
 
+  const isOnHold = String(progressDescription).trim().toLowerCase() === 'hold';
   const defaultData = {
 
     progressStation: 5,
     progressVerifiedBy: progressAssignee,
     progressDescription: progressDescription,
     progressServiceSequence: progressServiceId,
-    progressScore
+    progressScore,
+    holdDescription: isOnHold ? holdDescription : null,
   }
-  if (progressSkill.length) {
-    const formattedSkills = progressSkill.map(skill => ({ ...skill, serviceSeqId: progressServiceId }));
-    await reqProgressSkill.bulkCreate(formattedSkills);
-  }
+  // if (progressSkill.length) {
+  //   const formattedSkills = progressSkill.map(skill => ({ ...skill, serviceSeqId: progressServiceId }));
+  //   await reqProgressSkill.bulkCreate(formattedSkills);
+  // }
 
   if (file) { defaultData.progressFile = file; }
+
+  if (isOnHold) {
+    await reqServiceSequence.update(
+      { serviceStatus: 'hold' },
+      { where: { serviceId: progressServiceId } }
+    );
+  }
 
   if (progressScore) {
     defaultData.progressScore = progressScore;
@@ -522,6 +540,19 @@ exports.addProgress = tryCatch(async (req, res) => {
     },
     defaults: defaultData
   });
+  if (!created) {
+    await progress.update(defaultData);
+  }
+
+  if (Array.isArray(progressSkill)) {
+    // Skills belong to this interview stage. Replace them on an edit so old
+    // scores do not remain alongside the newly submitted ones.
+    await reqProgressSkill.destroy({ where: { serviceSeqId: progressServiceId } });
+    if (progressSkill.length) {
+      const formattedSkills = progressSkill.map(skill => ({ ...skill, serviceSeqId: progressServiceId }));
+      await reqProgressSkill.bulkCreate(formattedSkills);
+    }
+  }
 
   await reqCandidateComments.create({
     commentSeqenceId: progressServiceId,
