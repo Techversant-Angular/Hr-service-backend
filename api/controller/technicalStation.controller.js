@@ -319,11 +319,6 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
     progressServiceSequence: progressServiceId,
   };
 
-    if (progressSkill && progressSkill.length) {
-      const formattedSkills = progressSkill.map(skill => ({ ...skill, serviceSeqId: progressServiceId }));
-      await reqProgressSkill.bulkCreate(formattedSkills);
-    }
-
     if (file) {
       defaultData.progressFile = file;
     }
@@ -331,9 +326,9 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
     if (progressScore) {
       defaultData.progressScore = progressScore;
   }
-if (progressDescription == 'Hold') {
+  if (String(progressDescription).trim().toLowerCase() === 'hold') {
    await reqServiceSequence.update(
-    { serviceStatus: progressDescription },
+    { serviceStatus: 'hold' },
     { where: { serviceId: progressServiceId } }
   );
 }
@@ -347,9 +342,22 @@ if (progressDescription == 'Hold') {
     defaults: defaultData
   });
 
-  // if (!created) {
-  //   await progress.update(defaultData);
-  // }
+  // A recruiter may need to correct or resubmit feedback.  The progress row is
+  // unique per service sequence/station, so update the existing row instead of
+  // treating a repeat submission as an error.
+  if (!created) {
+    await progress.update(defaultData);
+  }
+
+  if (Array.isArray(progressSkill)) {
+    // Skills belong to this interview stage. Replace them on an edit so old
+    // scores do not remain alongside the newly submitted ones.
+    await reqProgressSkill.destroy({ where: { serviceSeqId: progressServiceId } });
+    if (progressSkill.length) {
+      const formattedSkills = progressSkill.map(skill => ({ ...skill, serviceSeqId: progressServiceId }));
+      await reqProgressSkill.bulkCreate(formattedSkills);
+    }
+  }
 
 
 
@@ -368,11 +376,11 @@ if (progressDescription == 'Hold') {
     return res
       .status(200)
       .json({ result: true, message: response.TECHNICAL_PROGRESS_ADDED });
-  } else {
-    return res
-      .status(401)
-      .json({ result: false, message: response.TECHNICAL_PROGRESS_ALREADY_FOUND });
   }
+
+  return res
+    .status(200)
+    .json({ result: true, message: response.TECHNICAL_PROGRESS_ADDED });
 
 });
 
