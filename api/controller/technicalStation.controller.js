@@ -514,7 +514,9 @@ exports.approve = tryCatch(async (req, res) => {
   const serviceSeqence = await reqServiceSequence.findOne({
     where: {
       serviceId: serviceSeqId,
-      serviceStatus: "pending",
+      serviceStatus: {
+      [Op.in]: ["pending", "hold"],
+    },
       serviceStation: 3,
     },
     include: [{ model: reqCandidates, as: 'candidate', required: true, attributes: ['candidateEmail'] }],
