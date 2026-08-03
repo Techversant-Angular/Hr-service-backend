@@ -495,10 +495,10 @@ exports.addProgress = tryCatch(async (req, res) => {
       .status(400)
       .json({ result: false, message: "ProgressServiceId required" });
 
-  // if (!progressDescription)
-  //   return res
-  //     .status(400)
-  //     .json({ result: false, message: "ProgressDescription required" });
+  if (!progressDescription)
+    return res
+      .status(400)
+      .json({ result: false, message: "ProgressDescription required" });
 
   const requestionActive = await isRequestionClosed(progressServiceId);
   if (!requestionActive) return res
