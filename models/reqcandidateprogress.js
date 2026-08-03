@@ -37,6 +37,7 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: Sequelize.fn('now')
     },
     progressFile:DataTypes.STRING,
+    holdDescription: DataTypes.TEXT,
     progressSkills:DataTypes.TEXT,
     progressAverageScore:DataTypes.INTEGER
   }, {

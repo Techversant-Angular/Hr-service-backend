@@ -287,7 +287,7 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
     progressSkill,
     progressServiceId,
     progressScore,
-    progressDescription, progressComment,
+    progressDescription, progressComment, holdDescription,
     progressRejectReason,
     file,
   } = req.body;
@@ -312,11 +312,13 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
     .status(400)
     .json({ result: false, message: "Requestion is closed No action Can be taken." })
 
+  const isOnHold = String(progressDescription).trim().toLowerCase() === 'hold';
   let defaultData = {
     progressStation: 3,
     progressVerifiedBy: progressAssignee,
     progressDescription: progressDescription,
     progressServiceSequence: progressServiceId,
+    holdDescription: isOnHold ? holdDescription : null,
   };
 
     if (file) {
@@ -326,7 +328,7 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
     if (progressScore) {
       defaultData.progressScore = progressScore;
   }
-  if (String(progressDescription).trim().toLowerCase() === 'hold') {
+  if (isOnHold) {
    await reqServiceSequence.update(
     { serviceStatus: 'hold' },
     { where: { serviceId: progressServiceId } }
@@ -402,6 +404,15 @@ exports.progressDetail = tryCatch(async (req, res) => {
         sequelize.literal(`(SELECT COUNT(*)
                   FROM "reqCandidateProgresses" AS "progress" WHERE "progress"."progressServiceSequence"="reqServiceSequence"."serviceId")`),
         "progressStatus",
+      ],
+      [
+        sequelize.literal(`(SELECT "holdDescription"
+                  FROM "reqCandidateProgresses" AS "progress"
+                  WHERE "progress"."progressServiceSequence" = "reqServiceSequence"."serviceId"
+                    AND "progress"."progressStation" = 3
+                  ORDER BY "progress"."progressId" DESC
+                  LIMIT 1)`),
+        "holdDescription",
       ],
       [
         sequelize.literal(`(SELECT "stationName" FROM "reqServiceSequences" AS "sequence" INNER JOIN "reqStations" ON "stationId" = "serviceStation" 
