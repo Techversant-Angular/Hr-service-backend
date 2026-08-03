@@ -593,6 +593,15 @@ exports.progressDetail = tryCatch(async (req, res) => {
         "progressStatus",
       ],
       [
+        sequelize.literal(`(SELECT "holdDescription"
+                  FROM "reqCandidateProgresses" AS "progress"
+                  WHERE "progress"."progressServiceSequence" = "reqServiceSequence"."serviceId"
+                    AND "progress"."progressStation" = 2
+                  ORDER BY "progress"."progressId" DESC
+                  LIMIT 1)`),
+        "holdDescription",
+      ],
+      [
         sequelize.literal(`(SELECT "stationName" FROM "reqServiceSequences" AS "sequence" INNER JOIN "reqStations" ON "stationId" = "serviceStation" 
                                                                 WHERE "sequence"."serviceCandidate" = "reqServiceSequence"."serviceCandidate" AND "sequence"."serviceServiceRequst" = "reqServiceSequence"."serviceServiceRequst" ORDER BY "serviceId" DESC LIMIT 1)`), "currentStation"
       ],

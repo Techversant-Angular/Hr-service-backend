@@ -575,6 +575,15 @@ exports.progressDetail = tryCatch(async (req, res) => {
         "progressStatus"
       ],
       [
+        sequelize.literal(`(SELECT "holdDescription"
+                  FROM "reqCandidateProgresses" AS "progress"
+                  WHERE "progress"."progressServiceSequence" = "reqServiceSequence"."serviceId"
+                    AND "progress"."progressStation" = 5
+                  ORDER BY "progress"."progressId" DESC
+                  LIMIT 1)`),
+        "holdDescription",
+      ],
+      [
         sequelize.literal(`(
           SELECT CONCAT("userfirstName", ' ', "userlastName")
           FROM "reqUsers"
