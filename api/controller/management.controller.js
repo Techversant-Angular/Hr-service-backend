@@ -437,6 +437,7 @@ exports.addProgressV1 = async (req, res, next) => {
       progressServiceId,
       progressScore,
       progressDescription,
+      holdDescription,
       file, progressComment
     } = req.body;
 
@@ -453,20 +454,29 @@ exports.addProgressV1 = async (req, res, next) => {
     if (!requestionActive)
       return res.status(400).json({ result: false, message: "Requestion is closed. No action can be taken." });
 
+    const isOnHold = String(progressDescription).trim().toLowerCase() === 'hold';
     const defaultData = {
       progressStation: 6,
       progressVerifiedBy: progressAssignee,
       progressDescription: progressDescription,
       progressServiceSequence: progressServiceId,
-      progressScore
+      progressScore,
+      holdDescription: isOnHold ? holdDescription : null,
     };
-    if (progressSkill.length) {
-      const formattedSkills = progressSkill.map(skill => ({ ...skill, serviceSeqId: progressServiceId }));
-      await reqProgressSkill.bulkCreate(formattedSkills);
-    }
+    // if (progressSkill.length) {
+    //   const formattedSkills = progressSkill.map(skill => ({ ...skill, serviceSeqId: progressServiceId }));
+    //   await reqProgressSkill.bulkCreate(formattedSkills);
+    // }
 
     if (file) {
       defaultData.progressFile = file;
+    }
+
+    if (isOnHold) {
+      await reqServiceSequence.update(
+        { serviceStatus: 'hold' },
+        { where: { serviceId: progressServiceId } }
+      );
     }
 
     if (progressScore) {
@@ -480,6 +490,19 @@ exports.addProgressV1 = async (req, res, next) => {
       },
       defaults: defaultData
     });
+    if (!created) {
+      await progress.update(defaultData);
+    }
+
+    if (Array.isArray(progressSkill)) {
+      // Skills belong to this interview stage. Replace them on an edit so old
+      // scores do not remain alongside the newly submitted ones.
+      await reqProgressSkill.destroy({ where: { serviceSeqId: progressServiceId } });
+      if (progressSkill.length) {
+        const formattedSkills = progressSkill.map(skill => ({ ...skill, serviceSeqId: progressServiceId }));
+        await reqProgressSkill.bulkCreate(formattedSkills);
+      }
+    }
 
     await reqCandidateComments.create({
       commentSeqenceId: progressServiceId,
@@ -621,7 +644,9 @@ exports.approve = async (req, res, next) => {
       ],
       where: {
         serviceId: serviceSeqId,
-        serviceStatus: "pending",
+        serviceStatus: {
+          [Op.in]: ["pending", "hold"],
+        },
         serviceStation: 6,
       },
       raw: true,
@@ -710,4 +735,3 @@ exports.approve = async (req, res, next) => {
     next(error);
   }
 };
-

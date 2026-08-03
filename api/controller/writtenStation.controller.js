@@ -296,6 +296,7 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
     progressServiceId,
     progressScore,
     progressDescription,
+    holdDescription,
     file,
   } = req.body;
   if (!progressAssignee)
@@ -313,20 +314,29 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
       .status(400)
       .json({ result: false, message: "ProgressDescription required" });
 
+  const isOnHold = String(progressDescription).trim().toLowerCase() === 'hold';
   const defaultData = {
 
     progressStation: 2,
     progressVerifiedBy: progressAssignee,
     progressDescription: progressDescription,
     progressServiceSequence: progressServiceId,
-    progressScore
+    progressScore,
+    holdDescription: isOnHold ? holdDescription : null,
   }
-  if (progressSkill.length) {
-    const formattedSkills = progressSkill.map(skill => ({ ...skill, serviceSeqId: progressServiceId }));
-    await reqProgressSkill.bulkCreate(formattedSkills);
-  }
+  // if (progressSkill.length) {
+  //   const formattedSkills = progressSkill.map(skill => ({ ...skill, serviceSeqId: progressServiceId }));
+  //   await reqProgressSkill.bulkCreate(formattedSkills);
+  // }
   if (file) {
     defaultData.progressFile = file;
+  }
+
+  if (isOnHold) {
+    await reqServiceSequence.update(
+      { serviceStatus: 'hold' },
+      { where: { serviceId: progressServiceId } }
+    );
   }
 
   const [progress, created] = await reqCandidateProgress.findOrCreate({
@@ -336,6 +346,21 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
     },
     defaults: defaultData
   });
+
+    if (!created) {
+    await progress.update(defaultData);
+  }
+
+  if (Array.isArray(progressSkill)) {
+    // Skills belong to this interview stage. Replace them on an edit so old
+    // scores do not remain alongside the newly submitted ones.
+    await reqProgressSkill.destroy({ where: { serviceSeqId: progressServiceId } });
+    if (progressSkill.length) {
+      const formattedSkills = progressSkill.map(skill => ({ ...skill, serviceSeqId: progressServiceId }));
+    await reqProgressSkill.bulkCreate(formattedSkills);
+    }
+  }
+
   await reqCandidateComments.create({
     commentSeqenceId: progressServiceId,
     commentComment: progressComment,
@@ -665,7 +690,9 @@ exports.approve = tryCatch(async (req, res) => {
     ],
     where: {
       serviceId: serviceSeqId,
-      serviceStatus: "pending",
+      serviceStatus: {
+        [Op.in]: ["pending", "hold"],
+      },
       serviceStation: 2,
 
     },
