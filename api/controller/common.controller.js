@@ -950,11 +950,8 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
       whereClause = `WHERE ("serviceStation"=1 OR "serviceStation" IS NULL)  ${positionCondition}`;
     } else if (status === "shorted") {
       whereClause = `WHERE "serviceStation" IN (2,3,4)
-        AND "serviceStatus" NOT IN (
-        'rejected',
-        'back-off',
-        'pannel-rejection',
-        'cancelled'
+        AND "serviceStatus" IN (
+        'pending', 'moved'
     )  ${positionCondition}`;
     } else if (status === "rejected") {
       whereClause = `WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection')  ${positionCondition}`;
