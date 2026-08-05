@@ -1180,59 +1180,117 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
 });
 
 exports.toDateInterviewList = tryCatch(async (req, res) => {
+  const {
+    fromDateData,
+    toDateData,
+    search,
+    status_filter: statusFilter,
+    position,
+    limit = 100,
+    offset = 0,
+    ids,
+    experience,
+  } = req.query;
 
-  let { fromDateData, toDateData, search, status_filter: statusFilter, position, limit = 100, offset = 0, ids, experience } = req.query;
+  const fromDate = `${fromDateData} 00:00:00+05:30`;
+  const toDate = `${toDateData} 23:59:59+05:30`;
 
-  let fromDate = `${fromDateData} 00:00:00+05:30`;
-  let toDate = `${toDateData} 23:59:59+05:30`;
+  // Convert query parameters to numbers
+  const pageLimit = Number(limit) || 100;
+  const page = Number(offset) || 1;
 
-  // let fromDate = moment().subtract(7, 'days').format("YYYY-MM-DD 00:00:00+05:30"); // 7 days before today
+  // Calculate pagination offset
+  const paginationOffset =
+    page <= 1 ? 0 : (page - 1) * pageLimit;
 
-  // Handle pagination
-  offset = offset == 1 || offset == 0 ? 0 : (offset - 1) * limit;
+  const where = {};
+  const searchCondition = {};
 
-  let where = {};
-  let searchCondition = {};
+  // const isRestrictedRole = req.userRole !== "1" && req.userRole !== "6" && req.userRole !== 1 && req.userRole !== 6;
+  // if (req.userId && isRestrictedRole) {
+  //   where.serviceScheduledBy = req.userId;
+  // }
 
   // Filter by experience
   if (experience) {
-    searchCondition.candidateRevlentExperience = { [Op.lte]: experience };
-    searchCondition.candidateTotalExperience = { [Op.gte]: experience };
+    searchCondition.candidateRevlentExperience = {
+      [Op.lte]: experience,
+    };
+
+    searchCondition.candidateTotalExperience = {
+      [Op.gte]: experience,
+    };
   }
 
   // Filter by date
-  where.serviceDate = { [Op.between]: [fromDate, toDate] };
-
+  where.serviceDate = {
+    [Op.between]: [fromDate, toDate],
+  };
 
   // Filter by search
   if (search) {
     searchCondition[Op.or] = [
-      { candidateFirstName: { [Op.iLike]: `${search}%` } },
-      { candidateLastName: { [Op.iLike]: `${search}%` } },
-      { candidateEmail: { [Op.iLike]: `${search}%` } },
+      {
+        candidateFirstName: {
+          [Op.iLike]: `${search}%`,
+        },
+      },
+      {
+        candidateLastName: {
+          [Op.iLike]: `${search}%`,
+        },
+      },
+      {
+        candidateEmail: {
+          [Op.iLike]: `${search}%`,
+        },
+      },
     ];
   }
 
   // Filter by ids
   if (ids?.length) {
-    ids = Array.isArray(ids) ? ids : [ids];
-    where.serviceScheduledBy = { [Op.in]: ids };
+    const idList = Array.isArray(ids) ? ids : [ids];
+
+    where.serviceScheduledBy = {
+      [Op.in]: idList,
+    };
   }
 
   // Filter by status and position
-  if (statusFilter) where.serviceStatus = statusFilter;
-  if (position) where.serviceServiceRequst = position;
-  let candidates = await reqServiceSequencesAcitve.findAll({
+  if (statusFilter) {
+    where.serviceStatus = statusFilter;
+  }
+
+  if (position) {
+    where.serviceServiceRequst = position;
+  }
+
+  const candidates = await reqServiceSequencesAcitve.findAll({
     attributes: {
       include: [
         [
-          sequelize.literal(`(SELECT COUNT(*)
-                    FROM "reqCandidateProgresses" AS "progress" WHERE "progress"."progressServiceSequence"="reqServiceSequencesAcitve"."serviceId")`),
+          sequelize.literal(`(
+            SELECT COUNT(*)
+            FROM "reqCandidateProgresses" AS "progress"
+            WHERE "progress"."progressServiceSequence" =
+                  "reqServiceSequencesAcitve"."serviceId"
+          )`),
           "progressStatus",
         ],
         [
-          sequelize.literal(`(SELECT "stationName"
-                                FROM "reqServiceSequencesAcitves" AS "sequence" INNER JOIN "reqStations" ON "stationId"="serviceStation" WHERE "sequence"."serviceCandidate"="reqServiceSequencesAcitve"."serviceCandidate" AND "sequence"."serviceServiceRequst"="reqServiceSequencesAcitve"."serviceServiceRequst" ORDER BY "serviceId" DESC LIMIT 1)`),
+          sequelize.literal(`(
+            SELECT "stationName"
+            FROM "reqServiceSequencesAcitves" AS "sequence"
+            INNER JOIN "reqStations"
+              ON "stationId" = "serviceStation"
+            WHERE "sequence"."serviceCandidate" =
+                  "reqServiceSequencesAcitve"."serviceCandidate"
+              AND "sequence"."serviceServiceRequst" =
+                  "reqServiceSequencesAcitve"."serviceServiceRequst"
+            ORDER BY "serviceId" DESC
+            LIMIT 1
+          )`),
           "currentStation",
         ],
       ],
@@ -1242,7 +1300,17 @@ exports.toDateInterviewList = tryCatch(async (req, res) => {
         model: reqServiceRequest,
         as: "serviceRequest",
         required: true,
-      }, { model: reqUser, as: "scheduledBy", attributes: ["userfirstName", "userlastName"] },
+      },
+      {
+        model: reqUser,
+        as: "scheduledBy",
+        attributes: ["userfirstName", "userlastName", "userRole"],
+        where: {
+          userRole: {
+            [Op.eq]: "6",
+          },
+        },
+      },
       {
         model: reqCandidates,
         attributes: {
@@ -1261,31 +1329,43 @@ exports.toDateInterviewList = tryCatch(async (req, res) => {
         where: searchCondition,
       },
     ],
+
     raw: true,
-    limit: limit,
-    offset: offset,
+
+    // Use these variables
+    limit: pageLimit,
+    offset: paginationOffset,
+
     where,
+
     order: [["serviceId", "DESC"]],
   });
 
-  let totalCount = await reqServiceSequencesAcitve.count({ where });
+  const totalCount = await reqServiceSequencesAcitve.count({
+    where,
+  });
 
   if (candidates) {
-    candidates = candidates.map((c) => {
-      c['candidate.candidateInterviewStatus'] = c.serviceStatus == "pending"
-        ? "inprogress"
-        : c.serviceStatus == "done"
-          ? "shorted"
+    const updatedCandidates = candidates.map((c) => {
+      c["candidate.candidateInterviewStatus"] =
+        c.serviceStatus === "pending"
+          ? "inprogress"
+          : c.serviceStatus === "done"
+            ? "shorted"
+            : c.serviceStatus;
+
+      c.serviceStatus =
+        c.serviceStatus === "sourced"
+          ? "pending"
           : c.serviceStatus;
 
-      c.serviceStatus = c.serviceStatus == "sourced" ? "pending" : c.serviceStatus;
       return c;
     });
 
     return res.status(200).json({
       result: true,
       message: "Candidates Found",
-      candidates,
+      candidates: updatedCandidates,
       totalCount,
     });
   }
