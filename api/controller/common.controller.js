@@ -985,7 +985,11 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
     `;
 
     const countQuery = useDistinct
-      ? `SELECT COUNT(DISTINCT CONCAT("candidateId", '-', "requestTeam")) AS count ${baseQuery} ${whereClause};`
+      ? `SELECT COUNT(*) AS count FROM (
+          SELECT DISTINCT ON ("candidateId", "requestTeam") "candidateId"
+          ${baseQuery} ${whereClause}
+          ORDER BY "candidateId" DESC, "requestTeam" DESC
+        ) AS subquery;`
       : `SELECT COUNT(*) AS count ${baseQuery} ${whereClause};`;
 
     const [candidates] = await sequelize.query(query);
