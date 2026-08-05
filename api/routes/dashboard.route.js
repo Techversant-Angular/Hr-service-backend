@@ -30,7 +30,7 @@ router.get('/department-chart', authenticate, controller.departmentChart);
 
 router.post('/send-feedback-reminderMail', authenticate, controller.sendFeedbackReminder);
 
-router.post('/generate-presigned-url', authenticate, routerInterceptor);
+// router.post('/generate-presigned-url', authenticate, routerInterceptor);
 
 router.post('/generate-attachment-url', authenticate, attachmentRouterInterceptor);
 
