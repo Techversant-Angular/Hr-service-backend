@@ -333,6 +333,14 @@ exports.candidateOffers = tryCatch(async (req, res) => {
     }
   });
 
+  await reqServiceSequence.update(
+    {
+      serviceStatus: 'pending',
+      insertOrUpdateDate: moment().format('YYYY-MM-DD'),
+    },
+    { where: { serviceId: offerServiceSeqId } }
+  );
+
   await updateReportData('offerReleased', offerRleasedBy, serviceSeq.serviceServiceRequst,serviceSeq.serviceCandidate);
   const getCandidateMail = await reqCandidates.findOne({ where: { candidateId: serviceSeq.serviceCandidate } });
   if (getCandidateMail) {
