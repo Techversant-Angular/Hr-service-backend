@@ -1,5 +1,5 @@
 const path = require('path')
-let moment = require('moment');
+const { format } = require('date-fns');
 const fs = require('fs');
 
 exports.candidateForms = async (req, res, next) => {
@@ -10,7 +10,7 @@ exports.candidateForms = async (req, res, next) => {
             return res.status(400).json({ result: false, message: 'Resume is Mandatory' });
         }
 
-        let currentTime = moment().format('YYYY_MM_DD_HH_mm_ss');
+        let currentTime = format(new Date(), 'yyyy_MM_dd_HH_mm_ss');
         let fileExt = req.inputFields.candidateResume.candidateResume[0].originalFilename.split('.').pop();
         let fileStoragePath = `/uploads/${req.inputFields.candidateFirstName}_${req.inputFields.candidateLastName}_${currentTime}.${fileExt}`;
         let newPath = path.resolve(__dirname, '../..') + fileStoragePath;
@@ -40,7 +40,7 @@ exports.candidateFormsEdit = async (req, res, next) => {
             return next();
         }
 
-        let currentTime = moment().format('YYYY_MM_DD_HH_mm_ss');
+        let currentTime = format(new Date(), 'yyyy_MM_dd_HH_mm_ss');
         let fileExt = req.inputFields.candidateResume.candidateResume[0].originalFilename.split('.').pop();
         let fileStoragePath = `/uploads/${req.inputFields.candidateFirstName}_${req.inputFields.candidateLastName}_${currentTime}.${fileExt}`;
         let newPath = path.resolve(__dirname, '../..') + fileStoragePath;
