@@ -1640,19 +1640,36 @@ exports.jobCareerApplications = tryCatch(async (req, res) => {
       ];
     }
 
-    const { count, rows: jobApplicants } = await reqJobApplicants.findAndCountAll({
-      where: whereCondition,
-      ...(report === "true"
-        ? {}
-        : {
-            limit,
-            offset,
-          }),
-      order: [["candidateId", "DESC"]],
-    });
+const { count, rows: jobApplicants } = await reqJobApplicants.findAndCountAll({
+  where: whereCondition,
+  include: [
+    {
+      model: reqJobOpening,
+      as: "jobOpening",
+      attributes: ["requestName"],
+      required: false,
+    },
+  ],
+  ...(report === "true"
+    ? {}
+    : {
+        limit,
+        offset,
+      }),
+  order: [["candidateId", "DESC"]],
+});
 
   const totalPages =
     report === "true" ? 1 : Math.ceil(count / limit);
+
+    const data = jobApplicants.map((item) => {
+  const applicant = item.toJSON();
+
+  return {
+    ...applicant,
+    requisitionName: applicant.jobOpening?.requestName || null,
+  };
+});
 
   if (jobApplicants.length) {
     return res.status(200).json({
@@ -1662,7 +1679,7 @@ exports.jobCareerApplications = tryCatch(async (req, res) => {
       totalPages,
       currentPage: report === "true" ? 1 : page,
       pageSize: limit,
-      data: jobApplicants,
+      data
     });
   } else {
     return res.status(404).json({
