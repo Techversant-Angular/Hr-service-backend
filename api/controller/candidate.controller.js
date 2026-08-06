@@ -139,8 +139,10 @@ exports.listCandidates = tryCatch(async (req, res) => {
     }
   }
   if (ids?.length) {
-    ids = Array.isArray(ids) ? ids : [ids];
-    where.candidateId = { [Op.in]: ids };
+    ids = Array.isArray(ids)
+      ? ids.flatMap(id => String(id).split(','))
+      : String(ids).split(',');
+    ids = ids.map(id => id.trim()).filter(id => id);
   }
   if (search) {
     const searchLower = search.toLowerCase();
@@ -191,9 +193,19 @@ exports.listCandidates = tryCatch(async (req, res) => {
 
   const [results] = await sequelize.query(subQuery);
 
-  where.candidateId = {
-    [Op.in]: results.map((result) => result.candidateId),
-  };
+  const dedupIds = results.map((result) => result.candidateId);
+
+  // If specific ids were requested, intersect with dedup results
+  if (ids?.length) {
+    const requestedIds = ids.map(Number);
+    where.candidateId = {
+      [Op.in]: dedupIds.filter(id => requestedIds.includes(id)),
+    };
+  } else {
+    where.candidateId = {
+      [Op.in]: dedupIds,
+    };
+  }
 
   const candidateCount = await reqCandidates.count({
     include,
