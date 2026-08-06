@@ -40,9 +40,9 @@ function getFirebaseCredential() {
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = formatPrivateKey(process.env.FIREBASE_PRIVATE_KEY);
-  console.log("Firebase projectId:", projectId);
-  console.log("Firebase clientEmail:", clientEmail);
-  console.log("Firebase privateKey:", privateKey);
+  // console.log("Firebase projectId:", projectId);
+  // console.log("Firebase clientEmail:", clientEmail);
+  // console.log("Firebase privateKey:", privateKey);
 
 
   if (projectId && clientEmail && privateKey) {
