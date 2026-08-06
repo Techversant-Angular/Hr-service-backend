@@ -1,4 +1,4 @@
-const moment = require("moment");
+const { format, parse, addDays } = require("date-fns");
 const { Op, Sequelize, where } = require("sequelize");
 let mailFunction = require("../utils/nodeMail");
 const { tryCatch } = require("../utils/trycatch");
@@ -196,9 +196,7 @@ exports.rejectCandidate = tryCatch(async (req, res, next) => {
     senderId: userId,
     type: "",
   };
-  const currentDate = moment(moment(), "YYYY/MM/DD").format(
-    "YYYY-MM-DDTHH:mm:ss.SSS[Z]"
-  );
+  const currentDate = format(new Date(), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
   let statusString = "pending";
   let updateingStaus = "rejected";
   let message = "Candidate rejected";
@@ -331,7 +329,7 @@ exports.rejectCandidate = tryCatch(async (req, res, next) => {
     console.log("column_name", column_name, "stationId", stationId);
     reqcuriterReport(
       sequence.serviceServiceRequst,
-      moment().format("YYYY-MM-DD"),
+      format(new Date(), "yyyy-MM-dd"),
       userId,
       column_name
     );
@@ -828,7 +826,7 @@ exports.skipCurrentStation = tryCatch(async (req, res, next) => {
   const sequenceData = await reqServiceSequence.findOne({
     where: { serviceId: { [Op.eq]: serviceId }, [Op.or]: [{ serviceStatus: 'on-hold' }, { serviceStatus: 'pending' }] }
   });
-  date = moment(date, "YYYY/MM/DD").format("YYYY-MM-DDTHH:mm:ss.SSS[Z]");
+  date = format(new Date(date), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
   if (stationId == 1)
     return res
       .status(401)
@@ -895,7 +893,7 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
   try {
     const { positionId, status, limit = 10, page = 1, fromDate, toDate } = req.query;
     const offset = (page - 1) * limit;
-    const currentDate = moment().format("YYYY-MM-DDTHH:mm:ss.SSS[Z]");
+    const currentDate = format(new Date(), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
     if (!status) {
       return res.status(400).json({ result: false, message: "Status required" });
@@ -913,9 +911,7 @@ exports.getCandidatesByCard = tryCatch(async (req, res, next) => {
     let joiningDateCondition = `AND DATE("reviewedJoiningDate") <= '${currentDate}'`;
 
     if (fromDate && toDate) {
-      const nextDate = moment(toDate)
-        .add(1, "day")
-        .format("YYYY-MM-DD");
+      const nextDate = format(addDays(new Date(toDate), 1), "yyyy-MM-dd");
 
       if (status === "hired") {
         joiningDateCondition = `

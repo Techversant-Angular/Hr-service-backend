@@ -1,4 +1,4 @@
-const moment = require("moment");
+const { format } = require("date-fns");
 const { Op } = require("sequelize");
 const { tryCatch } = require("../utils/trycatch");
 const response = require("../../api/utils/responseMessages");
@@ -18,7 +18,7 @@ const {
 } = require("../../models");
 
 exports.createService = tryCatch(async (req, res) => {
-  const toDate = moment().format("YYYY-MM-DD");
+  const toDate = format(new Date(), "yyyy-MM-dd");
   const transformedObject = {
     ...req.body,
     requestSkills: req.body.requestSkills.join(","),
@@ -97,7 +97,7 @@ exports.createService = tryCatch(async (req, res) => {
 });
 
 exports.createJobOpening = tryCatch(async (req, res) => {
-  const toDate = moment().format("YYYY-MM-DD");
+  const toDate = format(new Date(), "yyyy-MM-dd");
   const transformedObject = {
     ...req.body,
     requestSkills: req.body.requestSkills.join(","),
@@ -313,7 +313,7 @@ exports.editService = tryCatch(async (req, res) => {
       message: "Not able to delete this requirement, because candidates added",
     });
 
-  const toDate = moment().format("YYYY-MM-DD");
+  const toDate = format(new Date(), "yyyy-MM-dd");
   const transformedObject = {
     ...req.body,
     requestSkills: req.body.requestSkills.join(","),

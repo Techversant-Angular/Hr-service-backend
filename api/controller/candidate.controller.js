@@ -7,7 +7,7 @@ let {
   reqJobApplicants,reqJobOpening
 } = require("../../models");
 const response = require("../../api/utils/responseMessages");
-const moment = require("moment");
+const { format, addMonths, isAfter } = require("date-fns");
 const { Op, where } = require("sequelize");
 let { excelGenerator } = require("../utils/excelGenerator");
 let { logFunction, profileSourceReport, reqcuriterReport } = require("../utils/commonFunction");
@@ -49,9 +49,7 @@ exports.createCandidate = tryCatch(async (req, res) => {
   }
 
   const sixthMonthDate = getSixthMonthDate(candidateIspresent.createdAt);
-  const currentDate = moment();
-  const currentDateGreaterThis = moment(sixthMonthDate);
-  if (currentDate.isAfter(currentDateGreaterThis)) {
+  if (isAfter(new Date(), new Date(sixthMonthDate))) {
     const candidate = await reqCandidates.create(parameter);
     const candidateId = candidate.candidateId;
     // if (candidatesAddingAgainst) await profileSourceReport(candidateCreatedby, candidatesAddingAgainst, [resumeSourceId]);
@@ -281,7 +279,7 @@ exports.listCandidates = tryCatch(async (req, res) => {
         candidateEducation: le.candidateEducation,
       };
     });
-    const name = `candidates${moment().format("yyyymmddHHMMSS")}`;
+    const name = `candidates${format(new Date(), "yyyyMMddHHmmss")}`;
     excelGenerator(req, res, head, body, name);
     return;
   }
@@ -445,7 +443,7 @@ exports.candidateCompareList = tryCatch(async (req, res) => {
         candidateEducation: le.candidateEducation,
       };
     });
-    const name = `candidates${moment().format("yyyymmddHHMMSS")}`;
+    const name = `candidates${format(new Date(), "yyyyMMddHHmmss")}`;
     excelGenerator(req, res, head, body, name);
     return;
   }
@@ -635,14 +633,7 @@ exports.viewCandidate = tryCatch(async (req, res) => {
 });
 
 function getSixthMonthDate(inputDate) {
-  // Parse the input date using moment
-  const date = moment(inputDate);
-
-  // Add six months to the date
-  date.add(6, "months");
-
-  // Return the resulting date
-  return moment(date.toDate()).format("YYYY-MM-DD");
+  return format(addMonths(new Date(inputDate), 6), "yyyy-MM-dd");
 }
 
 async function addSkills(candidateId, parameter) {
@@ -689,7 +680,7 @@ exports.resumeSourceList = tryCatch(async (req, res) => {
 
 async function entryInSequence(requrestId, candidateId, createdBy) {
   try {
-    let toDate = moment().format("YYYY-MM-DD");
+    let toDate = format(new Date(), "yyyy-MM-dd");
     let createSequence = await reqServiceSequence.create({
       serviceServiceRequst: requrestId,
       serviceCandidate: candidateId,
@@ -1144,7 +1135,7 @@ exports.submitApplication = tryCatch(async (req, res) => {
   });
 
   const candidateId = candidate.candidateId;
-  const today = moment().format("YYYY-MM-DD");
+  const today = format(new Date(), "yyyy-MM-dd");
 
   // Add to candidate requestion table for visibility in list API
   await reqCandidateRequestion.create({
@@ -1296,7 +1287,7 @@ exports.jobApply = tryCatch(async (req, res) => {
   });
 
   const candidateId = candidate.candidateId;
-  const today = moment().format("YYYY-MM-DD");
+  const today = format(new Date(), "yyyy-MM-dd");
 
   // Add to candidate requestion table for visibility in list API
 
@@ -1552,7 +1543,7 @@ exports.sourcedCandidates = tryCatch(async (req, res) => {
         candidateEducation: le.candidateEducation,
       };
     });
-    const name = `candidates${moment().format("yyyymmddHHMMSS")}`;
+    const name = `candidates${format(new Date(), "yyyyMMddHHmmss")}`;
     excelGenerator(req, res, head, body, name);
     return;
   }

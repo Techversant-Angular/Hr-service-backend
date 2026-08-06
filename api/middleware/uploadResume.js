@@ -1,7 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const moment = require('moment');
+const { format } = require('date-fns');
 
 // Ensure the uploads/images directory exists
 const uploadDir = path.resolve(__dirname, '../../../../../development_hosting/nodejs/qa_uploads_docs');
@@ -15,7 +15,7 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const timestamp = moment().format('YYYY_MM_DD_HH_mm_ss');
+    const timestamp = format(new Date(), 'yyyy_MM_dd_HH_mm_ss');
     const ext = path.extname(file.originalname);
     const baseName = path.basename(file.originalname, ext).replace(/\s+/g, '_');
     cb(null, `${baseName}_${timestamp}${ext}`);
