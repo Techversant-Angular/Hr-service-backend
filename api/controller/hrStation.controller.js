@@ -6,7 +6,7 @@ const { excelGenerator, } = require('../utils/excelGenerator');
 const { reqServiceSequence, reqCandidates, reqServiceRequest,
   reqUser, reqHrReview, reqServices, reqCandidateComments,
   sequelize, Sequelize, reqReport, reqServiceSequencesAcitve,
-  reqCandidateProgress, reqProgressSkill, reqOfferAttachments,reqTeam } = require("../../models");
+  reqCandidateProgress, reqProgressSkill, reqOfferAttachments,reqTeam, reqServiceFlow } = require("../../models");
 const { updateReportData, logFunction, reqestionStatusUpdate, reqcuriterReport, isRequestionClosed } = require('../utils/commonFunction');
 const e = require('express');
 const response = require("../../api/utils/responseMessages");
@@ -138,7 +138,42 @@ exports.list = tryCatch(async (req, res) => {
       return c;
     });
   }
+  // Fetch flows for all unique requisitions
+  if (candidates.length) {
+    const requestIds = [
+      ...new Set(
+        candidates.map(
+          (candidate) => candidate["serviceRequest.requestServiceId"]
+        )
+      ),
+    ];
 
+    const flows = await reqServiceFlow.findAll({
+      where: {
+        flowServiceId: {
+          [Op.in]: requestIds,
+        },
+      },
+      raw: true,
+    });
+
+    // Group flows by requisition
+    const flowMap = {};
+
+    flows.forEach((flow) => {
+      if (!flowMap[flow.flowServiceId]) {
+        flowMap[flow.flowServiceId] = [];
+      }
+      flowMap[flow.flowServiceId].push(flow);
+    });
+
+    // Attach corresponding flow to each candidate
+    candidates = candidates.map((candidate) => ({
+      ...candidate,
+      flows:
+        flowMap[candidate["serviceRequest.requestServiceId"]] || [],
+    }));
+  }
   if (report == 'true' && candidates) {
     const head = [{ header: "Request Name", key: "requestName", width: 10 },
     { header: "Candidate First Name", key: "candidateFirstName", width: 25 },

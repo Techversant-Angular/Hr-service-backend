@@ -26,7 +26,8 @@ const {
   reqExperienceReport,
   reqCandidateRequestion,
   reqCandidateLog,
-  reqJobApplicants
+  reqJobApplicants,
+  reqServiceFlow
 } = require("../../models");
 
 // Utility Functions
@@ -1535,7 +1536,42 @@ exports.candidatesPrgressList = tryCatch(async (req, res) => {
     where: { serviceCandidate: candidateId },
     order: [["serviceId", "DESC"]],
   });
+  // Fetch flows for all unique requisitions
+  if (candidates.length) {
+    const requestIds = [
+      ...new Set(
+        candidates.map(
+          (candidate) => candidate["serviceRequest.requestServiceId"]
+        )
+      ),
+    ];
 
+    const flows = await reqServiceFlow.findAll({
+      where: {
+        flowServiceId: {
+          [Op.in]: requestIds,
+        },
+      },
+      raw: true,
+    });
+
+    // Group flows by requisition
+    const flowMap = {};
+
+    flows.forEach((flow) => {
+      if (!flowMap[flow.flowServiceId]) {
+        flowMap[flow.flowServiceId] = [];
+      }
+      flowMap[flow.flowServiceId].push(flow);
+    });
+
+    // Attach corresponding flow to each candidate
+    candidates = candidates.map((candidate) => ({
+      ...candidate,
+      flows:
+        flowMap[candidate["serviceRequest.requestServiceId"]] || [],
+    }));
+  }
   if (candidates) {
     candidates = candidates.map((c) => {
       c['candidate.candidateInterviewStatus'] = c.serviceStatus == "pending"

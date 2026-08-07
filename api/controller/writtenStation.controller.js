@@ -13,7 +13,7 @@ const {
   reqCandidates,
   reqCandidateProgress, reqServiceSequencesAcitve,
   reqUser,
-  reqCandidateComments,reqProgressSkill,reqTeam,reqAuditLog
+  reqCandidateComments,reqProgressSkill,reqTeam,reqAuditLog,reqServiceFlow
 } = require("../../models");
 const commonFunction = require("../utils/commonFunction");
 const { excelGenerator } = require('../utils/excelGenerator');
@@ -144,6 +144,42 @@ exports.list = tryCatch(async (req, res) => {
       c.serviceAssignee = c.serviceAssignee;
       return c;
     });
+  }
+  // Fetch flows for all unique requisitions
+  if (candidates.length) {
+    const requestIds = [
+      ...new Set(
+        candidates.map(
+          (candidate) => candidate["serviceRequest.requestServiceId"]
+        )
+      ),
+    ];
+
+    const flows = await reqServiceFlow.findAll({
+      where: {
+        flowServiceId: {
+          [Op.in]: requestIds,
+        },
+      },
+      raw: true,
+    });
+
+    // Group flows by requisition
+    const flowMap = {};
+
+    flows.forEach((flow) => {
+      if (!flowMap[flow.flowServiceId]) {
+        flowMap[flow.flowServiceId] = [];
+      }
+      flowMap[flow.flowServiceId].push(flow);
+    });
+
+    // Attach corresponding flow to each candidate
+    candidates = candidates.map((candidate) => ({
+      ...candidate,
+      flows:
+        flowMap[candidate["serviceRequest.requestServiceId"]] || [],
+    }));
   }
 
   if (report == 'true' && candidates) {
