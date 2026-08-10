@@ -1,5 +1,5 @@
 const { reqServiceSequence, reqCandidates, reqServiceRequest,
-  reqUser, reqHrReview, reqServices, reqCandidateComments,reqTeam, sequelize, Sequelize, reqCandidateProgress, reqProgressSkill
+  reqUser, reqHrReview, reqServices, reqCandidateComments,reqTeam, sequelize, Sequelize, reqCandidateProgress, reqProgressSkill,reqServiceFlow
 } = require("../../models");
 const { format } = require('date-fns');
 const { Op } = require('sequelize');
@@ -100,6 +100,42 @@ exports.list = tryCatch(async (req, res) => {
       return c;
     });
   }
+   // Fetch flows for all unique requisitions
+    if (candidates.length) {
+      const requestIds = [
+        ...new Set(
+          candidates.map(
+            (candidate) => candidate["serviceRequest.requestServiceId"]
+          )
+        ),
+      ];
+  
+      const flows = await reqServiceFlow.findAll({
+        where: {
+          flowServiceId: {
+            [Op.in]: requestIds,
+          },
+        },
+        raw: true,
+      });
+  
+      // Group flows by requisition
+      const flowMap = {};
+  
+      flows.forEach((flow) => {
+        if (!flowMap[flow.flowServiceId]) {
+          flowMap[flow.flowServiceId] = [];
+        }
+        flowMap[flow.flowServiceId].push(flow);
+      });
+  
+      // Attach corresponding flow to each candidate
+      candidates = candidates.map((candidate) => ({
+        ...candidate,
+        flows:
+          flowMap[candidate["serviceRequest.requestServiceId"]] || [],
+      }));
+    }
 
   if (report == 'true' && candidates) {
     const head = [{ header: "Request Name", key: "requestName", width: 10 },
