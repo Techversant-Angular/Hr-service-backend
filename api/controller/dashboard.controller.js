@@ -4,7 +4,7 @@ const { tryCatch } = require("../utils/trycatch");
 const { excelGenerator } = require("../utils/excelGenerator");
 const { getLastSixMonths } = require("../utils/commonFunction");
 const { reqCandidates, reqTeam, sequelize, reqUser, reqReport,
-  reqServices, reqServiceSequence, reqServiceRequest } = require("../../models");
+  reqServices, reqServiceSequence, reqServiceRequest, reqjobapplicants } = require("../../models");
 const { sendFeedbackReminder } = require("../utils/commonFunction");
 const response = require("../../api/utils/responseMessages");
 
@@ -26,9 +26,21 @@ exports.resumeSourceData = tryCatch(async (req, res) => {
       INNER JOIN public."reqCandidates" ON "resumeSourceId" = "sourceId" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" 
       WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) ${userCondidtion} AND  "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}' ${request} 
       GROUP BY  "sourceId", "sourceName";`);
+
+  const careerFilter = userId ? ` AND "candidateCreatedby"=${userId}` : "";
+  const [careerRows] = await sequelize.query(`SELECT COUNT(*) AS "careersCount"
+    FROM public."reqjobapplicants"
+    WHERE "createdAt" BETWEEN '${fromDate}' AND '${toDate}' ${request} ${careerFilter};`);
+
+  const careers = Number(careerRows?.[0]?.careersCount || 0);
   return res
     .status(200)
-    .json({ result: true, message: response.DATA_RETRIEVED, data: results });
+    .json({
+      result: true,
+      message: response.DATA_RETRIEVED,
+      data: results,
+      careers,
+    });
 });
 
 
