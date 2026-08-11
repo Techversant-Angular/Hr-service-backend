@@ -4,7 +4,7 @@ let controller = require('../controller/serviceRequest.controller');
 let candidateController = require('../controller/candidate.controller.js');
 let { createServiceValidation, editeServiceValidation ,activeServiceValidation} = require('../validation/serviceRequest.validate');
 let commonController = require('../controller/common.controller.js');
-let { authenticate } = require('../middleware/auth');
+let { authenticate, verifyAdmin } = require('../middleware/auth');
 
 router.post('/create', createServiceValidation, authenticate, controller.createService);
 
@@ -32,17 +32,17 @@ router.get('/designation/list', authenticate, commonController.designationList);
 
 // designation CRUD
 router.get('/designation-management/list', authenticate, commonController.designationManagementList)
-router.post('/designation/create', authenticate, commonController.createDesignation);
-router.put('/designation/update/:designationId', authenticate, commonController.updateDesignation);
-router.delete('/designation/delete/:designationId', authenticate, commonController.deleteDesignation);
-router.put('/department/status/:teamId', authenticate, commonController.toggleDepartmentStatus
+router.post('/designation/create', authenticate,verifyAdmin, commonController.createDesignation);
+router.put('/designation/update/:designationId', authenticate,verifyAdmin, commonController.updateDesignation);
+router.delete('/designation/delete/:designationId', authenticate,verifyAdmin, commonController.deleteDesignation);
+router.put('/department/status/:teamId', authenticate,verifyAdmin, commonController.toggleDepartmentStatus
 );
 // department CRUD
 router.get('/department/list', authenticate, commonController.departmentList);
-router.post('/department/create', authenticate, commonController.createDepartment);
-router.put('/department/update/:teamId', authenticate, commonController.updateDepartment);
-router.delete('/department/delete/:teamId', authenticate, commonController.deleteDepartment);
-router.put('/designation/status/:designationId', authenticate, commonController.toggleDesignationStatus
+router.post('/department/create', authenticate,verifyAdmin, commonController.createDepartment);
+router.put('/department/update/:teamId', authenticate,verifyAdmin, commonController.updateDepartment);
+router.delete('/department/delete/:teamId', authenticate,verifyAdmin, commonController.deleteDepartment);
+router.put('/designation/status/:designationId', authenticate,verifyAdmin, commonController.toggleDesignationStatus
 );
 
 // used to edit after candidate added to requestion
