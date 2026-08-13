@@ -30,6 +30,8 @@ exports.jwtToken = async (userObj) => {
 exports.jwtVerifyToken = async (token) => {
     try {
         const verified = jwt.verify(token, process.env.TOKEN_SECRET);
+        // Ensure tokenVersion present for older tokens
+        verified.tokenVersion = Number(verified.tokenVersion ?? 1);
         return verified;
     } catch (err) {
         if (err.name === 'TokenExpiredError') {
