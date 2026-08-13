@@ -1,11 +1,37 @@
-let { reqUser, Sequelize, reqUserRoleMapping, reqUserRole } = require('../../../models');
-let { jwtToken } = require('../../utils/jwt');
+let { reqUser, Sequelize, reqUserRoleMapping, reqUserRole, reqAccessToken, sequelize } = require('../../../models');
+let { jwtToken, jwtRefreshToken, jwtVerifyRefreshToken } = require('../../utils/jwt');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 let { jwtDecode } = require('jwt-decode');
 let mailFunction = require("../../utils/nodeMail");
 const { Op } = require('sequelize');
 const admin = require("../../../config/firebase");
+
+const hashRefreshToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+
+const getUserRoles = async (userId) => {
+    const roles = await reqUserRoleMapping.findAll({
+        where: { userId },
+        include: [{ model: reqUserRole, as: 'role', required: true }]
+    });
+    return roles.map(({ role }) => role?.roleName).filter(Boolean);
+};
+
+const getTokenPayload = (user, userRole) => ({
+    userId: user.userId,
+    userFullName: user.userFullName,
+    userEmail: user.userEmail,
+    userDOB: user.userDOB,
+    userType: user.userType,
+    userRole
+});
+
+const issueTokens = async (user, userRole) => {
+    const token = await jwtToken(getTokenPayload(user, userRole));
+    const refreshToken = await jwtRefreshToken(user.userId);
+    await reqAccessToken.create({ accessToken: hashRefreshToken(refreshToken) });
+    return { token, refreshToken };
+};
 
 exports.login = async (req, res, next) => {
     try {
@@ -26,17 +52,8 @@ exports.login = async (req, res, next) => {
             .status(401)
             .json({ status: false, message: 'Invalid password' });
 
-        // 🔹 Get roles from roleMapping table
-        let roles = await reqUserRoleMapping.findAll({
-            where: { userId: user.userId },
-
-            include: [{
-                model: reqUserRole,
-                as: 'role',
-                required: true // INNER JOIN
-            }]
-        });
-        if (!roles.length) {
+        const formattedRoles = await getUserRoles(user.userId);
+        if (!formattedRoles.length) {
             return res.status(403).json({
                 status: false,
                 message: "User has no assigned roles"
@@ -62,12 +79,14 @@ exports.login = async (req, res, next) => {
 
         // Store refresh token in database
         // await reqAccessToken.create({ accessToken: refreshToken });
+        const { token, refreshToken } = await issueTokens(user, formattedRoles);
 
         let responseUser = user.toJSON();
         responseUser.userRole = formattedRoles;
 
         return res.status(200).json({
             token,
+            refreshToken,
             user: responseUser,
         });
 
@@ -200,16 +219,8 @@ exports.googleLogin = async (req, res) => {
                 message: "User not found"
             });
         }
-        let roles = await reqUserRoleMapping.findAll({
-            where: { userId: user.userId },
-
-            include: [{
-                model: reqUserRole,
-                as: 'role',
-                required: true // INNER JOIN
-            }]
-        });
-        if (!roles.length) {
+        const formattedRoles = await getUserRoles(user.userId);
+        if (!formattedRoles.length) {
             return res.status(403).json({
                 status: false,
                 message: "User has no assigned roles"
@@ -237,6 +248,7 @@ exports.googleLogin = async (req, res) => {
 
         // Store refresh token in database
         // await reqAccessToken.create({ accessToken: refreshToken });
+        const { token, refreshToken } = await issueTokens(user, formattedRoles);
 
         const responseUser = user.toJSON();
         responseUser.userRole = formattedRoles;
@@ -244,12 +256,62 @@ exports.googleLogin = async (req, res) => {
             result: true,
             message: "Google login successful",
             token,
-            // refreshToken,
+            refreshToken,
             data: responseUser
         });
     } catch (err) {
         console.error("Firebase auth error:", err);
         return res.status(401).json({ message: "Unauthorized: Invalid or expired token" });
+    }
+};
+
+exports.refreshToken = async (req, res, next) => {
+    try {
+        const { refreshToken } = req.body;
+        if (!refreshToken) {
+            return res.status(400).json({ status: false, message: 'Refresh token is required.' });
+        }
+
+        const decoded = await jwtVerifyRefreshToken(refreshToken);
+        const tokenHash = hashRefreshToken(refreshToken);
+        const storedToken = await reqAccessToken.findOne({ where: { accessToken: tokenHash } });
+        if (!storedToken) {
+            return res.status(401).json({
+                status: false,
+                code: 'REVOKED_REFRESH_TOKEN',
+                message: 'Refresh token has been revoked or already used.'
+            });
+        }
+
+        const user = await reqUser.findOne({ where: { userId: decoded.userId, userStatus: 'active' } });
+        if (!user) {
+            return res.status(401).json({ status: false, message: 'User is inactive or not found.' });
+        }
+
+        const userRole = await getUserRoles(user.userId);
+        if (!userRole.length) {
+            return res.status(403).json({ status: false, message: 'User has no assigned roles.' });
+        }
+
+        const token = await jwtToken(getTokenPayload(user, userRole));
+        const nextRefreshToken = await jwtRefreshToken(user.userId);
+        await sequelize.transaction(async (transaction) => {
+            const deletedCount = await reqAccessToken.destroy({ where: { accessId: storedToken.accessId }, transaction });
+            if (deletedCount !== 1) {
+                const error = new Error('Refresh token has already been used.');
+                error.code = 'REVOKED_REFRESH_TOKEN';
+                error.status = 401;
+                throw error;
+            }
+            await reqAccessToken.create({ accessToken: hashRefreshToken(nextRefreshToken) }, { transaction });
+        });
+
+        return res.status(200).json({ status: true, token, refreshToken: nextRefreshToken });
+    } catch (error) {
+        if (['REFRESH_TOKEN_EXPIRED', 'INVALID_REFRESH_TOKEN', 'REVOKED_REFRESH_TOKEN'].includes(error.code)) {
+            return res.status(error.status || 403).json({ status: false, code: error.code, message: error.message });
+        }
+        next(error);
     }
 };
 
