@@ -746,7 +746,7 @@ exports.removeCandidate = tryCatch(async (req, res, next) => {
     return res.status(401).json({
       result: false,
       message:
-        "candidte is not in screening station, So you are not able to Delte.j",
+        "This candidate is already associated with a requisition and cannot be deleted."
     });
   const candidate = await reqCandidates.findOne({
     where: { candidateId: candidateId, candidateStatus: "active" },
