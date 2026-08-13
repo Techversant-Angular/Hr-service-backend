@@ -6,35 +6,33 @@ const crypto = require('crypto');
 let secret = 'xxx';
 
 // Generate short-lived access token
-// exports.jwtToken = async (userObj) => {
-//     const token = jwt.sign(userObj, dotenv.TOKEN_SECRET, {
-//         expiresIn: dotenv.TOKEN_EXPIRY || '1h'
-//     });
-//     return token;
-// }
 exports.jwtToken = async (userObj) => {
     const token = jwt.sign(userObj, process.env.TOKEN_SECRET, {
         expiresIn: process.env.ACCESS_TOKEN_EXPIRY || process.env.TOKEN_EXPIRY || '15m'
     });
     return token;
 }
+// exports.jwtToken = async (userObj) => {
+//     const token = jwt.sign(userObj, process.env.TOKEN_SECRET);
+//     return token;
+// }
 
 // Generate long-lived refresh token
-exports.jwtRefreshToken = async (userId) => {
-    if (!process.env.REFRESH_TOKEN_SECRET) {
-        throw new Error('REFRESH_TOKEN_SECRET must be configured.');
-    }
-    return jwt.sign(
-        { userId, tokenType: 'refresh', jti: crypto.randomUUID() },
+exports.jwtRefreshToken = async (userObj) => {
+    const refreshToken = jwt.sign(
+        { userId: userObj.userId },
         process.env.REFRESH_TOKEN_SECRET,
-        { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || '7d' }
+        { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || '1h' }
     );
+    return refreshToken;
 }
 
 // Verify access token
 exports.jwtVerifyToken = async (token) => {
     try {
         const verified = jwt.verify(token, process.env.TOKEN_SECRET);
+        // Ensure tokenVersion present for older tokens
+        verified.tokenVersion = Number(verified.tokenVersion ?? 1);
         return verified;
     } catch (err) {
         if (err.name === 'TokenExpiredError') {
@@ -53,17 +51,10 @@ exports.jwtVerifyToken = async (token) => {
     }
 }
 
+// Verify refresh token
 exports.jwtVerifyRefreshToken = async (token) => {
     try {
-        if (!process.env.REFRESH_TOKEN_SECRET) {
-            throw new Error('REFRESH_TOKEN_SECRET must be configured.');
-        }
-        const verified = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
-        if (verified.tokenType !== 'refresh') {
-            const error = new Error('Invalid refresh token.');
-            error.code = 'INVALID_REFRESH_TOKEN';
-            throw error;
-        }
+        const verified = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET || process.env.TOKEN_SECRET);
         return verified;
     } catch (err) {
         if (err.name === 'TokenExpiredError') {
