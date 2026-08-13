@@ -3,6 +3,7 @@ const router = express.Router();
 let controller = require('../controller/candidate.controller.js');
 let commonController = require('../controller/common.controller');
 let attachmentController = require('../controller/candidateAttachment.controller.js');
+const resumeController = require('../controller/resume.controller.js');
 let { createRemove, createCandidate, candidateEdit, candidateHistoryFetch, submitApplicationValidate } = require('../validation/candidate.validate');
 let { createAttachmentValidate, listAttachmentsValidate, deleteAttachmentValidate } = require('../validation/candidateAttachment.validate.js');
 let { candidateForms, candidateFormsEdit } = require('../middleware/formData');
@@ -54,6 +55,19 @@ router.delete('/attachment/:attachmentId', authenticate, deleteAttachmentValidat
 
 
 router.get('/careers/job/applications', controller.jobCareerApplications);
+
+
+// AI-powered resume parsing using Google Gemini
+router.post("/resume/ai-parse", uploadResume.single("candidateResume"), resumeController.parseResume);
+
+// Extracts basic candidate details using regex and predefined logic
+router.post("/resume/manual-parse", uploadResume.single("candidateResume"), resumeController.uploadResumePdf );
+
+// AI-powered ATS analysis
+router.post("/resume/ats-analysis", uploadResume.single("candidateResume"), resumeController.analyseResume );
+
+// AI Interview Question Generation
+router.post("/resume/interview-questions", uploadResume.single("candidateResume"), resumeController.generateInterviewQuestions);
 
 module.exports = router;
 
