@@ -53,7 +53,8 @@ exports.login = async (req, res, next) => {
             userEmail: user.userEmail,
             userDOB: user.userDOB,
             userType: user.userType,
-            userRole: formattedRoles
+            userRole: formattedRoles,
+            tokenVersion: Number(user.tokenVersion || 1)
         };
 
         let token = await jwtToken(userData);
@@ -227,7 +228,8 @@ exports.googleLogin = async (req, res) => {
             userEmail: user.userEmail,
             userDOB: user.userDOB,
             userType: user.userType,
-            userRole: formattedRoles
+            userRole: formattedRoles,
+            tokenVersion: Number(user.tokenVersion || 1)
         };
 
         let token = await jwtToken(userData);
