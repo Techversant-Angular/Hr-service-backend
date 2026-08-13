@@ -60,10 +60,6 @@ exports.login = async (req, res, next) => {
             });
         }
         
-        let formattedRoles = roles.map(r =>
-            r.role ? r.role.roleName : null
-        ).filter(role => role !== null);
-
         let userData = {
             userId: user.userId,
             userFullName: user.userFullName,
@@ -73,8 +69,7 @@ exports.login = async (req, res, next) => {
             userRole: formattedRoles,
             tokenVersion: Number(user.tokenVersion || 1)
         };
-
-        let token = await jwtToken(userData);
+ 
         // let refreshToken = await jwtRefreshToken(userData);
 
         // Store refresh token in database
@@ -227,11 +222,6 @@ exports.googleLogin = async (req, res) => {
             });
         }
 
-        let formattedRoles = roles.map(r =>
-            r.role ? r.role.roleName : null
-        ).filter(role => role !== null);
-
-
         // Generate JWT token (same as regular login flow)
         let userData = {
             userId: user.userId,
@@ -243,7 +233,6 @@ exports.googleLogin = async (req, res) => {
             tokenVersion: Number(user.tokenVersion || 1)
         };
 
-        let token = await jwtToken(userData);
         // let refreshToken = await jwtRefreshToken(userData);
 
         // Store refresh token in database
