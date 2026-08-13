@@ -7,8 +7,8 @@ let {
   reqCandidateLog,
 } = require("../../models");
 const { Op, where, fn, col } = require("sequelize");
-let moment = require("moment");
-let date = moment().format("YYYY-MM-DD");
+const { format, startOfDay, endOfDay, subMonths, startOfMonth, endOfMonth } = require("date-fns");
+let date = format(new Date(), "yyyy-MM-dd");
 const db = require("../../models/index");
 let sequelize = db.sequelize;
 let workingDays = require("./dateTime");
@@ -88,7 +88,7 @@ let nextStationSequence = async (
   serviceScheduledBy
 ) => {
   try {
-    let toDate = moment().format("YYYY-MM-DD");
+    let toDate = format(new Date(), "yyyy-MM-dd");
     let serviceIds = [];
     let serviceSeqences = await Promise.all(
       serviceSeqence.map(async (elem, i) => {
@@ -102,7 +102,7 @@ let nextStationSequence = async (
           if (serviceStationS == 5) {
             reqcuriterReport(
               elem.serviceServiceRequst,
-              moment().format("YYYY-MM-DD"),
+              format(new Date(), "yyyy-MM-dd"),
               serviceScheduledBy,
               "technicalTotalSelected"
             );
@@ -259,9 +259,9 @@ async function profileSourceReport(
   resumeSourceId, date, candidateId
 ) {
   try {
-    let dateWithTz = moment(date).format("YYYY-MM-DD HH:mm:ssZ");
-    let startDate = moment(date).format("YYYY-MM-DD 00:00:00Z");
-    let endDate = moment(date).format("YYYY-MM-DD 23:59:59Z");
+    let dateWithTz = format(new Date(date), "yyyy-MM-dd HH:mm:ssXXX");
+    let startDate = format(new Date(date), "yyyy-MM-dd 00:00:00XXX");
+    let endDate = format(new Date(date), "yyyy-MM-dd 23:59:59XXX");
 
     let reportExist = await reqReport.findOne({
       where: {
@@ -375,10 +375,10 @@ async function updateReportData(
   dateFrom
 ) {
   try {
-    const targetDate = dateFrom ? moment(dateFrom) : moment();
-    const dateWithTz = targetDate.format("YYYY-MM-DD HH:mm:ssZ");
-    const startDate = targetDate.clone().startOf("day").toDate();
-    const endDate = targetDate.clone().endOf("day").toDate();
+    const targetDate = dateFrom ? new Date(dateFrom) : new Date();
+    const dateWithTz = format(targetDate, "yyyy-MM-dd HH:mm:ssXXX");
+    const startDate = startOfDay(targetDate);
+    const endDate = endOfDay(targetDate);
 
     const whereClause = {
       // date: {
@@ -483,14 +483,14 @@ async function reqcuriterReport(
 }
 
 const getLastSixMonths = async () => {
-  const today = moment();
   let sixMonthQuery = "";
   for (let i = 0; i < 6; i++) {
-    const startOfMonth = today.clone().subtract(i, "months").startOf("month");
-    const endOfMonth = today.clone().subtract(i, "months").endOf("month");
-    let month = startOfMonth.format("MMMM-YYYY");
-    let startDate = startOfMonth.format("YYYY-MM-DD");
-    let endDate = endOfMonth.format("YYYY-MM-DD");
+    const monthDate = subMonths(new Date(), i);
+    const startOfMonthDate = startOfMonth(monthDate);
+    const endOfMonthDate = endOfMonth(monthDate);
+    let month = format(startOfMonthDate, "MMMM-yyyy");
+    let startDate = format(startOfMonthDate, "yyyy-MM-dd");
+    let endDate = format(endOfMonthDate, "yyyy-MM-dd");
     let monthQueryString = `SELECT  '${month}' AS month, COALESCE(SUM("totalSourced"), 0) AS total_totalSourced,COALESCE(SUM("offerReleased"), 0) AS total_offerReleased,COALESCE(SUM("hired"), 0) AS total_hired FROM "reqreqruiterStationReports" WHERE "date" BETWEEN '${startDate}' AND '${endDate}' ${i != 5 ? "UNION" : ""
       } `;
     sixMonthQuery = sixMonthQuery + monthQueryString;

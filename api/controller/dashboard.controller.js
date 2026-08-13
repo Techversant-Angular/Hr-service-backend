@@ -1,10 +1,10 @@
-const moment = require("moment");
+const { format, subMonths } = require("date-fns");
 const { Op } = require("sequelize");
 const { tryCatch } = require("../utils/trycatch");
 const { excelGenerator } = require("../utils/excelGenerator");
 const { getLastSixMonths } = require("../utils/commonFunction");
 const { reqCandidates, reqTeam, sequelize, reqUser, reqReport,
-  reqServices, reqServiceSequence, reqServiceRequest } = require("../../models");
+  reqServices, reqServiceSequence, reqServiceRequest, reqjobapplicants } = require("../../models");
 const { sendFeedbackReminder } = require("../utils/commonFunction");
 const response = require("../../api/utils/responseMessages");
 
@@ -12,8 +12,8 @@ exports.resumeSourceData = tryCatch(async (req, res) => {
   const request = req.query.requestId
     ? ` AND "candidatesAddingAgainst"=${req.query.requestId} `
     : "";
-  const fromDate = req.query.fromDate || moment().format("YYYY-MM-DD");
-  let toDate = req.query.toDate || moment().format("YYYY-MM-DD");
+  const fromDate = req.query.fromDate || format(new Date(), "yyyy-MM-dd");
+  let toDate = req.query.toDate || format(new Date(), "yyyy-MM-dd");
   toDate = toDate + " 23:59:59";
   const userId = req.userId;
   let userCondidtion = "";
@@ -26,9 +26,21 @@ exports.resumeSourceData = tryCatch(async (req, res) => {
       INNER JOIN public."reqCandidates" ON "resumeSourceId" = "sourceId" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" 
       WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) ${userCondidtion} AND  "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}' ${request} 
       GROUP BY  "sourceId", "sourceName";`);
+
+  const careerFilter = userId ? ` AND "candidateCreatedby"=${userId}` : "";
+  const [careerRows] = await sequelize.query(`SELECT COUNT(*) AS "careersCount"
+    FROM public."reqjobapplicants"
+    WHERE "createdAt" BETWEEN '${fromDate}' AND '${toDate}' ${request} ${careerFilter};`);
+
+  const careers = Number(careerRows?.[0]?.careersCount || 0);
   return res
     .status(200)
-    .json({ result: true, message: response.DATA_RETRIEVED, data: results });
+    .json({
+      result: true,
+      message: response.DATA_RETRIEVED,
+      data: results,
+      careers,
+    });
 });
 
 
@@ -42,8 +54,8 @@ exports.interViewCounts = tryCatch(async (req, res) => {
   const userId = req.userId;
 
 
-  const fromDate = new Date(moment(req.query.fromDate).format("YYYY-MM-DD"));
-  const toDate = new Date(new Date(moment(req.query.toDate).format("YYYY-MM-DD")).getTime() + 24 * 60 * 60 * 1000);
+  const fromDate = new Date(format(new Date(req.query.fromDate), "yyyy-MM-dd"));
+  const toDate = new Date(new Date(format(new Date(req.query.toDate), "yyyy-MM-dd")).getTime() + 24 * 60 * 60 * 1000);
   let limit = req.query.limit || 100;
   let offset = req.query.page || 0;
   offset = offset == 1 ? 0 : offset;
@@ -133,9 +145,9 @@ exports.sixMonthDepartmentCount = tryCatch(async (req, res) => {
   let sqlQuery = "SELECT ";
   for (let index = 0; index < 7; index++) {
     // Get the date six months ago from the current date
-    const sixMonthsAgo = moment().subtract(index, "months");
-    let year = sixMonthsAgo.format("YYYY");
-    let month = sixMonthsAgo.format("MM");
+    const sixMonthsAgo = subMonths(new Date(), index);
+    let year = format(sixMonthsAgo, "yyyy");
+    let month = format(sixMonthsAgo, "MM");
     sqlQuery += `(SELECT COUNT("serviceId") FROM public."reqServiceSequences" 
                             INNER JOIN public."reqServiceRequests" ON "serviceServiceRequst" = "requestId" 
                             WHERE ${teamCondition}  EXTRACT(YEAR FROM "serviceDate") = '${year}' 
@@ -157,8 +169,8 @@ exports.dailyApplicationDepartment = tryCatch(async (req, res) => {
     limit = limit;
     offset = (offset - 1) * limit;
   }
-  const fromDate = req.query.fromDate || moment().format("YYYY-MM-DD");
-  const toDate = req.query.toDate || moment().format("YYYY-MM-DD");
+  const fromDate = req.query.fromDate || format(new Date(), "yyyy-MM-dd");
+  const toDate = req.query.toDate || format(new Date(), "yyyy-MM-dd");
   const request = req.query.requestId
     ? ` AND "requestId"=${req.query.requestId}`
     : "";
@@ -310,7 +322,7 @@ exports.myRequirementReport = tryCatch(async (req, res) => {
         interviewTime: le["interviewTime"],
       };
     });
-    const name = `candidates_report${moment().format("yyyymmddHHMMSS")}`;
+    const name = `candidates_report${format(new Date(), "yyyyMMddHHmmss")}`;
     excelGenerator(req, res, head, body, name);
     return;
   }
@@ -500,7 +512,7 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
 
       };
     });
-    const name = `recruiter_report_${moment().format("yyyymmddHHMMSS")}`;
+    const name = `recruiter_report_${format(new Date(), "yyyyMMddHHmmss")}`;
     excelGenerator(req, res, head, body, name);
     return;
   }
@@ -517,7 +529,7 @@ exports.dashBoardCard = tryCatch(async (req, res) => {
   const requestId = req.query.requestId;
   let fromDate = req.query.fromDate;
   let toDate = req.query.todate;
-  const CURRENT_DATE = moment().format("YYYY-MM-DD");
+  const CURRENT_DATE = format(new Date(), "yyyy-MM-dd");
   let userId = req.userId;
   let userCondidtion = "";
   if (userId) {
@@ -654,9 +666,9 @@ exports.recruiterChart = tryCatch(async (req, res) => {
   let endDate = end_date + ' 23:59:59Z';
  
   if (last_six_month == "true") {
-    const sixMonthsAgo = moment().subtract(6, 'months').format('YYYY-MM-DD');
+    const sixMonthsAgo = format(subMonths(new Date(), 6), 'yyyy-MM-dd');
     startDate = sixMonthsAgo + ' 00:00:00Z';
-    endDate = moment().format('YYYY-MM-DD') + ' 23:59:59Z';
+    endDate = format(new Date(), 'yyyy-MM-dd') + ' 23:59:59Z';
   }
  
   const [totalSourced, metadata] = await sequelize.query(`SELECT

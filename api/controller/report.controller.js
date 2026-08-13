@@ -1,4 +1,4 @@
-const moment = require("moment");
+const { format, addDays } = require("date-fns");
 const { Op } = require("sequelize");
 const { tryCatch } = require("../utils/trycatch");
 const { excelGenerator } = require('../utils/excelGenerator');
@@ -16,8 +16,8 @@ exports.reportDailyReport = tryCatch(async (req, res) => {
     reportPageLimit, report
   } = req.query;
   if (reportFromDate == reportToDate) {
-    let tomorrow = moment().add(1, 'day');
-    reportToDate = tomorrow.format('YYYY-MM-DD');
+    let tomorrow = addDays(new Date(), 1);
+    reportToDate = format(tomorrow, 'yyyy-MM-dd');
   }
   reportToDate = reportToDate + " 23:59:59";
   reportPageNo = reportPageNo || 0;
@@ -82,7 +82,7 @@ exports.reportDailyReport = tryCatch(async (req, res) => {
     }
 
     const body = reports;
-    const name = `report${moment().format('yyyymmddHHMMSS')}`;
+    const name = `report${format(new Date(), 'yyyyMMddHHmmss')}`;
     excelGenerator(req, res, head, body, name);
     return;
   }
@@ -98,8 +98,8 @@ exports.reportDailyReport = tryCatch(async (req, res) => {
 exports.monthlyReportData = tryCatch(async (req, res) => {
   const date = req.query.month;
   const recruiter = req.query.userId;
-  const year = moment(date).format("YYYY");
-  const month = moment(date).format("MM");
+  const year = format(new Date(date), "yyyy");
+  const month = format(new Date(date), "MM");
   let dataExistObj = {
     year,
     month

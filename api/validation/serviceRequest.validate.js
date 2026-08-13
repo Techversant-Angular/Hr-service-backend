@@ -1,5 +1,4 @@
 const { body, validationResult } = require('express-validator');
-let moment = require('moment');
 let { reqServiceRequest } = require("../../models");
 
 exports.createServiceValidation = [

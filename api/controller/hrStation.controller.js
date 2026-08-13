@@ -1,4 +1,4 @@
-const moment = require('moment');
+const { format, set } = require('date-fns');
 const { Op } = require('sequelize');
 const mailFunction = require('../utils/nodeMail');
 const { tryCatch } = require("../utils/trycatch");
@@ -6,7 +6,7 @@ const { excelGenerator, } = require('../utils/excelGenerator');
 const { reqServiceSequence, reqCandidates, reqServiceRequest,
   reqUser, reqHrReview, reqServices, reqCandidateComments,
   sequelize, Sequelize, reqReport, reqServiceSequencesAcitve,
-  reqCandidateProgress, reqProgressSkill, reqOfferAttachments,reqTeam } = require("../../models");
+  reqCandidateProgress, reqProgressSkill, reqOfferAttachments,reqTeam, reqServiceFlow } = require("../../models");
 const { updateReportData, logFunction, reqestionStatusUpdate, reqcuriterReport, isRequestionClosed } = require('../utils/commonFunction');
 const e = require('express');
 const response = require("../../api/utils/responseMessages");
@@ -21,21 +21,15 @@ exports.list = tryCatch(async (req, res) => {
   let limit = req.query.limit || 100;
   let offset = req.query.page || 0;
   const experience = req.query.experience;
-  const fromDate = req.query.fromDate ? new Date(moment(req.query.fromDate).format('YYYY-MM-DD')) : "";
+  const fromDate = req.query.fromDate ? new Date(format(new Date(req.query.fromDate), 'yyyy-MM-dd')) : "";
   let toDate = req.query.toDate;
   if (toDate) {
-    // Parse the toDate using Moment.js
-    const momentDate = moment(toDate);
-
-    // Set the time to 12 PM
-    momentDate.set({
-      hour: 23,
-      minute: 59,
-      second: 59,
-      millisecond: 0,
-    })
-
-    toDate = momentDate.toDate();
+    toDate = set(new Date(toDate), {
+      hours: 23,
+      minutes: 59,
+      seconds: 59,
+      milliseconds: 0,
+    });
   } else {
     toDate = '';
   }
@@ -144,7 +138,42 @@ exports.list = tryCatch(async (req, res) => {
       return c;
     });
   }
+  // Fetch flows for all unique requisitions
+  if (candidates.length) {
+    const requestIds = [
+      ...new Set(
+        candidates.map(
+          (candidate) => candidate["serviceRequest.requestServiceId"]
+        )
+      ),
+    ];
 
+    const flows = await reqServiceFlow.findAll({
+      where: {
+        flowServiceId: {
+          [Op.in]: requestIds,
+        },
+      },
+      raw: true,
+    });
+
+    // Group flows by requisition
+    const flowMap = {};
+
+    flows.forEach((flow) => {
+      if (!flowMap[flow.flowServiceId]) {
+        flowMap[flow.flowServiceId] = [];
+      }
+      flowMap[flow.flowServiceId].push(flow);
+    });
+
+    // Attach corresponding flow to each candidate
+    candidates = candidates.map((candidate) => ({
+      ...candidate,
+      flows:
+        flowMap[candidate["serviceRequest.requestServiceId"]] || [],
+    }));
+  }
   if (report == 'true' && candidates) {
     const head = [{ header: "Request Name", key: "requestName", width: 10 },
     { header: "Candidate First Name", key: "candidateFirstName", width: 25 },
@@ -185,7 +214,7 @@ exports.list = tryCatch(async (req, res) => {
         candidateStationStatus: le['serviceStatus']
       };
     });
-    const name = `candidates_technical_1_${moment().format('yyyymmddHHMMSS')}`;
+    const name = `candidates_technical_1_${format(new Date(), 'yyyyMMddHHmmss')}`;
     excelGenerator(req, res, head, body, name);
     return;
   }
@@ -336,7 +365,7 @@ exports.candidateOffers = tryCatch(async (req, res) => {
   await reqServiceSequence.update(
     {
       serviceStatus: 'pending',
-      insertOrUpdateDate: moment().format('YYYY-MM-DD'),
+      insertOrUpdateDate: format(new Date(), 'yyyy-MM-dd'),
     },
     { where: { serviceId: offerServiceSeqId } }
   );
@@ -370,7 +399,7 @@ exports.candidateOffers = tryCatch(async (req, res) => {
 
   logFunction(serviceSeq.serviceCandidate, offerRleasedBy, `Offer Released`, 5);
 
-  reqcuriterReport(serviceSeq.serviceServiceRequst, moment().format("YYYY-MM-DD"), offerRleasedBy, 'offerReleased');
+  reqcuriterReport(serviceSeq.serviceServiceRequst, format(new Date(), "yyyy-MM-dd"), offerRleasedBy, 'offerReleased');
   if (created) return res.status(200).json({ result: true, message: "Offer  details added" });
   return res.status(401).json({ result: false, message: "this offer already exists" });
 
@@ -378,7 +407,7 @@ exports.candidateOffers = tryCatch(async (req, res) => {
 
 
 exports.candidateToUser = tryCatch(async (req, res) => {
-  const toDate = moment().format('YYYY-MM-DD');
+  const toDate = format(new Date(), 'yyyy-MM-dd');
   const { serviceSeqId, feedBack, feedBackBy } = req.body;
 
   const requestionActive = await isRequestionClosed(serviceSeqId);
@@ -415,7 +444,7 @@ exports.candidateToUser = tryCatch(async (req, res) => {
   await reqHrReview.update({ reviewedStatus: 'employed' }, { where: { reviewedServiceId: serviceSeqId } });
   reqcuriterReport(
     getCandidateService.serviceServiceRequst,
-    moment().format("YYYY-MM-DD"),
+    format(new Date(), "yyyy-MM-dd"),
     feedBackBy,
     'hired'
   );
@@ -428,7 +457,7 @@ async function offerReleasedCount(candidateId, date) {
   try {
     let getUserAddedCandidate = await reqCandidates.findOne({ where: { candidateId: candidateId } });
     if (!getUserAddedCandidate) return
-    let date = moment().format("YYYY-MM-DD");
+    let date = format(new Date(), "yyyy-MM-dd");
     let position = getUserAddedCandidate.candidatesAddingAgainst;
     let userId = getUserAddedCandidate.candidateCreatedby;
     let targetDate = new Date(date);
@@ -458,7 +487,7 @@ async function offerAccepetedCount(candidateId, userId) {
   try {
     let getUserAddedCandidate = await reqCandidates.findOne({ where: { candidateId: candidateId } });
     if (!getUserAddedCandidate) return
-    let date = moment().format("YYYY-MM-DD");
+    let date = format(new Date(), "yyyy-MM-dd");
     let position = getUserAddedCandidate.candidatesAddingAgainst;
     let targetDate = new Date(date);
     let where = {

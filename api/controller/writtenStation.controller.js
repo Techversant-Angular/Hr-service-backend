@@ -1,5 +1,5 @@
 const { Op } = require("sequelize");
-const moment = require("moment");
+const { format, set } = require("date-fns");
 const formidable = require("formidable");
 const path = require("path");
 const fs = require("fs");
@@ -13,7 +13,7 @@ const {
   reqCandidates,
   reqCandidateProgress, reqServiceSequencesAcitve,
   reqUser,
-  reqCandidateComments,reqProgressSkill,reqTeam,reqAuditLog
+  reqCandidateComments,reqProgressSkill,reqTeam,reqAuditLog,reqServiceFlow
 } = require("../../models");
 const commonFunction = require("../utils/commonFunction");
 const { excelGenerator } = require('../utils/excelGenerator');
@@ -31,22 +31,16 @@ exports.list = tryCatch(async (req, res) => {
   let ids = req.query.ids;
 
   const fromDate = req.query.fromDate
-    ? new Date(moment(req.query.fromDate).format("YYYY-MM-DD"))
+    ? new Date(format(new Date(req.query.fromDate), "yyyy-MM-dd"))
     : "";
   let toDate = req.query.toDate;
   if (toDate) {
-    // Parse the toDate using Moment.js
-    const momentDate = moment(toDate);
-
-    // Set the time to 12 PM
-    momentDate.set({
-      hour: 23,
-      minute: 59,
-      second: 59,
-      millisecond: 0,
-    })
-
-    toDate = momentDate.toDate();
+    toDate = set(new Date(toDate), {
+      hours: 23,
+      minutes: 59,
+      seconds: 59,
+      milliseconds: 0,
+    });
   } else {
     toDate = '';
   }
@@ -151,6 +145,42 @@ exports.list = tryCatch(async (req, res) => {
       return c;
     });
   }
+  // Fetch flows for all unique requisitions
+  if (candidates.length) {
+    const requestIds = [
+      ...new Set(
+        candidates.map(
+          (candidate) => candidate["serviceRequest.requestServiceId"]
+        )
+      ),
+    ];
+
+    const flows = await reqServiceFlow.findAll({
+      where: {
+        flowServiceId: {
+          [Op.in]: requestIds,
+        },
+      },
+      raw: true,
+    });
+
+    // Group flows by requisition
+    const flowMap = {};
+
+    flows.forEach((flow) => {
+      if (!flowMap[flow.flowServiceId]) {
+        flowMap[flow.flowServiceId] = [];
+      }
+      flowMap[flow.flowServiceId].push(flow);
+    });
+
+    // Attach corresponding flow to each candidate
+    candidates = candidates.map((candidate) => ({
+      ...candidate,
+      flows:
+        flowMap[candidate["serviceRequest.requestServiceId"]] || [],
+    }));
+  }
 
   if (report == 'true' && candidates) {
     const head = [{ header: "Request Name", key: "requestName", width: 10 },
@@ -194,7 +224,7 @@ exports.list = tryCatch(async (req, res) => {
         candidateStationStatus: le['serviceStatus']
       };
     });
-    const name = `candidates_Technical_1_${moment().format('yyyymmddHHMMSS')}`;
+    const name = `candidates_Technical_1_${format(new Date(), 'yyyyMMddHHmmss')}`;
     excelGenerator(req, res, head, body, name);
     return;
   }
@@ -246,7 +276,7 @@ exports.addProgress = tryCatch(async (req, res) => {
 
     let fileStoragePath = "";
     if (Object.keys(files).length !== 0) {
-      const currentTime = moment().format("YYYY_MM_DD_HH_mm_ss");
+      const currentTime = format(new Date(), "yyyy_MM_dd_HH_mm_ss");
       const fileExt = files.file[0].originalFilename.split(".").pop();
       fileStoragePath = `/uploads/${progressServiceId}_${progressAssignee}_${currentTime}.${fileExt}`;
       const newPath = path.resolve(__dirname, "../..") + fileStoragePath;

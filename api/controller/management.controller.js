@@ -1,7 +1,7 @@
 const { reqServiceSequence, reqCandidates, reqServiceRequest,
-  reqUser, reqHrReview, reqServices, reqCandidateComments,reqTeam, sequelize, Sequelize, reqCandidateProgress, reqProgressSkill
+  reqUser, reqHrReview, reqServices, reqCandidateComments,reqTeam, sequelize, Sequelize, reqCandidateProgress, reqProgressSkill,reqServiceFlow
 } = require("../../models");
-const moment = require('moment');
+const { format } = require('date-fns');
 const { Op } = require('sequelize');
 const mailFunction = require('../utils/nodeMail');
 const { tryCatch } = require("../utils/trycatch");
@@ -19,8 +19,8 @@ exports.list = tryCatch(async (req, res) => {
   let limit = req.query.limit || 100;
   let offset = req.query.page || 0;
   const experience = req.query.experience;
-  const fromDate = req.query.fromDate ? new Date(moment(req.query.fromDate).format('YYYY-MM-DD')) : "";
-  const toDate = req.query.toDate ? new Date(moment(req.query.toDate).format('YYYY-MM-DD')) : "";
+  const fromDate = req.query.fromDate ? new Date(format(new Date(req.query.fromDate), 'yyyy-MM-dd')) : "";
+  const toDate = req.query.toDate ? new Date(format(new Date(req.query.toDate), 'yyyy-MM-dd')) : "";
   offset = offset == 1 ? 0 : offset;
   if (limit && offset) {
     limit = limit;
@@ -100,6 +100,42 @@ exports.list = tryCatch(async (req, res) => {
       return c;
     });
   }
+   // Fetch flows for all unique requisitions
+    if (candidates.length) {
+      const requestIds = [
+        ...new Set(
+          candidates.map(
+            (candidate) => candidate["serviceRequest.requestServiceId"]
+          )
+        ),
+      ];
+  
+      const flows = await reqServiceFlow.findAll({
+        where: {
+          flowServiceId: {
+            [Op.in]: requestIds,
+          },
+        },
+        raw: true,
+      });
+  
+      // Group flows by requisition
+      const flowMap = {};
+  
+      flows.forEach((flow) => {
+        if (!flowMap[flow.flowServiceId]) {
+          flowMap[flow.flowServiceId] = [];
+        }
+        flowMap[flow.flowServiceId].push(flow);
+      });
+  
+      // Attach corresponding flow to each candidate
+      candidates = candidates.map((candidate) => ({
+        ...candidate,
+        flows:
+          flowMap[candidate["serviceRequest.requestServiceId"]] || [],
+      }));
+    }
 
   if (report == 'true' && candidates) {
     const head = [{ header: "Request Name", key: "requestName", width: 10 },
@@ -141,7 +177,7 @@ exports.list = tryCatch(async (req, res) => {
         candidateStationStatus: le['serviceStatus']
       };
     });
-    const name = `candidates_Management_1_${moment().format('yyyymmddHHMMSS')}`;
+    const name = `candidates_Management_1_${format(new Date(), 'yyyyMMddHHmmss')}`;
     excelGenerator(req, res, head, body, name);
     return;
   }
@@ -233,7 +269,7 @@ exports.candidateOffers = tryCatch(async (req, res) => {
 
 exports.candidateToUser = tryCatch(async (req, res) => {
   const { serviceSeqId, feedBack, feedBackBy } = req.body;
-  const toDate = moment().format('YYYY-MM-DD');
+  const toDate = format(new Date(), 'yyyy-MM-dd');
   const getCandidateService = await reqServiceSequence.findOne({
     where: { serviceId: serviceSeqId, serviceStatus: 'pending' },
     include: [{ model: reqCandidates, as: 'candidate', required: true }, { model: reqServices }]
@@ -641,7 +677,7 @@ exports.approve = async (req, res, next) => {
       .status(400)
       .json({ result: false, message: "Requestion is closed No action Can be taken." })
 
-    const toDate = moment().format("YYYY-MM-DD");
+    const toDate = format(new Date(), "yyyy-MM-dd");
     const serviceSeqence = await reqServiceSequence.findOne({
       include: [
         {

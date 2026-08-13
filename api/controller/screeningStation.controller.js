@@ -1,7 +1,6 @@
-
-const moment = require("moment");
+const { format, addMonths, isBefore } = require("date-fns");
 const { Op } = require("sequelize");
-const toDate = moment().format("YYYY-MM-DD");
+const toDate = format(new Date(), "yyyy-MM-dd");
 
 const mailFunction = require("../utils/nodeMail");
 const { tryCatch } = require("../utils/trycatch");
@@ -27,7 +26,8 @@ const {
   reqExperienceReport,
   reqCandidateRequestion,
   reqCandidateLog,
-  reqJobApplicants
+  reqJobApplicants,
+  reqServiceFlow
 } = require("../../models");
 
 // Utility Functions
@@ -45,7 +45,7 @@ const {
 //assign the service and candidate to the screening station
 exports.groupCandidate = tryCatch(async (req, res) => {
   const { serviceStation = 1, serviceServiceRequst, serviceCandidates, serviceAssignee, serviceDate, } = req.body;
-  const toDate = moment().format("YYYY-MM-DD");
+  const toDate = format(new Date(), "yyyy-MM-dd");
 
   const service = await reqServiceRequest.findOne({
     where: { requestId: serviceServiceRequst },
@@ -212,7 +212,7 @@ exports.groupListsv1 = tryCatch(async (req, res) => {
       candidatesCount: candidate.candidatesCount,
     }));
 
-    const fileName = `requestion_report_${moment().format("YYYYMMDD_HHmmss")}`;
+    const fileName = `requestion_report_${format(new Date(), "yyyyMMdd_HHmmss")}`;
     return excelGenerator(req, res, headers, body, fileName);
   }
 
@@ -227,7 +227,7 @@ exports.groupListsv1 = tryCatch(async (req, res) => {
 //verifiy and move the service to next station
 exports.acceptCandidateService = tryCatch(async (req, res) => {
 
-  const toDayDate = moment().format("YYYY-MM-DD");
+  const toDayDate = format(new Date(), "yyyy-MM-dd");
   const { serviceIds, requestId } = req.body;
   const serviceIndex = serviceIds.length - 1;
   const userId = req.userId;
@@ -469,7 +469,7 @@ exports.interviewDetail = tryCatch(async (req, res) => {
     interviewMode, rescheduleStatus, comments, position, serviceId, workMode, station,
     interviewCc, interviewMailTemp, interviewSubject, interviewBcc, attachmentArray } = req.body;
 
-  const todate = moment().format("YYYY-MM-DD");
+  const todate = format(new Date(), "yyyy-MM-dd");
   const logData = {
     station,
     senderId: recruiterId,
@@ -959,13 +959,13 @@ exports.candidateMapRequirement = tryCatch(async (req, res) => {
     await profileSourceReport(
       candidateCreatedby,
       requiementId,
-      resumeSourceId, moment().format("YYYY-MM-DD")
+      resumeSourceId, format(new Date(), "yyyy-MM-dd")
     );
     candidatesId.forEach((element) => {
       logFunction(element, candidateCreatedby, `Candidate mapped `, 1);
       reqcuriterReport(
         requiementId,
-        moment().format("YYYY-MM-DD"),
+        format(new Date(), "yyyy-MM-dd"),
         candidateCreatedby,
         "totalSourced"
       );
@@ -983,8 +983,8 @@ exports.candidateMapRequirement = tryCatch(async (req, res) => {
 
 
 exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
-  const today = moment().format("YYYY-MM-DD");
-  const sixMonthsAgo = moment().add(6, "months").toDate();
+  const today = format(new Date(), "yyyy-MM-dd");
+  const sixMonthsAgo = addMonths(new Date(), 6);
 
   const bypassing = req.body.bypassing || false;
   const candidates = req.body.candidates;
@@ -1106,7 +1106,7 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
     else if (
       (
         (!lastMapping && !lastInterview) ||
-        (lastMapping && moment(lastMapping.insertOrUpdateDate).add(6, "months").isBefore(today))
+        (lastMapping && isBefore(addMonths(new Date(lastMapping.insertOrUpdateDate), 6), new Date(today)))
       )
     ) {
       allowMapping = true;
@@ -1229,7 +1229,7 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
 
     reqcuriterReport(
       requiementId,
-      moment().format("YYYY-MM-DD"),
+      format(new Date(), "yyyy-MM-dd"),
       candidateCreatedby,
       "totalSourced",
       insertedCandidatesIds.length
@@ -1536,7 +1536,42 @@ exports.candidatesPrgressList = tryCatch(async (req, res) => {
     where: { serviceCandidate: candidateId },
     order: [["serviceId", "DESC"]],
   });
+  // Fetch flows for all unique requisitions
+  if (candidates.length) {
+    const requestIds = [
+      ...new Set(
+        candidates.map(
+          (candidate) => candidate["serviceRequest.requestServiceId"]
+        )
+      ),
+    ];
 
+    const flows = await reqServiceFlow.findAll({
+      where: {
+        flowServiceId: {
+          [Op.in]: requestIds,
+        },
+      },
+      raw: true,
+    });
+
+    // Group flows by requisition
+    const flowMap = {};
+
+    flows.forEach((flow) => {
+      if (!flowMap[flow.flowServiceId]) {
+        flowMap[flow.flowServiceId] = [];
+      }
+      flowMap[flow.flowServiceId].push(flow);
+    });
+
+    // Attach corresponding flow to each candidate
+    candidates = candidates.map((candidate) => ({
+      ...candidate,
+      flows:
+        flowMap[candidate["serviceRequest.requestServiceId"]] || [],
+    }));
+  }
   if (candidates) {
     candidates = candidates.map((c) => {
       c['candidate.candidateInterviewStatus'] = c.serviceStatus == "pending"

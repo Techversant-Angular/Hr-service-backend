@@ -163,6 +163,7 @@ exports.UpdateUser = async (req, res, next) => {
             userData.userStatus = userStatus.toLowerCase();
         }
         let roleIds = [];
+        const previousRoleValue = String(userIspresent.userRole || '');
         if (userRole) {
             let rolesArray = Array.isArray(userRole) ? userRole : (typeof userRole === 'string' ? userRole.split(',') : [userRole]);
             let uniqueRoles = [...new Set(rolesArray)].filter(Boolean);
@@ -176,7 +177,11 @@ exports.UpdateUser = async (req, res, next) => {
             } else {
                 roleIds = uniqueRoles;
             }
-            userData.userRole = roleIds.join(',');
+            const nextRoleValue = roleIds.join(',');
+            if (previousRoleValue !== nextRoleValue) {
+                userData.tokenVersion = (Number(userIspresent.tokenVersion) || 0) + 1;
+            }
+            userData.userRole = nextRoleValue;
             userData.userType = (userRole == 'admin' || uniqueRoles.includes('admin')) ? 'admin' : 'user';
 
         }
