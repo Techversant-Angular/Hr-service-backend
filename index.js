@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const errorHandler = require('./api/middleware/error');
 const { loadSecretToEnv } = require('./api/utils/secretManager');
 
@@ -12,11 +13,13 @@ const app = express();
 app.use(cors({
   origin: '*',  // Allow all domains
   methods: ['GET', 'POST', 'PUT', 'DELETE','PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-env']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-env'],
+  credentials: true,
 }));
 
 app.use(express.json());
 app.use(helmet());
+app.use(cookieParser());
 
 async function startServer() {
   // Load secrets from AWS Secrets Manager into process.env before anything else

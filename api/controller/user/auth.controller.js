@@ -8,6 +8,19 @@ const { Op } = require('sequelize');
 const admin = require("../../../config/firebase");
 
 const hashRefreshToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+const setRefreshTokenCookie = (req, res, refreshToken) => {
+    const isHttpsRequest = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    const shouldUseSecureCookie = process.env.COOKIE_SECURE === 'true'
+        || (process.env.COOKIE_SECURE !== 'false' && (process.env.NODE_ENV === 'production' || isHttpsRequest));
+
+    res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: shouldUseSecureCookie,
+        sameSite: isHttpsRequest ? 'none' : 'lax',
+        path: '/',
+        maxAge: 4 * 24 * 60 * 60 * 1000
+    });
+};
 
 const getUserRoles = async (userId) => {
     const roles = await reqUserRoleMapping.findAll({
@@ -75,13 +88,14 @@ exports.login = async (req, res, next) => {
 
         // Store refresh token in database
         await reqAccessToken.create({ accessToken: refreshToken });
+        setRefreshTokenCookie(req, res, refreshToken);
 
         let responseUser = user.toJSON();
         responseUser.userRole = formattedRoles;
 
         return res.status(200).json({
             token,
-            refreshToken,
+            // refreshToken,
             user: responseUser,
         });
 
@@ -238,6 +252,7 @@ exports.googleLogin = async (req, res) => {
 
         // Store refresh token in database
         await reqAccessToken.create({ accessToken: refreshToken });
+        setRefreshTokenCookie(req, res, refreshToken);
 
         const responseUser = user.toJSON();
         responseUser.userRole = formattedRoles;
@@ -245,7 +260,7 @@ exports.googleLogin = async (req, res) => {
             result: true,
             message: "Google login successful",
             token,
-            refreshToken,
+            // refreshToken,
             data: responseUser
         });
     } catch (err) {
@@ -256,7 +271,7 @@ exports.googleLogin = async (req, res) => {
 
 exports.refreshToken = async (req, res, next) => {
     try {
-        let { refreshToken } = req.body;
+        let refreshToken = req.body?.refreshToken || req.cookies?.refreshToken;
         if (!refreshToken) {
             return res.status(400).json({ status: false, message: 'Refresh token is required' });
         }
@@ -320,11 +335,12 @@ exports.refreshToken = async (req, res, next) => {
         // Delete old refresh token first, then save new refresh token
         await reqAccessToken.destroy({ where: { accessToken: refreshToken } });
         await reqAccessToken.create({ accessToken: newRefreshToken });
+        setRefreshTokenCookie(req, res, newRefreshToken);
 
         return res.status(200).json({
             status: true,
             token: newAccessToken,
-            refreshToken: newRefreshToken
+            // refreshToken: newRefreshToken
         });
 
     } catch (error) {
