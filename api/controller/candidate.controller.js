@@ -213,7 +213,7 @@ exports.listCandidates = tryCatch(async (req, res) => {
 
   const candidates = await reqCandidates.findAll({
     include,
-    attributes: { exclude: ["candidateExpectedSalary"] },
+    // attributes: { exclude: ["candidateExpectedSalary"] },
     where,
     ...(report == "true" ? {} : {
       limit: limit,
@@ -232,9 +232,19 @@ exports.listCandidates = tryCatch(async (req, res) => {
         width: 25,
       },
       { header: "Candidate Last Name", key: "candidateLastName", width: 15 },
+      // {
+      //   header: "Candidate Experience",
+      //   key: "candidateExperience",
+      //   width: 15,
+      // },
       {
-        header: "Candidate Experience",
-        key: "candidateExperience",
+        header: "Candidate Relevant Experience",
+        key: "candidateRevlentExperience",
+        width: 15,
+      },
+            {
+        header: "Candidate Total Experience",
+        key: "candidateTotalExperience",
         width: 15,
       },
       { header: "Candidate Email", key: "candidateEmail", width: 25 },
@@ -269,6 +279,8 @@ exports.listCandidates = tryCatch(async (req, res) => {
         candidateFirstName: le.candidateFirstName,
         candidateLastName: le.candidateLastName,
         candidateExperience: le.candidateExperience,
+        candidateRevlentExperience: le.candidateRevlentExperience,
+        candidateTotalExperience: le.candidateTotalExperience,
         candidateEmail: le.candidateEmail,
         candidateMobileNo: le.candidateMobileNo,
         candidatePreviousOrg: le.candidatePreviousOrg,
