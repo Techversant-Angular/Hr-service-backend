@@ -15,7 +15,7 @@ exports.createUser = async (req, res, next) => {
         });
 
         if (userIspresent) {
-            return res.status(400).send({ status: false, userExit: true, message: 'user already exists with given email' });
+            return res.status(400).send({ status: false, userExit: true, message: 'User already exists with given email' });
         }
 
         let rolesArray = [];

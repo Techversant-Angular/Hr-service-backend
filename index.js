@@ -12,7 +12,10 @@ const app = express();
 
 app.use(cors({
   origin: [
-      'http://localhost:4200'
+      'http://localhost:4200',
+      'https://recruitwise-dev.demoserver.work',
+      'https://recruitwise-qa.demoserver.work',
+      'https://recruitwise.techversantinfotech.com'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE','PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-api-env'],
