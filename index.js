@@ -11,7 +11,9 @@ const { loadSecretToEnv } = require('./api/utils/secretManager');
 const app = express();
 
 app.use(cors({
-  origin: '*',  // Allow all domains
+  origin: [
+      'http://localhost:4200'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE','PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-api-env'],
   credentials: true,
