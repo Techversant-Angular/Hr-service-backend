@@ -18,7 +18,22 @@ const setRefreshTokenCookie = (req, res, refreshToken) => {
         secure: shouldUseSecureCookie,
         sameSite: isHttpsRequest ? 'none' : 'lax',
         path: '/',
-        maxAge: 4 * 24 * 60 * 60 * 1000
+        maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+};
+
+// Set access token in cookie as well (non-httpOnly so front-end can read if needed)
+const setAccessTokenCookie = (req, res, accessToken) => {
+    const isHttpsRequest = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    const shouldUseSecureCookie = process.env.COOKIE_SECURE === 'true'
+        || (process.env.COOKIE_SECURE !== 'false' && (process.env.NODE_ENV === 'production' || isHttpsRequest));
+
+    res.cookie('accessToken', accessToken, {
+        httpOnly: false,
+        secure: shouldUseSecureCookie,
+        sameSite: isHttpsRequest ? 'none' : 'lax',
+        path: '/',
+        maxAge: 15 * 60 * 1000
     });
 };
 
@@ -89,12 +104,14 @@ exports.login = async (req, res, next) => {
         // Store refresh token in database
         await reqAccessToken.create({ accessToken: refreshToken });
         setRefreshTokenCookie(req, res, refreshToken);
+        // Also set access token in cookie for client convenience
+        setAccessTokenCookie(req, res, token);
 
         let responseUser = user.toJSON();
         responseUser.userRole = formattedRoles;
 
         return res.status(200).json({
-            token,
+            // token,
             // refreshToken,
             user: responseUser,
         });
@@ -253,13 +270,15 @@ exports.googleLogin = async (req, res) => {
         // Store refresh token in database
         await reqAccessToken.create({ accessToken: refreshToken });
         setRefreshTokenCookie(req, res, refreshToken);
+        // Also set access token in cookie for client convenience
+        setAccessTokenCookie(req, res, token);
 
         const responseUser = user.toJSON();
         responseUser.userRole = formattedRoles;
         return res.status(200).json({
             result: true,
             message: "Google login successful",
-            token,
+            // token,
             // refreshToken,
             data: responseUser
         });
@@ -336,6 +355,8 @@ exports.refreshToken = async (req, res, next) => {
         await reqAccessToken.destroy({ where: { accessToken: refreshToken } });
         await reqAccessToken.create({ accessToken: newRefreshToken });
         setRefreshTokenCookie(req, res, newRefreshToken);
+        // Also set the new access token in cookie
+        setAccessTokenCookie(req, res, newAccessToken);
 
         return res.status(200).json({
             status: true,
