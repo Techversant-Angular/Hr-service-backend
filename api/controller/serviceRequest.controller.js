@@ -19,9 +19,13 @@ const {
 
 exports.createService = tryCatch(async (req, res) => {
   const toDate = format(new Date(), "yyyy-MM-dd");
+  const requestSkills = Array.isArray(req.body.requestSkills)
+    ? req.body.requestSkills.join(",")
+    : req.body.requestSkills || "";
+
   const transformedObject = {
     ...req.body,
-    requestSkills: req.body.requestSkills.join(","),
+    requestSkills,
   };
   console.log(req.userRole, "req.userRole");
   if (req.userRole != "manager" && req.userRole != "admin" &&req.userType!='admin')
@@ -98,9 +102,13 @@ exports.createService = tryCatch(async (req, res) => {
 
 exports.createJobOpening = tryCatch(async (req, res) => {
   const toDate = format(new Date(), "yyyy-MM-dd");
+  const requestSkills = Array.isArray(req.body.requestSkills)
+    ? req.body.requestSkills.join(",")
+    : req.body.requestSkills || "";
+
   const transformedObject = {
     ...req.body,
-    requestSkills: req.body.requestSkills.join(","),
+    requestSkills,
   };
   // console.log(req.userRole, "req.userRole");
   // if (req.userRole != "manager" && req.userRole != "admin" &&req.userType!='admin')
