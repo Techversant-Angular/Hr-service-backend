@@ -26,12 +26,21 @@ exports.createCandidate = tryCatch(async (req, res) => {
   const sourcedString = `Candidate Sourced From ${jsonData.sourceList[resumeSourceId]}`;
   const candidateIspresent = await reqCandidates.findOne({
     where: {
-      candidateEmail,
       candidateStatus: "active",
+      [Op.or]: [
+        { candidateEmail },
+        { candidateMobileNo: parameter.candidateMobileNo },
+        
+      ],
     },
   });
 
-  if (!candidateIspresent) {
+  if(candidateIspresent) {
+    return res.status(401).json({
+      status: false,
+      message: "Candidate already exists",
+    });
+  } else {
     const candiate = await reqCandidates.create(parameter);
     const candidateId = candiate.candidateId;
     await addSkills(candidateId, parameter);
@@ -46,31 +55,6 @@ exports.createCandidate = tryCatch(async (req, res) => {
     return res
       .status(200)
       .json({ status: true, message: "Candidate Created Successfully" });
-  }
-
-  const sixthMonthDate = getSixthMonthDate(candidateIspresent.createdAt);
-  if (isAfter(new Date(), new Date(sixthMonthDate))) {
-    const candidate = await reqCandidates.create(parameter);
-    const candidateId = candidate.candidateId;
-    // if (candidatesAddingAgainst) await profileSourceReport(candidateCreatedby, candidatesAddingAgainst, [resumeSourceId]);
-
-    logFunction(candidateId, candidateCreatedby, sourcedString, 1);
-    await entryInSequence(
-      candidatesAddingAgainst,
-      candidateId,
-      candidateCreatedby
-    );
-    return res.status(200).json({
-      status: true,
-      message: "Candidate Created Successfully",
-      data: candidate,
-    });
-  } else {
-    return res.status(401).json({
-      status: false,
-      message:
-        "This candidate is already in the pool. Eligible again six months after attendance date",
-    });
   }
 });
 
