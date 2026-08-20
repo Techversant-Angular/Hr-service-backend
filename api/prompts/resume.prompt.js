@@ -49,7 +49,7 @@ Return JSON in the following structure:
   ],
 
   "skills": {
-    "technical": [],
+    "tech": [],
     "soft": []
   },
 
