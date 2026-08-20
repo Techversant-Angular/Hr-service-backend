@@ -11,7 +11,7 @@ const response = require("../../api/utils/responseMessages");
 const { sendFeedbackAcknowledgement } = require("../utils/commonFunction");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
-const { s3Client } = require("../../config/config");
+const { s3Client } = require("../../config/s3");
 
 exports.secondGrafData = async (req, res, next) => {
   try {
