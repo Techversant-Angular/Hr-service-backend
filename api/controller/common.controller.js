@@ -116,7 +116,7 @@ exports.userTasks = tryCatch(async (req, res, next) => {
 });
 
 exports.skillsList = tryCatch(async (req, res, next) => {
-  const { search, typeId } = req.query;
+  const { search, typeId, type } = req.query;
 
   const condition = { raw: true };
 
@@ -125,6 +125,17 @@ exports.skillsList = tryCatch(async (req, res, next) => {
   }
   if (typeId) {
     condition.where = { typeId: typeId };
+  }
+    // Handle type query parameter
+  if (type && typeof type === "string") {
+    const sanitizedType = type.trim().toLowerCase();
+
+    if (["soft", "tech"].includes(sanitizedType)) {
+      condition.where = {
+        ...condition.where,
+        type: sanitizedType,
+      };
+    }
   }
 
   condition.attributes = [
