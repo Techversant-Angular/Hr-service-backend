@@ -3,6 +3,7 @@ const { parseResume } = require("../services/resumeAI.service");
 const { parseResumeText } = require("../services/resumeManualParser.service");
 const { analyseResume } = require("../services/atsAnalysis.service");
 const { generateInterviewQuestions } = require("../services/interview.service");
+const { syncSkills } = require("../services/skillSync.service");
 
 
 /**
@@ -31,6 +32,7 @@ exports.parseResume = async (req, res) => {
 
     // Send to Gemini
     const candidateData = await parseResume(resumeText);
+    await syncSkills(candidateData.skills);
 
     return res.status(200).json({
       result: true,
