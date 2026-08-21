@@ -4,7 +4,7 @@ let {
   reqCandidateSkill, sequelize, Sequelize,
   reqSkill, reqStation, reqServiceRequest,
   reqCandidateComments, reqServiceSequence, reqCandidateRequestion,
-  reqJobApplicants,reqJobOpening
+  reqJobApplicants, reqJobOpening, reqServiceRequestsJobOpenings
 } = require("../../models");
 const response = require("../../api/utils/responseMessages");
 const { format, addMonths, isAfter } = require("date-fns");
@@ -1621,13 +1621,36 @@ exports.jobOpeningCareers = tryCatch(async (req, res) => {
           limit,
           offset,
         }),
-    order: [["requestId", "DESC"]], // Change to your preferred column if needed
+    order: [["requestId", "DESC"]],
   });
 
-  const totalPages =
-    report === "true" ? 1 : Math.ceil(count / limit);
+  const totalPages = report === "true" ? 1 : Math.ceil(count / limit);
 
   if (jobOpenings.length) {
+    // Fetch all mappings for the current page's job openings in one query
+    const jobOpeningIds = jobOpenings.map((j) => j.requestId);
+    const mappings = await reqServiceRequestsJobOpenings.findAll({
+      where: { jobOpeningId: { [Op.in]: jobOpeningIds } },
+      attributes: ["jobOpeningId", "requisitionId"],
+      raw: true,
+    });
+
+    // Build a lookup map: jobOpeningId -> requisitionId
+    const mappingMap = {};
+    mappings.forEach((m) => {
+      mappingMap[m.jobOpeningId] = m.requisitionId;
+    });
+
+    const data = jobOpenings.map((job) => {
+      const jobJson = job.toJSON();
+      const requisitionId = mappingMap[job.requestId];
+      return {
+        ...jobJson,
+        isAssigned: requisitionId !== undefined,
+        assignedRequisitionId: requisitionId ?? null,
+      };
+    });
+
     return res.status(200).json({
       result: true,
       message: response.DATA_RETRIEVED,
@@ -1635,7 +1658,7 @@ exports.jobOpeningCareers = tryCatch(async (req, res) => {
       totalPages,
       currentPage: report === "true" ? 1 : page,
       pageSize: limit,
-      data: jobOpenings,
+      data,
     });
   }
 
