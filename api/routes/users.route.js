@@ -8,6 +8,9 @@ let { updateUser, changePswd, forgotPassword, resetPassword, flows, skipStation 
 
 router.post('/login', authController.login);
 
+// Returns the user information from the verified access-token cookie.
+router.get('/me', authenticate, authController.me);
+
 router.post('/changePassword', changePswd, authenticate, authController.changePassword);
 
 router.post("/forgotPassword", forgotPassword, authController.forgotPassword);

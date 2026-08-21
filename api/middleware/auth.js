@@ -37,14 +37,11 @@ const ensureFreshSession = async (tokenPayload, res) => {
 
 exports.authenticate = async (req, res, next) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) {
-            return res.status(401).send({ result: false, message: 'Authorization header missing' });
-        }
-
-        const token = getBearerToken(authHeader);
+        // Browsers send HttpOnly cookies automatically. Keep the header fallback
+        // temporarily for API clients that still use Bearer authentication.
+        const token = req.cookies?.accessToken || getBearerToken(req.headers.authorization);
         if (!token) {
-            return res.status(401).send({ result: false, message: 'Token Undefined' });
+            return res.status(401).send({ result: false, message: 'Authentication token missing' });
         }
 
         const existToken = await jwtVerifyToken(token);
@@ -55,9 +52,12 @@ exports.authenticate = async (req, res, next) => {
         const user = await ensureFreshSession(existToken, res);
         if (!user) return;
 
+        // Only set this after jwtVerifyToken has verified the signature and expiry.
+        // Controllers can use req.auth to access the authenticated user's JWT claims.
+        req.auth = existToken;
         req.userId = user.userId;
         req.userType = user.userType;
-        req.userRole = user.userRole;
+        req.userRole = existToken.userRole;
 
         next();
     } catch (error) {

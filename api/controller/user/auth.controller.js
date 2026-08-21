@@ -22,18 +22,30 @@ const setRefreshTokenCookie = (req, res, refreshToken) => {
     });
 };
 
-// Set access token in cookie as well (non-httpOnly so front-end can read if needed)
+// The access token must not be readable by JavaScript. The browser sends this
+// HttpOnly cookie with authenticated API requests.
 const setAccessTokenCookie = (req, res, accessToken) => {
     const isHttpsRequest = req.secure || req.headers['x-forwarded-proto'] === 'https';
     const shouldUseSecureCookie = process.env.COOKIE_SECURE === 'true'
         || (process.env.COOKIE_SECURE !== 'false' && (process.env.NODE_ENV === 'production' || isHttpsRequest));
 
     res.cookie('accessToken', accessToken, {
-        httpOnly: false,
+        httpOnly: true,
         secure: shouldUseSecureCookie,
         sameSite: isHttpsRequest ? 'none' : 'lax',
         path: '/',
         maxAge: 15 * 60 * 1000
+    });
+};
+
+// GET /user/me - authenticate middleware verifies the access-token cookie
+// before this handler runs. Return only the claims intentionally placed in it.
+exports.me = (req, res) => {
+    const { userId, userFullName, userEmail, userDOB, userType, userRole } = req.auth;
+
+    return res.status(200).json({
+        status: true,
+        user: { userId, userFullName, userEmail, userDOB, userType, userRole }
     });
 };
 
