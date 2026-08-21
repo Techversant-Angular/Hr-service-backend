@@ -17,6 +17,9 @@ router.get('/list/:candidateId', authenticate, controller.viewCandidate);
 
 router.post('/create', authenticate, createCandidate, controller.createCandidate);
 
+router.post('/records', authenticate, createCandidate, controller.createCandidateRecords);
+
+
 router.post('/edit', candidateEdit, authenticate, controller.editCandidate);
 
 router.get('/skills/list', authenticate, commonController.skillsList);

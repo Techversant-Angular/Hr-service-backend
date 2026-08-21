@@ -58,6 +58,50 @@ exports.createCandidate = tryCatch(async (req, res) => {
   }
 });
 
+exports.createCandidateRecords = tryCatch(async (req, res) => {
+  const { ...parameter } = req.body;
+  const {
+    candidateEmail,
+    candidateCreatedby,
+    candidatesAddingAgainst,
+    resumeSourceId,
+  } = parameter;
+
+  const sourcedString = `Candidate Sourced From ${jsonData.sourceList[resumeSourceId]}`;
+  const candidateIspresent = await reqCandidates.findOne({
+    where: {
+      candidateStatus: "active",
+      [Op.or]: [
+        { candidateEmail },
+        { candidateMobileNo: parameter.candidateMobileNo },
+        
+      ],
+    },
+  });
+
+  if(candidateIspresent) {
+    return res.status(401).json({
+      status: false,
+      message: "Candidate already exists",
+    });
+  } else {
+    const candiate = await reqCandidates.create(parameter);
+    const candidateId = candiate.candidateId;
+    await addSkills(candidateId, parameter);
+    // if (candidatesAddingAgainst) await profileSourceReport(candidateCreatedby, candidatesAddingAgainst, [resumeSourceId]);
+
+    logFunction(candidateId, candidateCreatedby, sourcedString, 1);
+    await entryInSequence(
+      candidatesAddingAgainst,
+      candidateId,
+      candidateCreatedby
+    ); //keep entry in sequence table
+    return res
+      .status(200)
+      .json({ status: true, message: "Candidate Created Successfully" });
+  }
+});
+
 exports.editCandidate = tryCatch(async (req, res) => {
   const { ...parameter } = req.body;
   const { candidateId } = parameter;
