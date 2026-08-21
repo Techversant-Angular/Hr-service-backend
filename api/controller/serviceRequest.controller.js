@@ -15,6 +15,7 @@ const {
   Sequelize,
   reqDesignation,
   reqJobOpening,
+  reqServiceRequestsJobOpenings
 } = require("../../models");
 
 exports.createService = tryCatch(async (req, res) => {
@@ -596,3 +597,59 @@ exports.activeServicesList = tryCatch(async (req, res) => {
     .status(401)
     .json({ result: false, message: response.DATA_NOT_FOUND, data: services });
 });
+
+exports.mapJobOpeningToRequisition = tryCatch(async (req, res) => {
+  const { requisitionId, jobOpeningId } = req.body;
+
+  if (!requisitionId || !jobOpeningId) {
+    return res.status(400).json({
+      result: false,
+      message: 'requisitionId and jobOpeningId are required.',
+    });
+  }
+
+  // Validate requisition exists and is active
+  const requisition = await reqServiceRequest.findOne({
+    where: { requestId: requisitionId, requestStatus: 'active' },
+  });
+  if (!requisition) {
+    return res.status(404).json({
+      result: false,
+      message: 'Active requisition not found.',
+    });
+  }
+
+  // Validate job opening exists
+  const jobOpening = await reqJobOpening.findOne({
+    where: { requestId: jobOpeningId },
+  });
+  if (!jobOpening) {
+    return res.status(404).json({
+      result: false,
+      message: 'Job opening not found.',
+    });
+  }
+
+  // Prevent duplicate mapping
+  const existing = await reqServiceRequestsJobOpenings.findOne({
+    where: { requisitionId, jobOpeningId },
+  });
+  if (existing) {
+    return res.status(409).json({
+      result: false,
+      message: 'This job opening is already linked to the selected requisition.',
+    });
+  }
+
+  const mapping = await reqServiceRequestsJobOpenings.create({
+    requisitionId,
+    jobOpeningId,
+  });
+
+  return res.status(200).json({
+    result: true,
+    message: 'Job opening linked to requisition successfully.',
+    data: mapping,
+  });
+});
+

@@ -16,6 +16,13 @@ module.exports = (sequelize, DataTypes) => {
       reqServiceRequest.belongsTo(models.reqDesignation, { foreignKey: 'requestDesignation', as: 'designation' });
       reqServiceRequest.hasOne(models.reqServiceSequence, { foreignKey: 'serviceServiceRequst' });
       reqServiceRequest.hasMany(models.reqCandidateRequestion, { foreignKey: 'serviceRequest', as: 'candidates' });
+      reqServiceRequest.hasMany(models.reqServiceRequestsJobOpenings, { foreignKey: 'requisitionId', as: 'jobOpeningMappings'});
+      reqServiceRequest.belongsToMany(models.reqJobOpening, {
+        through: models.reqServiceRequestsJobOpenings,
+        foreignKey: 'requisitionId',
+        otherKey: 'jobOpeningId',
+        as: 'linkedJobOpenings',
+      });
     }
   }
   reqServiceRequest.init({
