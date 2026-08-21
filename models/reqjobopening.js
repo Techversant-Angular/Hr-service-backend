@@ -18,6 +18,17 @@ module.exports = (sequelize, DataTypes) => {
         otherKey: 'reqJobApplicantsId',
         as: 'jobApplicantsList'
       });
+      reqJobOpening.hasMany(models.reqServiceRequestsJobOpenings, {
+        foreignKey: 'jobOpeningId',
+        as: 'requisitionMappings',
+      });
+      reqJobOpening.belongsToMany(models.reqServiceRequest, {
+        through: models.reqServiceRequestsJobOpenings,
+        foreignKey: 'jobOpeningId',
+        otherKey: 'requisitionId',
+        as: 'linkedRequisitions',
+      });
+
     }
   }
 

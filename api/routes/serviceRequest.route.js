@@ -48,4 +48,7 @@ router.put('/designation/status/:designationId', authenticate,verifyAdmin, commo
 // used to edit after candidate added to requestion
 router.patch('/edit-requestion/:requestionId',  authenticate, controller.partialServiceEdit);
 
+// Map a sourced job opening to an existing requisition
+router.post('/map-job-opening', authenticate, controller.mapJobOpeningToRequisition);
+
 module.exports = router;
