@@ -27,10 +27,10 @@ exports.resumeSourceData = tryCatch(async (req, res) => {
       WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) ${userCondidtion} AND  "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}' ${request} 
       GROUP BY  "sourceId", "sourceName";`);
 
-  const careerFilter = userId ? ` AND "candidateCreatedby"=${userId}` : "";
+  // const careerFilter = userId ? ` AND "candidateCreatedby"=${userId}` : "";
   const [careerRows] = await sequelize.query(`SELECT COUNT(*) AS "careersCount"
     FROM public."reqjobapplicants"
-    WHERE "createdAt" BETWEEN '${fromDate}' AND '${toDate}' ${request} ${careerFilter};`);
+    WHERE "createdAt" BETWEEN '${fromDate}' AND '${toDate}'`);
 
   const careers = Number(careerRows?.[0]?.careersCount || 0);
   return res

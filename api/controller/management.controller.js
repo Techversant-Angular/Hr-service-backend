@@ -1,7 +1,7 @@
 const { reqServiceSequence, reqCandidates, reqServiceRequest,
   reqUser, reqHrReview, reqServices, reqCandidateComments,reqTeam, sequelize, Sequelize, reqCandidateProgress, reqProgressSkill,reqServiceFlow
 } = require("../../models");
-const { format } = require('date-fns');
+const { format, addDays, subDays } = require('date-fns');
 const { Op } = require('sequelize');
 const mailFunction = require('../utils/nodeMail');
 const { tryCatch } = require("../utils/trycatch");
@@ -19,9 +19,12 @@ exports.list = tryCatch(async (req, res) => {
   let limit = req.query.limit || 100;
   let offset = req.query.page || 0;
   const experience = req.query.experience;
-  const fromDate = req.query.fromDate ? new Date(format(new Date(req.query.fromDate), 'yyyy-MM-dd')) : "";
-  const toDate = req.query.toDate ? new Date(format(new Date(req.query.toDate), 'yyyy-MM-dd')) : "";
-  offset = offset == 1 ? 0 : offset;
+  const fromDate = req.query.fromDate ? subDays(
+    new Date(format(new Date(req.query.fromDate), 'yyyy-MM-dd')),
+    5
+  )
+    : ""; const toDate = req.query.toDate ? addDays(new Date(format(new Date(req.query.toDate), 'yyyy-MM-dd')), 5)
+      : ""; offset = offset == 1 ? 0 : offset;
   if (limit && offset) {
     limit = limit;
     offset = (offset - 1) * limit;
