@@ -4,7 +4,7 @@ let controller = require('../controller/candidate.controller.js');
 let commonController = require('../controller/common.controller');
 let attachmentController = require('../controller/candidateAttachment.controller.js');
 const resumeController = require('../controller/resume.controller.js');
-let { createRemove, createCandidate, candidateEdit, candidateHistoryFetch, submitApplicationValidate } = require('../validation/candidate.validate');
+let { createRemove, createCandidate, normalizeCandidateRecord, candidateEdit, candidateHistoryFetch, submitApplicationValidate } = require('../validation/candidate.validate');
 let { createAttachmentValidate, listAttachmentsValidate, deleteAttachmentValidate } = require('../validation/candidateAttachment.validate.js');
 let { candidateForms, candidateFormsEdit } = require('../middleware/formData');
 let uploadResume = require('../middleware/uploadResume');
@@ -17,7 +17,7 @@ router.get('/list/:candidateId', authenticate, controller.viewCandidate);
 
 router.post('/create', authenticate, createCandidate, controller.createCandidate);
 
-router.post('/records', authenticate, createCandidate, controller.createCandidateRecords);
+router.post('/records', authenticate, normalizeCandidateRecord, createCandidate, controller.createCandidateRecords);
 
 
 router.post('/edit', candidateEdit, authenticate, controller.editCandidate);
@@ -73,4 +73,3 @@ router.post("/resume/ats-analysis", uploadResume.single("candidateResume"), resu
 router.post("/resume/interview-questions", uploadResume.single("candidateResume"), resumeController.generateInterviewQuestions);
 
 module.exports = router;
-

@@ -3,6 +3,55 @@ const formidable = require('formidable');
 const createHttpError = require('http-errors');
 const validateRequest = require('../utils/validationHelper');
 
+// The candidate wizard submits values grouped by form step, while the candidate
+// model and controller use one flat object. Normalize only the /records payload
+// before its validation runs; the existing /create endpoint keeps its API shape.
+exports.normalizeCandidateRecord = (req, res, next) => {
+    const {
+        candidateForm,
+        candidateDetailsForm,
+        candidatePersonalDetailsForm,
+        candidateProfessionalDetailsForm,
+        candidateSkillsForm
+    } = req.body || {};
+
+    // A flat payload is still supported for API clients using the old contract.
+    if (!candidateForm && !candidateDetailsForm && !candidatePersonalDetailsForm &&
+        !candidateProfessionalDetailsForm && !candidateSkillsForm) {
+        return next();
+    }
+
+    const sourceName = candidateForm?.applicationSource;
+    const sourceIds = {
+        naukri: 1,
+        linkedin: 2,
+        indeed: 3,
+        candidate: 4,
+        reference: 5
+    };
+    const skillIds = (skills) => Array.isArray(skills)
+        ? skills.map((skill) => typeof skill === 'object' ? skill.id : skill).filter(Boolean)
+        : skills;
+
+    req.body = {
+        ...candidateForm,
+        ...candidateDetailsForm,
+        ...candidatePersonalDetailsForm,
+        ...candidateProfessionalDetailsForm,
+        candidatePreferlocation: candidateForm?.preferredLocation,
+        // Accept either an existing numeric source ID or the display name sent by the UI.
+        resumeSourceId: Number.isInteger(Number(sourceName))
+            ? Number(sourceName)
+            : sourceIds[String(sourceName || '').trim().toLowerCase()],
+        candidatePrimarySkills: skillIds(candidateSkillsForm?.technicalSkills),
+        candidateSecondarySkills: skillIds(candidateSkillsForm?.softSkills),
+        // Never accept the creator ID from the browser.
+        candidateCreatedby: req.userId
+    };
+
+    next();
+};
+
 exports.createRemove = [
     body('candidateId').notEmpty().isInt(),
     (req, res, next) => {
@@ -28,7 +77,7 @@ exports.createCandidate = [
     body('candidateCurrentSalary').isInt().withMessage('Current salary must be a Number').optional({ nullable: true }),
     body('candidateExpectedSalary').isInt().withMessage('Expected salary must be a Number').optional({ nullable: true }),
     body('candidateAddress').isString().withMessage('Address must be a string').optional({ nullable: true }),
-    body('candidateCreatedby').isString().withMessage('Created by must be a string').optional({ nullable: true }),
+    body('candidateCreatedby').isInt().withMessage('Created by must be a numeric user ID').optional({ nullable: true }),
     body('candidatePrimarySkills').isArray().withMessage('Primary skills must be an array').optional({ nullable: true }),
     body('candidateSecondarySkills').isArray().withMessage('Secondary skills must be an array').optional({ nullable: true }),
     body('resumeSourceId').isInt().withMessage('Resume source ID must be an integer').optional({ nullable: true }),
