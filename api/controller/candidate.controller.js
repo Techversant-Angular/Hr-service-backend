@@ -4,7 +4,7 @@ let {
   reqCandidateSkill, sequelize, Sequelize,
   reqSkill, reqStation, reqServiceRequest,
   reqCandidateComments, reqServiceSequence, reqCandidateRequestion,
-  reqJobApplicants,reqJobOpening
+  reqJobApplicants,reqJobOpening, reqCandidateRecords
 } = require("../../models");
 const response = require("../../api/utils/responseMessages");
 const { format, addMonths, isAfter } = require("date-fns");
@@ -56,6 +56,49 @@ exports.createCandidate = tryCatch(async (req, res) => {
       .status(200)
       .json({ status: true, message: "Candidate Created Successfully" });
   }
+});
+
+/**
+ * Persists the dashboard's nested candidate payload without changing the
+ * existing reqCandidates workflow or its skill mapping tables.
+ */
+exports.createCandidateRecord = tryCatch(async (req, res) => {
+  const {
+    candidateForm = {},
+    candidateDetailsForm = {},
+    candidatePersonalDetailsForm = {},
+    candidateProfessionalDetailsForm = {},
+    candidateSkillsForm = {},
+  } = req.body;
+
+  const { candidateFirstName, candidateLastName, candidateEmail, candidateMobileNo } = candidateDetailsForm;
+  if (!candidateFirstName || !candidateLastName || !candidateEmail || !candidateMobileNo) {
+    return res.status(400).json({
+      status: false,
+      message: 'First name, last name, email, and mobile number are required.',
+    });
+  }
+
+  const record = await reqCandidateRecords.create({
+    ...candidateForm,
+    ...candidateDetailsForm,
+    ...candidatePersonalDetailsForm,
+    ...candidateProfessionalDetailsForm,
+    technicalSkills: Array.isArray(candidateSkillsForm.technicalSkills)
+      ? candidateSkillsForm.technicalSkills
+      : [],
+    softSkills: Array.isArray(candidateSkillsForm.softSkills)
+      ? candidateSkillsForm.softSkills
+      : [],
+    candidateResume: candidateForm.resume || null,
+    candidateCreatedby: req.userId,
+  });
+
+  return res.status(201).json({
+    status: true,
+    message: 'Candidate record created successfully.',
+    data: { candidateRecordId: record.candidateRecordId },
+  });
 });
 
 exports.editCandidate = tryCatch(async (req, res) => {

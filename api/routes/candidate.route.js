@@ -17,6 +17,9 @@ router.get('/list/:candidateId', authenticate, controller.viewCandidate);
 
 router.post('/create', authenticate, createCandidate, controller.createCandidate);
 
+// Stores the nested payload submitted by the dashboard candidate form.
+router.post('/records', authenticate, controller.createCandidateRecord);
+
 router.post('/edit', candidateEdit, authenticate, controller.editCandidate);
 
 router.get('/skills/list', authenticate, commonController.skillsList);
@@ -70,4 +73,3 @@ router.post("/resume/ats-analysis", uploadResume.single("candidateResume"), resu
 router.post("/resume/interview-questions", uploadResume.single("candidateResume"), resumeController.generateInterviewQuestions);
 
 module.exports = router;
-
