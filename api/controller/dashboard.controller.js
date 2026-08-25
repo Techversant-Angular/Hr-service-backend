@@ -561,8 +561,15 @@ exports.dashBoardCard = tryCatch(async (req, res) => {
         FROM public."reqServiceRequests" INNER JOIN "reqTeams" ON "teamId"="requestTeam" WHERE "requestId"=${requestId}`;
   } else {
     query = `
-       SELECT COALESCE((SELECT SUM("requestVacancy") FROM public."reqServiceRequests" WHERE "requestStatus"='active' AND "requestDate" BETWEEN '${fromDate}' AND '${toDate}' ), 0) AS "requestVacancy",
-(SELECT COUNT(DISTINCT CONCAT("serviceCandidate", '-', "requestTeam")) FROM public."reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" INNER JOIN "reqServiceRequests" ON "serviceServiceRequst" = "requestId" INNER JOIN "reqTeams" ON "teamId" = "requestTeam" WHERE ("serviceStation"=1 OR "serviceStation" IS NULL)  AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}')  AS "totalApplicants",
+SELECT COALESCE(
+  (
+    SELECT SUM("requestVacancy")
+    FROM public."reqServiceRequests"
+    WHERE "requestStatus" = 'active'
+  ),
+  0
+) AS "requestVacancy",
+ (SELECT COUNT(DISTINCT CONCAT("serviceCandidate", '-', "requestTeam")) FROM public."reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" INNER JOIN "reqServiceRequests" ON "serviceServiceRequst" = "requestId" INNER JOIN "reqTeams" ON "teamId" = "requestTeam" WHERE ("serviceStation"=1 OR "serviceStation" IS NULL)  AND "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}')  AS "totalApplicants",
 (
     SELECT COUNT(DISTINCT ss."serviceCandidate")
     FROM "reqServiceSequences" ss

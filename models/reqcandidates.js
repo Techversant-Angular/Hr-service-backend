@@ -11,9 +11,9 @@ module.exports = (sequelize, DataTypes) => {
       reqCandidates.belongsTo(models.reqUser, { foreignKey: 'candidateCreatedby', as: 'createdBy' });
       reqCandidates.hasMany(models.reqCandidateSkill, { foreignKey: 'candidateId', as: 'candidateSkill' });
       reqCandidates.hasOne(models.reqServiceSequence, { foreignKey: 'serviceCandidate', as: 'serviceSequence' });
-      reqCandidates.belongsTo(models.reqServiceRequest,{foreignKey:'candidatesAddingAgainst'})
+      reqCandidates.belongsTo(models.reqServiceRequest, { foreignKey: 'candidatesAddingAgainst' })
       reqCandidates.hasMany(models.reqCandidateRequestion, { foreignKey: 'candidateId', as: 'candidateReqst' });
-      reqCandidates.hasMany(models.reqCandidateAttachment, { foreignKey: 'candidateId', as: 'attachments'} )
+      reqCandidates.hasMany(models.reqCandidateAttachment, { foreignKey: 'candidateId', as: 'attachments' })
 
     }
   }
@@ -53,6 +53,13 @@ module.exports = (sequelize, DataTypes) => {
       validate: {
         isDate: {
           msg: 'Valid Date Format required'
+        }
+      },
+      set(val) {
+        if (val === '' || val === undefined || val === null) {
+          this.setDataValue('candidateDoB', null);
+        } else {
+          this.setDataValue('candidateDoB', val);
         }
       }
     },
