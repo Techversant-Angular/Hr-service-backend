@@ -483,10 +483,51 @@ exports.viewService = tryCatch(async (req, res) => {
   });
 });
 
+
+function parseDateString(dateStr) {
+  if (!dateStr) return null;
+  if (dateStr instanceof Date) return isNaN(dateStr.getTime()) ? null : dateStr;
+
+  const str = String(dateStr).trim();
+
+  // Try ISO format or standard Date parsing first (e.g., "2025-05-21" or "2025-05-21T00:00:00.000Z")
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  // Handle slash-delimited formats: MM/dd/yyyy or dd/MM/yyyy
+  if (str.includes('/')) {
+    const parts = str.split('/');
+    if (parts.length === 3) {
+      const a = parseInt(parts[0], 10);
+      const b = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+
+      if (!isNaN(a) && !isNaN(b) && !isNaN(year)) {
+        // Try MM/dd/yyyy first (frontend sends this format)
+        if (a >= 1 && a <= 12 && b >= 1 && b <= 31) {
+          const d = new Date(year, a - 1, b);
+          if (!isNaN(d.getTime()) && d.getMonth() === a - 1) return d;
+        }
+        // Fallback to dd/MM/yyyy
+        if (b >= 1 && b <= 12 && a >= 1 && a <= 31) {
+          const d = new Date(year, b - 1, a);
+          if (!isNaN(d.getTime()) && d.getMonth() === b - 1) return d;
+        }
+      }
+    }
+  }
+
+  // Last resort: native Date parsing
+  const fallback = new Date(str);
+  return isNaN(fallback.getTime()) ? null : fallback;
+}
+
 exports.partialServiceEdit = tryCatch(async (req, res) => {
   const { requestionId } = req.params;
-  const { requestSkills, requestFlowStations,requestServiceId, ...updateFields } = req.body;
-  const requestDesignation=req.body.requestDesignation;
+  const { requestSkills, requestFlowStations, requestServiceId, ...updateFields } = req.body;
+  const requestDesignation = req.body.requestDesignation;
 
   // Check if the request exists
   const existingRequest = await reqServiceRequest.findOne({ where: { requestId: requestionId } });
@@ -495,10 +536,27 @@ exports.partialServiceEdit = tryCatch(async (req, res) => {
   }
 
   // Update requestFlowStations if provided
-  if (Array.isArray(requestFlowStations) && requestFlowStations.length > 0 &&requestServiceId) {
+  if (Array.isArray(requestFlowStations) && requestFlowStations.length > 0 && requestServiceId) {
     await scheduleStations({ flowServiceId: requestServiceId, flowStations: requestFlowStations });
   }
   
+
+  if (updateFields.requestPostingDate) {
+    const parsed = parseDateString(updateFields.requestPostingDate);
+    if (!parsed) {
+      return res.status(400).json({ result: false, message: "Invalid posting date format. Expected MM/dd/yyyy." });
+    }
+    updateFields.requestPostingDate = parsed;
+  }
+
+  if (updateFields.requestClosingDate) {
+    const parsed = parseDateString(updateFields.requestClosingDate);
+    if (!parsed) {
+      return res.status(400).json({ result: false, message: "Invalid closing date format. Expected MM/dd/yyyy." });
+    }
+    updateFields.requestClosingDate = parsed;
+  }
+
   // Prepare the update payload
   const updatePayload = {
     ...updateFields,
@@ -506,13 +564,12 @@ exports.partialServiceEdit = tryCatch(async (req, res) => {
   };
 
   //create designtion  if string
-  if (/^\d+$/.test(requestDesignation) == false&&requestDesignation!=undefined) {
+  if (/^\d+$/.test(requestDesignation) == false && requestDesignation != undefined) {
     const designation = await reqDesignation.create({
       designationName: requestDesignation,
     });
     updatePayload.requestDesignation = designation.designationId;
   }
-
 
   // Update the request
   await reqServiceRequest.update(updatePayload, { where: { requestId: requestionId } });
