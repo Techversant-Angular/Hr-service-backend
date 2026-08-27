@@ -51,6 +51,13 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       validate: {
         isDate: { msg: 'Valid Date Format required' }
+      },
+      set(val) {
+        if (val === '' || val === undefined || val === null) {
+          this.setDataValue('candidateDoB', null);
+        } else {
+          this.setDataValue('candidateDoB', val);
+        }
       }
     },
     candidateExperience: DataTypes.STRING,

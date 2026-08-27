@@ -15,9 +15,24 @@ exports.normalizeCandidateRecord = (req, res, next) => {
         candidateSkillsForm
     } = req.body || {};
 
+    const normalizeDate = (dateVal) => {
+        if (!dateVal || typeof dateVal !== 'string') return dateVal;
+        const match = dateVal.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+        if (match) {
+            const day = match[1].padStart(2, '0');
+            const month = match[2].padStart(2, '0');
+            const year = match[3];
+            return `${year}-${month}-${day}`;
+        }
+        return dateVal;
+    };
+
     // A flat payload is still supported for API clients using the old contract.
     if (!candidateForm && !candidateDetailsForm && !candidatePersonalDetailsForm &&
         !candidateProfessionalDetailsForm && !candidateSkillsForm) {
+        if (req.body && req.body.candidateDoB) {
+            req.body.candidateDoB = normalizeDate(req.body.candidateDoB);
+        }
         return next();
     }
 
@@ -38,6 +53,7 @@ exports.normalizeCandidateRecord = (req, res, next) => {
         ...candidateDetailsForm,
         ...candidatePersonalDetailsForm,
         ...candidateProfessionalDetailsForm,
+        candidateDoB: normalizeDate(candidateDetailsForm?.candidateDoB),
         candidatePreferlocation: candidateForm?.preferredLocation,
         // Accept either an existing numeric source ID or the display name sent by the UI.
         resumeSourceId: Number.isInteger(Number(sourceName))
@@ -109,6 +125,22 @@ exports.candidateEdit = [
 
 
     (req, res, next) => {
+        const normalizeDate = (dateVal) => {
+            if (!dateVal || typeof dateVal !== 'string') return dateVal;
+            const match = dateVal.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+            if (match) {
+                const day = match[1].padStart(2, '0');
+                const month = match[2].padStart(2, '0');
+                const year = match[3];
+                return `${year}-${month}-${day}`;
+            }
+            return dateVal;
+        };
+
+        if (req.body && req.body.candidateDoB) {
+            req.body.candidateDoB = normalizeDate(req.body.candidateDoB);
+        }
+
         const errors = validationResult(req);
 
         if (!errors.isEmpty()) {
