@@ -259,6 +259,7 @@ exports.listCandidates = tryCatch(async (req, res) => {
         key: "candidateFirstName",
         width: 25,
       },
+      { header: "Candidate Middle Name", key: "candidateMiddleName", width: 15 },
       { header: "Candidate Last Name", key: "candidateLastName", width: 15 },
       // {
       //   header: "Candidate Experience",
@@ -297,6 +298,27 @@ exports.listCandidates = tryCatch(async (req, res) => {
         key: "candidateExpectedSalary",
         width: 25,
       },
+      {
+        header: "Candidate Summary",
+        key: "candidateSummary",
+        width: 25,
+      },
+      {
+        header: "Candidate Linkedin Url",
+        key: "candidateLinkedinUrl",
+        width: 25,
+      },
+      {
+        header: "Candidate Github Url",
+        key: "candidateGithubUrl",
+        width: 25,
+      },
+      {
+        header: "Candidate Marital Status",
+        key: "candidateMaritalStatus",
+        width: 25
+      },
+      { header: "Candidate Immidiate Joiner", key: "candidateImmidiateJoiner", width: 25 },
       { header: "candidate City", key: "candidateCity", width: 10 },
       { header: "candidate Education", key: "candidateEducation", width: 10 },
     ];
@@ -305,8 +327,14 @@ exports.listCandidates = tryCatch(async (req, res) => {
       return {
         candidateId: le.candidateId,
         candidateFirstName: le.candidateFirstName,
+        candidateMiddleName: le.candidateMiddleName,
         candidateLastName: le.candidateLastName,
         candidateExperience: le.candidateExperience,
+        candidateSummary: le.candidateSummary,
+        candidateLinkedinUrl: le.candidateLinkedinUrl,
+        candidateGithubUrl: le.candidateGithubUrl,
+        candidateMaritalStatus: le.candidateMaritalStatus,
+        candidateImmidiateJoiner: le.candidateImmidiateJoiner,
         candidateRevlentExperience: le.candidateRevlentExperience,
         candidateTotalExperience: le.candidateTotalExperience,
         candidateEmail: le.candidateEmail,
