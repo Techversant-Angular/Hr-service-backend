@@ -24,7 +24,7 @@ exports.resumeSourceData = tryCatch(async (req, res) => {
   const [results, metadata] =
     await sequelize.query(`SELECT  "sourceId","sourceName", COUNT(DISTINCT "candidateId") AS sourceCount FROM public."reqCandidateResumeSources" 
       INNER JOIN public."reqCandidates" ON "resumeSourceId" = "sourceId" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" 
-      WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) ${userCondidtion} AND  "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}' ${request} 
+      WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) AND "candidateStatus" = 'active' AND  "insertOrUpdateDate" BETWEEN '${fromDate}' AND '${toDate}'
       GROUP BY  "sourceId", "sourceName";`);
 
   // const careerFilter = userId ? ` AND "candidateCreatedby"=${userId}` : "";
