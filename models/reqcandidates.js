@@ -48,6 +48,11 @@ module.exports = (sequelize, DataTypes) => {
         }
       },
     },
+    candidateMiddleName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: null,
+    },
     candidateDoB: {
       type: DataTypes.DATE,
       validate: {
@@ -76,7 +81,26 @@ module.exports = (sequelize, DataTypes) => {
         key: 'stationId'
       },
     },
-    candidateAddress: DataTypes.STRING,
+    candidateAddress: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: null,
+    },
+    candidateMaritalStatus: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: null,
+    },
+    candidateLinkedinUrl: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: null,
+    },
+    candidateGithubUrl: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: null,
+    },
     candidateCreatedby: {
       type: DataTypes.BIGINT,
       references: {
@@ -95,6 +119,16 @@ module.exports = (sequelize, DataTypes) => {
     candidateMobileNo: DataTypes.STRING,
     candidateHireRole: DataTypes.STRING,
     candidateResume: DataTypes.STRING,
+    candidateSummary: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      defaultValue: null,
+    },
+    candidateImmidiateJoiner: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: null,
+    },
     candidateNoticePeriodByDays: DataTypes.STRING,
     resumeSourceId: {
       type: DataTypes.INTEGER,
