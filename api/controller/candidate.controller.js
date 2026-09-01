@@ -1,4 +1,5 @@
 const fs = require('fs');
+const progressTracker = require('../utils/progressTracker');
 let {
   reqCandidates, reqCandidateResumeSource, reqUser,
   reqCandidateSkill, sequelize, Sequelize,
@@ -1253,10 +1254,10 @@ exports.submitApplication = tryCatch(async (req, res) => {
     status: true,
     message: "Application submitted successfully",
     data: {
-      candidateId: candidate.candidateId,
-      name: `${candidateFirstName} ${candidateLastName}`,
-      email: candidateEmail,
-      position: positionId,
+    candidateId: candidate.candidateId,
+    name: `${candidateFirstName} ${candidateLastName}`,
+    email: candidateEmail,
+    position: positionId,
     },
   });
 });
@@ -1415,6 +1416,14 @@ exports.jobApply = tryCatch(async (req, res) => {
     },
   });
 });
+
+exports.getUploadProgress = (req, res) => {
+  const uploadId = req.params.uploadId;
+  if (!uploadId) {
+    return res.status(400).json({ status: false, message: "uploadId parameter is required." });
+  }
+  progressTracker.subscribe(uploadId, req, res);
+};
 
 exports.uploadResume = async (req, res) => {
   try {
