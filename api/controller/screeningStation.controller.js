@@ -989,6 +989,7 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
   const bypassing = req.body.bypassing || false;
   const candidates = req.body.candidates;
   const requiementId = req.body.requirementId;
+  const isSourced = req.body.isSourced
   const candidateCreatedby = req.body.userId;
 
   const candidatesAginstRequest = [];
@@ -1000,11 +1001,16 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
     let candidateId = el.candidatesId;
 
     // Check if candidate exists in reqCandidates
-    let candidateInReq = await reqCandidates.findByPk(candidateId);
+    let candidateInReq = await reqCandidates.findOne({
+      where: { candidateId: candidateId, isSourced: isSourced }
+    });
+    
     let jobApplicant = null;
 
-    if (!candidateInReq || req.body.isCareer || el.isCareer) {
-      jobApplicant = await reqJobApplicants.findByPk(candidateId);
+    if (!candidateInReq) {
+      jobApplicant = await reqJobApplicants.findOne({
+        where: { candidateId: candidateId, isSourced: isSourced }
+      });
     }
 
     if (jobApplicant) {
@@ -1036,6 +1042,7 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
           candidatesAddingAgainst: requiementId || jobApplicant.candidatesAddingAgainst,
           candidateStatus: "active",
           candidateInterviewStatus: "inprogress",
+          isSourced: "false",
           candidateCity: jobApplicant.candidateCity,
           candidateDistrict: jobApplicant.candidateDistrict,
           candidateState: jobApplicant.candidateState,

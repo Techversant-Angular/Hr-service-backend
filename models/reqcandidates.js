@@ -112,6 +112,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       defaultValue: 'active'
     },
+    isSourced: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
     candidateEmail: {
       type: DataTypes.STRING,
       allowNull: false
