@@ -1426,23 +1426,35 @@ exports.getUploadProgress = (req, res) => {
 };
 
 exports.uploadResume = async (req, res) => {
+  const uploadId = progressTracker.getOrGenerateUploadId(req);
+  progressTracker.initProgress(uploadId, "Upload started");
+
   try {
+    progressTracker.updateProgress(uploadId, 30, "uploading", "Uploading");
+
     // Check if a file was uploaded
     if (!req.file) {
-      return res.status(400).json({ 
+      progressTracker.updateProgress(uploadId, 0, "error", "Please upload a resume (.pdf, .doc, .docx).");
+      return res.status(400).json({
         result: false,
         message: "Please upload a resume (.pdf, .doc, .docx)."
       });
     }
+
+    progressTracker.updateProgress(uploadId, 50, "parsing", "Resume parsing");
+    progressTracker.updateProgress(uploadId, 75, "processing", "Candidate data processing");
 
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const host = req.headers['x-forwarded-host'] || req.get('host');
     const relativePath = `qa_uploads_docs/${req.file.filename}`;
     const fileUrl = `${protocol}://${host}/${relativePath}`;
 
+    progressTracker.updateProgress(uploadId, 100, "", "Resume uploaded successfully.");
+
     return res.status(200).json({
       result: true,
       message: "Resume uploaded successfully.",
+      uploadId,
       data: {
         fileName: req.file.filename,
         filePath: relativePath,
@@ -1451,6 +1463,7 @@ exports.uploadResume = async (req, res) => {
     });
   } catch (error) {
     console.error("Resume Upload Error:", error);
+    progressTracker.updateProgress(uploadId, 0, "error", error.message || "Failed to upload resume.");
 
     return res.status(500).json({
       result: false,
