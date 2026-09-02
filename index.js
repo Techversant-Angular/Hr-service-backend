@@ -18,7 +18,7 @@ app.use(cors({
       'https://recruitwise.techversantinfotech.com'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE','PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-env'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-env', 'x-upload-id'],
   credentials: true,
 }));
 
