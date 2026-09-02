@@ -1454,11 +1454,11 @@ exports.uploadResume = async (req, res) => {
     return res.status(200).json({
       result: true,
       message: "Resume uploaded successfully.",
-      uploadId,
       data: {
         fileName: req.file.filename,
         filePath: relativePath,
-        fileUrl: fileUrl
+        fileUrl: fileUrl,
+        uploadId
       }
     });
   } catch (error) {
