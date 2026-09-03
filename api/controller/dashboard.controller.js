@@ -663,20 +663,36 @@ exports.recruiterChart = tryCatch(async (req, res) => {
   }
  
   const userId = req.userId;
-  let userCondidtion = "";
-  if (userId) {
-    userCondidtion = ` AND "userId"=${userId} `;
+  const userRole = req.userRole;
+
+  const allowedRoles = ["1","2","5", "6","7"];
+  let hasPermission = false;
+  if (Array.isArray(userRole)) {
+    hasPermission = userRole.some(
+      (role) =>
+        allowedRoles.includes(role) ||
+        allowedRoles.includes(String(role).trim())
+    );
+  } else if (userRole !== undefined && userRole !== null) {
+    const roles = String(userRole).split(",").map((r) => r.trim());
+    hasPermission = roles.some((role) => allowedRoles.includes(role));
   }
- 
+
+  if (!hasPermission) {
+    return res
+      .status(200)
+      .json({ result: true, message: response.DATA_RETRIEVED, data: [] });
+  }
+
   let startDate = start_date + ' 00:00:00Z';
   let endDate = end_date + ' 23:59:59Z';
- 
+
   if (last_six_month == "true") {
     const sixMonthsAgo = format(subMonths(new Date(), 6), 'yyyy-MM-dd');
     startDate = sixMonthsAgo + ' 00:00:00Z';
     endDate = format(new Date(), 'yyyy-MM-dd') + ' 23:59:59Z';
   }
- 
+
   const [totalSourced, metadata] = await sequelize.query(`SELECT
         u."userfirstName",
         COUNT(*) AS total_totalSourced
@@ -689,7 +705,6 @@ exports.recruiterChart = tryCatch(async (req, res) => {
         ON ur."roleUserId"::varchar = u."userRole"
     WHERE
         (ss."serviceStation" = 1 OR ss."serviceStation" IS NULL)
-        ${userCondidtion}
         AND u."userRole" = '6'
         AND ss."insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'
     GROUP BY
@@ -710,7 +725,6 @@ WHERE
     ss."serviceStation" = 5
     AND u."userRole" = '6'
     AND ss."serviceStatus" = 'done'
-    ${userCondidtion}
     AND ss."insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'
 GROUP BY
     u."userfirstName",
@@ -718,7 +732,7 @@ GROUP BY
 ORDER BY
     total_hired DESC;
 `);
- 
+
   const [offerSourced, offerMetadata] = await sequelize.query(`SELECT
         u."userfirstName",
         COUNT(*) AS total_offerReleased
@@ -733,7 +747,6 @@ ORDER BY
         ON ur."roleUserId"::varchar = u."userRole"
     WHERE
         ss."serviceStation" = 5
-        ${userCondidtion}
         AND u."userRole" = '6'
         AND ss."insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'
     GROUP BY
