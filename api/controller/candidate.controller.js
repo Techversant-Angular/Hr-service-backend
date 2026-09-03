@@ -623,7 +623,7 @@ exports.viewCandidate = tryCatch(async (req, res) => {
         "reqCandidates"."candidateRevlentExperience",
         "reqCandidates"."candidatePreferlocation",
         "reqCandidates"."candidateCity",
-        "reqCandidates".""candidateNoticePeriodByDays",
+        "reqCandidates"."candidateNoticePeriodByDays",
         "reqCandidates"."candidateDistrict",
         "reqCandidates"."candidateState",
         "reqCandidates"."candidateInterviewStatus",
