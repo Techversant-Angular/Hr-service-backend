@@ -1650,61 +1650,81 @@ exports.sourcedCandidates = tryCatch(async (req, res) => {
 });
 
 exports.jobOpeningCareers = tryCatch(async (req, res) => {
-  let limit = Number(req.query.limit) || 100;
-  let page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 100;
+  const page = Number(req.query.page) || 1;
   const report = req.query.report;
+  const search = req.query.search?.trim() || "";
 
   const offset = (page - 1) * limit;
 
-  const { count, rows: jobOpenings } = await reqJobOpening.findAndCountAll({
-    ...(report === "true"
-      ? {}
-      : {
-          limit,
-          offset,
-        }),
-    order: [["requestId", "DESC"]],
-  });
+  const where = search
+    ? {
+        [Op.or]: [
+          { requestName: { [Op.iLike]: `%${search}%` } },
+          { requestDesignation: { [Op.iLike]: `%${search}%` } },
+          { requestDescription: { [Op.iLike]: `%${search}%` } },
+        ],
+      }
+    : {};
 
-  const totalPages = report === "true" ? 1 : Math.ceil(count / limit);
-
-  if (jobOpenings.length) {
-    // Fetch all mappings for the current page's job openings in one query
-    const jobOpeningIds = jobOpenings.map((j) => j.requestId);
-    const mappings = await reqServiceRequestsJobOpenings.findAll({
-      where: { jobOpeningId: { [Op.in]: jobOpeningIds } },
-      attributes: ["jobOpeningId", "requisitionId"],
-      raw: true,
+  const { count, rows: jobOpenings } =
+    await reqJobOpening.findAndCountAll({
+      where,
+      ...(report === "true"
+        ? {}
+        : {
+            limit,
+            offset,
+          }),
+      order: [["requestId", "DESC"]],
     });
 
-    // Build a lookup map: jobOpeningId -> requisitionId
-    const mappingMap = {};
+  const totalPages =
+    report === "true" ? 1 : Math.ceil(count / limit);
+
+  const jobOpeningIds = jobOpenings.map(
+    (j) => j.requestId
+  );
+
+  let mappingMap = {};
+
+  if (jobOpeningIds.length) {
+    const mappings =
+      await reqServiceRequestsJobOpenings.findAll({
+        where: {
+          jobOpeningId: {
+            [Op.in]: jobOpeningIds,
+          },
+        },
+        attributes: ["jobOpeningId", "requisitionId"],
+        raw: true,
+      });
+
     mappings.forEach((m) => {
       mappingMap[m.jobOpeningId] = m.requisitionId;
     });
-
-    const data = jobOpenings.map((job) => {
-      const jobJson = job.toJSON();
-      const requisitionId = mappingMap[job.requestId];
-      return {
-        ...jobJson,
-        isAssigned: requisitionId !== undefined,
-        assignedRequisitionId: requisitionId ?? null,
-      };
-    });
-
-    return res.status(200).json({
-      result: true,
-      message: response.DATA_RETRIEVED,
-      totalCount: count,
-      totalPages,
-      currentPage: report === "true" ? 1 : page,
-      pageSize: limit,
-      data,
-    });
   }
 
-  throw new Error(response.JOB_OPENINGS_NOT_FOUND);
+  const data = jobOpenings.map((job) => {
+    const jobJson = job.toJSON();
+    const requisitionId = mappingMap[job.requestId];
+
+    return {
+      ...jobJson,
+      isAssigned: requisitionId !== undefined,
+      assignedRequisitionId: requisitionId ?? null,
+    };
+  });
+
+  return res.status(200).json({
+    result: true,
+    message: response.DATA_RETRIEVED,
+    totalCount: count,
+    totalPages,
+    currentPage: report === "true" ? 1 : page,
+    pageSize: limit,
+    data,
+  });
 });
 
 exports.jobCareerApplications = tryCatch(async (req, res) => {
