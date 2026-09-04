@@ -9,6 +9,8 @@ let { reqServiceSequence, reqTask, reqCandidates, reqServiceRequest, reqTeam,
 } = require("../../models");
 const response = require("../../api/utils/responseMessages");
 const { sendFeedbackAcknowledgement } = require("../utils/commonFunction");
+const crypto = require("crypto");
+const progressTracker = require("../utils/progressTracker");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const { s3Client } = require("../../config/config");
@@ -1150,6 +1152,10 @@ exports.editProgressV1 = tryCatch(async (req, res) => {
 });
 
 exports.generatePresignedUrl = tryCatch(async (req, res, next) => {
+  let uploadId = progressTracker.getOrGenerateUploadId(req);
+  if (!uploadId) {
+    uploadId = crypto.randomUUID();
+  }
 
   try {
     const fileName = req.query.fileName;
@@ -1178,6 +1184,7 @@ exports.generatePresignedUrl = tryCatch(async (req, res, next) => {
     return res.status(200).json({
       result: true,
       message: "Presigned URL generated successfully",
+      uploadId,
       data: {
         uploadUrl: presignedUrl,
         publicUrl: publicUrl,
@@ -1188,8 +1195,6 @@ exports.generatePresignedUrl = tryCatch(async (req, res, next) => {
       }
     });
   } catch (error) {
-    console.error(error);
-
     res.status(500).json({
       message: "Error generating upload URL"
     });

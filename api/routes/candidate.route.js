@@ -46,19 +46,23 @@ router.post('/apply-job', uploadResume.single('candidateResume'), submitApplicat
 
 router.post('/resume/upload', uploadResume.single('candidateResume'), controller.uploadResume);
 
+// SSE progress stream endpoint for resume upload/processing
+router.get('/upload-progress/:uploadId', controller.getUploadProgress);
+
 router.get('/sourced-candidates', authenticate, controller.sourcedCandidates);
 
 router.get('/careers/job/openings', controller.jobOpeningCareers);
 
 // candidate attachments
 router.get('/attachment/types', authenticate, attachmentController.getAttachmentTypes);
+
 router.post('/attachment', authenticate, createAttachmentValidate, attachmentController.createAttachment);
+
 router.get('/attachment', authenticate, listAttachmentsValidate, attachmentController.getAttachments);
+
 router.delete('/attachment/:attachmentId', authenticate, deleteAttachmentValidate, attachmentController.deleteAttachment);
 
-
 router.get('/careers/job/applications', controller.jobCareerApplications);
-
 
 // AI-powered resume parsing using Google Gemini
 router.post("/resume/ai-parse", uploadResume.single("candidateResume"), resumeController.parseResume);
