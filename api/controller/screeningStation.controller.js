@@ -1351,6 +1351,7 @@ exports.toDateInterviewList = tryCatch(async (req, res) => {
             FROM "reqCandidateProgresses" AS "progress"
             WHERE "progress"."progressServiceSequence" =
                   "reqServiceSequencesAcitve"."serviceId"
+              AND (LOWER(TRIM("progress"."progressDescription")) != 'hold' OR "progress"."progressDescription" IS NULL)
           )`),
           "progressStatus",
         ],
@@ -1504,7 +1505,7 @@ exports.candidatesPrgressList = tryCatch(async (req, res) => {
       include: [
         [
           sequelize.literal(`(SELECT COUNT(*)
-                    FROM "reqCandidateProgresses" AS "progress" WHERE "progress"."progressServiceSequence"="reqServiceSequencesAcitve"."serviceId")`),
+                    FROM "reqCandidateProgresses" AS "progress" WHERE "progress"."progressServiceSequence"="reqServiceSequencesAcitve"."serviceId" AND (LOWER(TRIM("progress"."progressDescription")) != 'hold' OR "progress"."progressDescription" IS NULL))`),
           "progressStatus",
         ],
         [

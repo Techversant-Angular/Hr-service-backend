@@ -86,7 +86,7 @@ exports.list = tryCatch(async (req, res) => {
       include: [
         [
           sequelize.literal(`(SELECT COUNT(*)
-                    FROM "reqCandidateProgresses" AS "progress" WHERE "progress"."progressServiceSequence"="reqServiceSequencesAcitve"."serviceId")`),
+                    FROM "reqCandidateProgresses" AS "progress" WHERE "progress"."progressServiceSequence"="reqServiceSequencesAcitve"."serviceId" AND (LOWER(TRIM("progress"."progressDescription")) != 'hold' OR "progress"."progressDescription" IS NULL))`),
           "progressStatus",
         ],
         [
@@ -365,6 +365,18 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
       { serviceStatus: 'hold' },
       { where: { serviceId: progressServiceId } }
     );
+
+    await reqCandidateProgress.create(defaultData);
+    
+    await reqCandidateComments.create({
+      commentSeqenceId: progressServiceId,
+      commentComment: holdDescription,
+      commentUserId: progressAssignee,
+    });
+    return res.status(200).json({
+      result: true,
+      message: "Technical 1 Progress put on hold",
+    });
   }
 
   const [progress, created] = await reqCandidateProgress.findOrCreate({
@@ -427,7 +439,7 @@ exports.progressDetail = tryCatch(async (req, res) => {
       "serviceAssignee",
       [
         sequelize.literal(`(SELECT COUNT(*)
-                  FROM "reqCandidateProgresses" AS "progress" WHERE "progress"."progressServiceSequence"="reqServiceSequence"."serviceId")`),
+                  FROM "reqCandidateProgresses" AS "progress" WHERE "progress"."progressServiceSequence"="reqServiceSequence"."serviceId" AND (LOWER(TRIM("progress"."progressDescription")) != 'hold' OR "progress"."progressDescription" IS NULL))`),
         "progressStatus",
       ],
       [

@@ -91,7 +91,7 @@ exports.list = tryCatch(async (req, res) => {
       include: [
         [
           sequelize.literal(`(SELECT COUNT(*)
-                    FROM "reqCandidateProgresses" AS "progress" WHERE "progress"."progressServiceSequence"="reqServiceSequencesAcitve"."serviceId")`),
+                    FROM "reqCandidateProgresses" AS "progress" WHERE "progress"."progressServiceSequence"="reqServiceSequencesAcitve"."serviceId" AND (LOWER(TRIM("progress"."progressDescription")) != 'hold' OR "progress"."progressDescription" IS NULL))`),
           "progressStatus",
         ],
         [
@@ -631,7 +631,7 @@ exports.progressDetail = tryCatch(async (req, res) => {
       "serviceAssignee",
       [
         sequelize.literal(`(SELECT COUNT(*)
-                  FROM "reqCandidateProgresses" AS "progress" WHERE "progress"."progressServiceSequence"="reqServiceSequence"."serviceId")`),
+                  FROM "reqCandidateProgresses" AS "progress" WHERE "progress"."progressServiceSequence"="reqServiceSequence"."serviceId" AND (LOWER(TRIM("progress"."progressDescription")) != 'hold' OR "progress"."progressDescription" IS NULL))`),
         "progressStatus",
       ],
       [

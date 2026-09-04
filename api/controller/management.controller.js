@@ -78,7 +78,7 @@ exports.list = tryCatch(async (req, res) => {
       include: [
         [
           sequelize.literal(`(SELECT COUNT(*)
-            FROM "reqCandidateProgresses" AS "progress" WHERE "progress"."progressServiceSequence"="reqServiceSequence"."serviceId")`), 'progressStatus'
+            FROM "reqCandidateProgresses" AS "progress" WHERE "progress"."progressServiceSequence"="reqServiceSequence"."serviceId" AND (LOWER(TRIM("progress"."progressDescription")) != 'hold' OR "progress"."progressDescription" IS NULL))`), 'progressStatus'
         ], [
           sequelize.literal(`(SELECT "stationName"
             FROM "reqServiceSequences" AS "sequence" INNER JOIN "reqStations" ON "stationId"="serviceStation" WHERE "sequence"."serviceCandidate"="reqServiceSequence"."serviceCandidate" AND "sequence"."serviceServiceRequst"="reqServiceSequence"."serviceServiceRequst" ORDER BY "serviceId" DESC LIMIT 1)`),
@@ -388,7 +388,7 @@ exports.progressDetail = async (req, res) => {
           "pannelName"
         ], [
           sequelize.literal(`(SELECT COUNT(*)
-            FROM "reqCandidateProgresses" AS "progress" WHERE "progress"."progressServiceSequence"="reqServiceSequence"."serviceId")`), 'progressStatus'
+            FROM "reqCandidateProgresses" AS "progress" WHERE "progress"."progressServiceSequence"="reqServiceSequence"."serviceId" AND (LOWER(TRIM("progress"."progressDescription")) != 'hold' OR "progress"."progressDescription" IS NULL))`), 'progressStatus'
         ],
         [
         sequelize.literal(`(SELECT "holdDescription"
@@ -520,12 +520,24 @@ exports.addProgressV1 = async (req, res, next) => {
       defaultData.progressFile = file;
     }
 
-    if (isOnHold) {
-      await reqServiceSequence.update(
-        { serviceStatus: 'hold' },
-        { where: { serviceId: progressServiceId } }
-      );
-    }
+      if (isOnHold) {
+    await reqServiceSequence.update(
+      { serviceStatus: 'hold' },
+      { where: { serviceId: progressServiceId } }
+    );
+
+    await reqCandidateProgress.create(defaultData);
+    
+    await reqCandidateComments.create({
+      commentSeqenceId: progressServiceId,
+      commentComment: holdDescription,
+      commentUserId: progressAssignee,
+    });
+    return res.status(200).json({
+      result: true,
+      message: "Technical 1 Progress put on hold",
+    });
+  }
 
     if (progressScore) {
       defaultData.progressScore = progressScore;
