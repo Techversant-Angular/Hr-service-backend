@@ -367,6 +367,18 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
       { serviceStatus: 'hold' },
       { where: { serviceId: progressServiceId } }
     );
+
+    await reqCandidateProgress.create(defaultData);
+    
+    await reqCandidateComments.create({
+      commentSeqenceId: progressServiceId,
+      commentComment: holdDescription,
+      commentUserId: progressAssignee,
+    });
+    return res.status(200).json({
+      result: true,
+      message: "Technical 1 Progress put on hold",
+    });
   }
 
   const [progress, created] = await reqCandidateProgress.findOrCreate({
