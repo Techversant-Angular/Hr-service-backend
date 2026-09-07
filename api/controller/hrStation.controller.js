@@ -116,7 +116,8 @@ exports.list = tryCatch(async (req, res) => {
 
         [
           sequelize.literal(`(SELECT COUNT(*)
-                    FROM "reqCandidateProgresses" AS "review" WHERE "review"."progressServiceSequence"="reqServiceSequencesAcitve"."serviceId" AND "review"."progressStation"=5)`),
+                    FROM "reqCandidateProgresses" AS "review" WHERE "review"."progressServiceSequence"="reqServiceSequencesAcitve"."serviceId" AND "review"."progressStation"=5
+                    AND (LOWER(TRIM("review"."progressDescription")) != 'hold' OR "review"."progressDescription" IS NULL))`),
           "reviewStatus",
         ]]
     },
@@ -559,9 +560,27 @@ exports.addProgress = tryCatch(async (req, res) => {
 
   if (file) { defaultData.progressFile = file; }
 
-  if (isOnHold) {
+    if (isOnHold) {
     await reqServiceSequence.update(
       { serviceStatus: 'hold' },
+      { where: { serviceId: progressServiceId } }
+    );
+
+    await reqCandidateProgress.create(defaultData);
+    
+    await reqCandidateComments.create({
+      commentSeqenceId: progressServiceId,
+      commentComment: holdDescription,
+      commentUserId: progressAssignee,
+    });
+    return res.status(200).json({
+      result: true,
+      message: "HR Progress put on hold",
+    });
+  }
+  if(!isOnHold){
+    await reqServiceSequence.update(
+      { serviceStatus: 'pending' },
       { where: { serviceId: progressServiceId } }
     );
   }

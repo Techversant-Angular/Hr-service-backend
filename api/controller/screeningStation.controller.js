@@ -527,6 +527,7 @@ exports.interviewDetail = tryCatch(async (req, res) => {
         interviewMail: true,
         interviewMailType: "re-scheduled-mail",
         insertOrUpdateDate: todate,
+        serviceStatus: "pending",
       },
       { where: { serviceCandidate: candidateId, serviceId: serviceId } }
     );
