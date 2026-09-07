@@ -633,8 +633,8 @@ exports.addProgress = tryCatch(async (req, res) => {
       .json({ result: true, message: response.TECHNICAL_PROGRESS_ADDED });
   }
   return res
-    .status(401)
-    .json({ result: false, message: "Technical Progress already found" });
+      .status(200)
+      .json({ result: true, message: response.TECHNICAL_PROGRESS_ADDED });
 
 });
 
