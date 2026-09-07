@@ -61,7 +61,7 @@ const existingRequest = await reqServiceRequest.findOne({
   if (existingRequest) {
     return res.status(400).json({
       result: false,
-      message: "Request code or name already exists",
+      message: "Requisition already exists",
     });
   }
 
