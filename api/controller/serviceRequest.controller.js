@@ -39,6 +39,32 @@ exports.createService = tryCatch(async (req, res) => {
 
   const requestFlowStations = req.body.requestFlowStations;
   const requestDesignation = req.body.requestDesignation;
+
+  const requestCode = transformedObject.requestCode;
+
+  if (!requestCode) {
+    return res.status(400).json({
+      result: false,
+      message: "requestCode is required",
+    });
+  }
+
+const existingRequest = await reqServiceRequest.findOne({
+  where: {
+    [Op.or]: [
+      { requestCode: transformedObject.requestCode },
+      { requestName: transformedObject.requestName },
+    ],
+  },
+});
+
+  if (existingRequest) {
+    return res.status(400).json({
+      result: false,
+      message: "Request code or name already exists",
+    });
+  }
+
   let service;
   let responseMessage = "";
   const team = await reqTeam.findOne({
