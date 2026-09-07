@@ -380,6 +380,12 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
       message: "Technical 1 Progress put on hold",
     });
   }
+  if(!isOnHold){
+    await reqServiceSequence.update(
+      { serviceStatus: 'pending' },
+      { where: { serviceId: progressServiceId } }
+    );
+  }
 
   const [progress, created] = await reqCandidateProgress.findOrCreate({
     where: {
@@ -428,9 +434,9 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
       .status(200)
       .json({ result: true, message: "Technical 1 Progress added" });
   }
-  return res
-    .status(401)
-    .json({ result: false, message: "Technical 1 Progress already found" });
+   return res
+    .status(200)
+    .json({ result: true, message: response.TECHNICAL_PROGRESS_ADDED });
 });
 exports.updateProgressV1 = tryCatch(async (req, res) => {
   const { progressServiceId } = req.params;

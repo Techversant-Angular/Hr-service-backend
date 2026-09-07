@@ -376,6 +376,12 @@ exports.addProgressV1 = tryCatch(async (req, res) => {
       message: "Technical 1 Progress put on hold",
     });
   }
+  if (!isOnHold) {
+    await reqServiceSequence.update(
+      { serviceStatus: 'pending' },
+      { where: { serviceId: progressServiceId } }
+    );
+  }
  
 
   const [progress, created] = await reqCandidateProgress.findOrCreate({

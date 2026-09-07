@@ -538,6 +538,12 @@ exports.addProgressV1 = async (req, res, next) => {
       message: "Technical 1 Progress put on hold",
     });
   }
+    if (!isOnHold) {
+      await reqServiceSequence.update(
+        { serviceStatus: 'pending' },
+        { where: { serviceId: progressServiceId } }
+      );
+    }
 
     if (progressScore) {
       defaultData.progressScore = progressScore;
@@ -579,7 +585,10 @@ exports.addProgressV1 = async (req, res, next) => {
       return res.status(200).json({ result: true, message: "Management Progress added" });
     }
 
-    return res.status(401).json({ result: false, message: "Management Progress already found" });
+    // return res.status(401).json({ result: false, message: "Management Progress already found" });
+    return res
+    .status(200)
+    .json({ result: true, message: "Management Progress added" });
   } catch (error) {
     next(error); // Passes the error to the error-handling middleware
   }
