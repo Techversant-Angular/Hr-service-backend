@@ -38,7 +38,7 @@ const getCandidateResumePath = (req) => {
         : req.file.key;
     }
     if (req.file.filename) {
-      return `/qa_uploads_docs/images/${req.file.filename}`;
+      return `/qa_uploads_docs/${req.file.filename}`;
     }
     if (req.file.path && (req.file.path.startsWith('http://') || req.file.path.startsWith('https://'))) {
       return req.file.path;
