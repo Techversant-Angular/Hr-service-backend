@@ -15,6 +15,41 @@ let { logFunction, profileSourceReport, reqcuriterReport } = require("../utils/c
 let jsonData = require("../utils/userRignts.json");
 const { tryCatch } = require("../utils/trycatch");
 
+const safeUnlinkFile = (file) => {
+  if (file && file.path && fs.existsSync(file.path)) {
+    try {
+      fs.unlinkSync(file.path);
+    } catch (err) {
+      console.error("Error unlinking local file:", err);
+    }
+  }
+};
+
+const getCandidateResumePath = (req) => {
+  if (req.file) {
+    if (req.file.location) {
+      return req.file.location;
+    }
+    if (req.file.key) {
+      const bucket = process.env.AWS_BUCKET_NAME;
+      const region = process.env.AWS_REGION;
+      return (bucket && region)
+        ? `https://${bucket}.s3.${region}.amazonaws.com/${req.file.key}`
+        : req.file.key;
+    }
+    if (req.file.filename) {
+      return `/qa_uploads_docs/images/${req.file.filename}`;
+    }
+    if (req.file.path && (req.file.path.startsWith('http://') || req.file.path.startsWith('https://'))) {
+      return req.file.path;
+    }
+  }
+  if (req.body && (req.body.candidateResume || req.body.fileUrl || req.body.filePath || req.body.resumeUrl)) {
+    return req.body.candidateResume || req.body.fileUrl || req.body.filePath || req.body.resumeUrl;
+  }
+  return null;
+};
+
 exports.createCandidate = tryCatch(async (req, res) => {
   const { ...parameter } = req.body;
   const {
@@ -1137,19 +1172,18 @@ exports.submitApplication = tryCatch(async (req, res) => {
       attributes: ['requestId'],
     });
     if (!position) {
-      if (req.file) {
-        fs.unlinkSync(req.file.path);
-      }
+      safeUnlinkFile(req.file);
       return res.status(400).json({ status: false, message: "Invalid position. Please select a valid job position." });
     }
     positionId = position.requestId;
   }
 
-  // Get the uploaded resume file path
-  if (!req.file) {
+  // Get the uploaded resume file path or S3 URL
+  const candidateResume = getCandidateResumePath(req);
+  if (!candidateResume) {
+    safeUnlinkFile(req.file);
     return res.status(400).json({ status: false, message: "CV/Resume file is required" });
   }
-  const candidateResume = `/uploads/images/${req.file.filename}`;
 
   // Check if candidate already applied with same email for the same position
   const existingCandidate = await reqCandidates.findOne({
@@ -1161,9 +1195,7 @@ exports.submitApplication = tryCatch(async (req, res) => {
   });
 
   if (existingCandidate) {
-    if (req.file) {
-      fs.unlinkSync(req.file.path);
-    }
+    safeUnlinkFile(req.file);
     return res.status(409).json({
       status: false,
       message: "You have already applied for this position",
@@ -1179,15 +1211,13 @@ exports.submitApplication = tryCatch(async (req, res) => {
   });
 
   if (emailExists) {
-    if (req.file) {
-      fs.unlinkSync(req.file.path);
-    }
+    safeUnlinkFile(req.file);
     return res.status(409).json({
       status: false,
       message: "Email already exists",
     });
   }
-    const phNumberExists = await reqCandidates.findOne({
+  const phNumberExists = await reqCandidates.findOne({
     where: {
       candidateMobileNo,
       candidateStatus: "active",
@@ -1195,9 +1225,7 @@ exports.submitApplication = tryCatch(async (req, res) => {
   });
 
   if (phNumberExists) {
-    if (req.file) {
-      fs.unlinkSync(req.file.path);
-    }
+    safeUnlinkFile(req.file);
     return res.status(409).json({
       status: false,
       message: "Phone number already exists",
@@ -1276,9 +1304,7 @@ exports.jobApply = tryCatch(async (req, res) => {
       attributes: ['requestId'],
     });
     if (!position) {
-      if (req.file) {
-        fs.unlinkSync(req.file.path);
-      }
+      safeUnlinkFile(req.file);
       return res.status(400).json({ result: false, message: "Invalid position. Please select a valid job position." });
     }
     positionId = position.requestId;
@@ -1289,19 +1315,18 @@ exports.jobApply = tryCatch(async (req, res) => {
       attributes: ['requestId'],
     });
     if (!position) {
-      if (req.file) {
-        fs.unlinkSync(req.file.path);
-      }
+      safeUnlinkFile(req.file);
       return res.status(400).json({ result: false, message: "Invalid position. Please select a valid job position." });
     }
     positionId = position.requestId;
   }
 
-  // Get the uploaded resume file path
-  if (!req.file) {
+  // Get the uploaded resume file path or S3 URL
+  const candidateResume = getCandidateResumePath(req);
+  if (!candidateResume) {
+    safeUnlinkFile(req.file);
     return res.status(400).json({ status: false, message: "CV/Resume file is required" });
   }
-  const candidateResume = `/uploads/images/${req.file.filename}`;
 
   // Check if candidate already applied with same email for the same position
   const existingCandidate = await reqJobApplicants.findOne({
@@ -1313,9 +1338,7 @@ exports.jobApply = tryCatch(async (req, res) => {
   });
 
   if (existingCandidate) {
-    if (req.file) {
-      fs.unlinkSync(req.file.path);
-    }
+    safeUnlinkFile(req.file);
     return res.status(409).json({
       status: false,
       message: "Already applied for this position",

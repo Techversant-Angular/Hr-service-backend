@@ -4,7 +4,7 @@ const { sequelize } = require("../../models");
 const syncSkills = async (skills = {}) => {
   const technicalSkills = [
     ...new Set(
-      (skills.technical || [])
+      (skills.tech || [])
         .map((skill) => skill?.trim())
         .filter(Boolean)
     ),
