@@ -1043,7 +1043,7 @@ exports.candidateMapRequirementv1 = tryCatch(async (req, res) => {
           candidatesAddingAgainst: requiementId || jobApplicant.candidatesAddingAgainst,
           candidateStatus: "active",
           candidateInterviewStatus: "inprogress",
-          isSourced: "false",
+          isSourced: "true",
           candidateCity: jobApplicant.candidateCity,
           candidateDistrict: jobApplicant.candidateDistrict,
           candidateState: jobApplicant.candidateState,
