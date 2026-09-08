@@ -105,7 +105,7 @@ exports.createCandidate = [
     body('candidatePreferlocation').isString().withMessage('Prefered Location is mandatory').optional({ nullable: true }),
     body('candidateRevlentExperience').isString().withMessage('candidate Revlent Experience is mandatory').optional({ nullable: true }),
     body('candidateTotalExperience').isString().withMessage('candidate Total Experience is mandatory').optional({ nullable: true }),
-    body('candidateNoticePeriodByDays').isString().withMessage('candidate Notice Period is mandatory'),
+    body('candidateNoticePeriodByDays').isInt().withMessage('candidate Notice Period is mandatory').optional({ nullable: true }),
 
 
     (req, res, next) => {
