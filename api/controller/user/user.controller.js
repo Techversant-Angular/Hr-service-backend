@@ -6,7 +6,17 @@ exports.createUser = async (req, res, next) => {
     let { userMultipleRole, ...parameter } = req.body;
     let { userEmail, userType } = parameter;
 
-    try {
+    try {   
+         // Password validation
+        const passwordRegex =
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
+
+        if (!passwordRegex.test(parameter.userPassword)) {
+            return res.status(400).send({
+                status: false,
+                message: 'Password must be at least 8 characters and contain uppercase, lowercase, number, and special character.'
+            });
+        }
         const userIspresent = await reqUser.findOne({
             where: {
                 userEmail,
