@@ -458,11 +458,16 @@ exports.progressDetail = async (req, res) => {
 
 
     if (candidates) {
-
+      const comments = await reqCandidateComments.findAll({
+        where: { commentSeqenceId: serviceId },
+        order: [['commentId', 'DESC']],
+        raw: true,
+      });
       const [skills, metadata] = await sequelize.query(`SELECT *  FROM "reqCandidateSkills" INNER JOIN "reqSkills" ON "candidateSkillId"="reqSkills"."id" WHERE "candidateId"=:candidateId `, { replacements: { candidateId: candidates.serviceCandidate } });
       const [skillScore, scoreMetadata] = await sequelize.query(`SELECT *  FROM "reqProgressSkills" INNER JOIN "reqSkills" ON "reqProgressSkills"."skillId"="reqSkills"."id" WHERE "serviceSeqId"=:serviceId `, { replacements: { serviceId: serviceId } });
       candidates.skills = skills;
       candidates.skillScore = skillScore;
+      candidates.comments = comments;
       return res.status(200).json({
         result: true,
         message: "Management Candidates Found",
@@ -532,6 +537,7 @@ exports.addProgressV1 = async (req, res, next) => {
       commentSeqenceId: progressServiceId,
       commentComment: holdDescription,
       commentUserId: progressAssignee,
+      commentType: 'hold',
     });
     return res.status(200).json({
       result: true,
@@ -574,6 +580,7 @@ exports.addProgressV1 = async (req, res, next) => {
       commentSeqenceId: progressServiceId,
       commentComment: progressComment,
       commentUserId: progressAssignee,
+      commentType: 'feedback'
     });
 
     if (created) {

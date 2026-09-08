@@ -297,7 +297,8 @@ exports.rejectCandidate = tryCatch(async (req, res, next) => {
       commentSeqenceId: serviceId,
       commentComment: feedBack,
       commentUserId: userId,
-      offerReleaseReject: 1
+      offerReleaseReject: 1,
+      commentType: "reject"
     });
   }
 

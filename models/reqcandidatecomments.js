@@ -31,6 +31,7 @@ module.exports = (sequelize, DataTypes) => {
       }
     },
     commentComment: DataTypes.STRING,
+    commentType: DataTypes.STRING,
     commentUserId: DataTypes.INTEGER,
     offerReleaseReject: DataTypes.INTEGER,
     commentDate: {
