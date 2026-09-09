@@ -7,6 +7,7 @@ exports.createUser = async (req, res, next) => {
     let { userEmail, userType } = parameter;
 
     try {   
+                parameter.userWorkStation = 1
          // Password validation
         const passwordRegex =
             /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
