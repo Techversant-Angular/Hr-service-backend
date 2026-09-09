@@ -42,6 +42,19 @@ exports.parseResume = async (req, res) => {
 
     // Send to Gemini AI
     const candidateData = await parseResume(resumeText);
+    candidateData.phone = normalizePhoneNumber(candidateData.phone);
+    candidateData.linkedin = normalizeResumeLink(
+    candidateData.linkedin,
+      "linkedin"
+    );
+    candidateData.github = normalizeResumeLink(
+      candidateData.github,
+      "github"
+    );
+    candidateData.portfolio = normalizeResumeLink(
+      candidateData.portfolio,
+      "portfolio"
+    );
     progressTracker.updateProgress(uploadId, 75, "processing", "Candidate data processing");
     await syncSkills(candidateData.skills);
 
@@ -63,6 +76,37 @@ exports.parseResume = async (req, res) => {
       uploadId,
       error: error.message,
     });
+  }
+};
+
+const normalizePhoneNumber = (phone = "") => {
+  return String(phone).replace(/\s+/g, "");
+};
+
+const normalizeResumeLink = (value, type) => {
+  if (!value || typeof value !== "string") {
+    return "";
+  }
+  let link = value.trim();
+  // Reject visible labels such as "LinkedIn", "GitHub", "Portfolio"
+  if (!link.includes(".")) {
+    return "";
+  }
+  // Add protocol if it is missing
+  if (!/^https?:\/\//i.test(link)) {
+    link = `https://${link}`;
+  }
+  try {
+    const url = new URL(link);
+    if (type === "linkedin" && !url.hostname.includes("linkedin.com")) {
+      return "";
+    }
+    if (type === "github" && !url.hostname.includes("github.com")) {
+      return "";
+    }
+    return link;
+  } catch {
+    return "";
   }
 };
 
