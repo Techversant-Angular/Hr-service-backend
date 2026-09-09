@@ -91,6 +91,9 @@ exports.login = async (req, res, next) => {
         setRefreshTokenCookie(req, res, refreshToken);
 
         let responseUser = user.toJSON();
+        delete responseUser.userPassword;
+        delete responseUser.createdAt;
+        delete responseUser.updatedAt;
         responseUser.userRole = formattedRoles;
 
         return res.status(200).json({
