@@ -5,7 +5,7 @@ let {
   reqCandidateSkill, sequelize, Sequelize,
   reqSkill, reqStation, reqServiceRequest,
   reqCandidateComments, reqServiceSequence, reqCandidateRequestion,
-  reqJobApplicants, reqJobOpening, reqServiceRequestsJobOpenings
+  reqJobApplicants, reqJobOpening, reqServiceRequestsJobOpenings, reqCandidateProgress
 } = require("../../models");
 const response = require("../../api/utils/responseMessages");
 const { format, addMonths, isAfter } = require("date-fns");
@@ -872,6 +872,22 @@ exports.candiateMailList = tryCatch(async (req, res, next) => {
 exports.removeCandidate = tryCatch(async (req, res, next) => {
 
   const candidateId = req.body.candidateId;
+
+  const checkCandidateReq = await reqCandidateRequestion.findAll({
+    where: {
+      candidateId,
+    },
+    limit: 1,
+  });
+  if (checkCandidateReq.length > 0) {
+    return res.status(401).json({
+      result: false,
+      message:
+        "This candidate is already associated with a requisition and cannot be deleted."
+    });
+
+  }
+
   const getInterviewStatus = await reqServiceSequence.findAll({
     where: {
       serviceCandidate: candidateId,
