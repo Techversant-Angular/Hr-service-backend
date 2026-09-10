@@ -128,6 +128,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       defaultValue: null,
     },
+    candidateProjects: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      defaultValue: null,
+    },
     candidateImmidiateJoiner: {
       type: DataTypes.STRING,
       allowNull: true,

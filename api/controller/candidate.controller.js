@@ -71,6 +71,25 @@ exports.createCandidate = tryCatch(async (req, res) => {
     },
   });
 
+
+    const candidatepresentInCareers = await reqJobApplicants.findOne({
+    where: {
+      candidateStatus: "active",
+      [Op.or]: [
+        { candidateEmail },
+        { candidateMobileNo: parameter.candidateMobileNo },
+        
+      ],
+    },
+  });
+
+    if(candidatepresentInCareers) {
+    return res.status(401).json({
+      status: false,
+      message: "Candidate already exists",
+    });
+  }
+
   if(candidateIspresent) {
     return res.status(401).json({
       status: false,
