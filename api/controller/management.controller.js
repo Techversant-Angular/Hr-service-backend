@@ -26,7 +26,6 @@ exports.list = tryCatch(async (req, res) => {
     : ""; const toDate = req.query.toDate ? addDays(new Date(format(new Date(req.query.toDate), 'yyyy-MM-dd')), 5)
       : ""; offset = offset == 1 ? 0 : offset;
   if (limit && offset) {
-    limit = limit;
     offset = (offset - 1) * limit;
   }
   const where = { serviceStation: 6 };
@@ -35,21 +34,34 @@ exports.list = tryCatch(async (req, res) => {
   if (position) where.serviceServiceRequst = position;
   let searchCondition = {};
   if (experience) {
-    // searchCondition.candidateRevlentExperience = { [Op.lte]: experience };
-    searchCondition.candidateTotalExperience = {
-      [Sequelize.Op.and]: [
+    const expNum = parseFloat(experience);
+    if (!isNaN(expNum)) {
+      searchCondition[Op.and] = searchCondition[Op.and] || [];
+      searchCondition[Op.and].push(
         Sequelize.where(
-          Sequelize.cast(Sequelize.col('candidateTotalExperience'), 'FLOAT'),
-          { [Op.gte]: experience }
+          Sequelize.literal(`CAST(NULLIF(SUBSTRING(COALESCE("candidate"."candidateTotalExperience", "candidate"."candidateExperience") FROM '([0-9]+(?:\\.[0-9]+)?)'), '') AS FLOAT)`),
+          { [Op.eq]: expNum }
         )
-      ]
-    };
+      );
+    }
   }
   if (search) {
-    searchCondition = {
-      [Op.or]: [{ candidateFirstName: { [Op.iLike]: `${search}%` } },
-      { candidateLastName: { [Op.iLike]: `${search}%` } },
-      { candidateEmail: { [Op.iLike]: `${search}%` } }]
+    const trimmedSearch = search.trim();
+    const searchFilter = {
+      [Op.or]: [
+        { candidateFirstName: { [Op.iLike]: `%${trimmedSearch}%` } },
+        { candidateLastName: { [Op.iLike]: `%${trimmedSearch}%` } },
+        Sequelize.where(
+          Sequelize.literal(`CONCAT("candidate"."candidateFirstName", ' ', "candidate"."candidateLastName")`),
+          { [Op.iLike]: `%${trimmedSearch}%` }
+        ),
+        { candidateEmail: { [Op.iLike]: `%${trimmedSearch}%` } },
+      ],
+    };
+    if (searchCondition[Op.and]) {
+      searchCondition[Op.and].push(searchFilter);
+    } else {
+      searchCondition = searchFilter;
     }
   }
   const include = [

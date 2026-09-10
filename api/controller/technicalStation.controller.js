@@ -41,7 +41,6 @@ exports.list = tryCatch(async (req, res) => {
 
   offset = offset == 1 ? 0 : offset;
   if (limit && offset) {
-    limit = limit;
     offset = (offset - 1) * limit;
   }
   const where = { serviceStation: 3 };
@@ -50,34 +49,70 @@ exports.list = tryCatch(async (req, res) => {
   }
   if (statusFilter) where.serviceStatus = statusFilter;
   if (position) where.serviceServiceRequst = position;
+
   if (ids?.length) {
     ids = Array.isArray(ids) ? ids : [ids];
     where.serviceId = { [Op.in]: ids }
   }
   let searchCondition = {};
   if (experience) {
-    // searchCondition.candidateRevlentExperience = { [Op.lte]: experience };
-    searchCondition.candidateTotalExperience = {
-      [Sequelize.Op.and]: [
+    const expNum = parseFloat(experience);
+    if (!isNaN(expNum)) {
+      searchCondition[Op.and] = searchCondition[Op.and] || [];
+      searchCondition[Op.and].push(
         Sequelize.where(
-          Sequelize.cast(Sequelize.col('candidateTotalExperience'), 'FLOAT'),
-          { [Op.gte]: experience }
+          Sequelize.literal(`CAST(NULLIF(SUBSTRING(COALESCE("candidate"."candidateTotalExperience", "candidate"."candidateExperience") FROM '([0-9]+(?:\\.[0-9]+)?)'), '') AS FLOAT)`),
+          { [Op.eq]: expNum }
         )
-      ]
-    };
+      );
+    }
   }
   if (fromDate && toDate)
     where.serviceDate = { [Op.between]: [fromDate, toDate] };
 
   if (search) {
-    searchCondition = {
+    const trimmedSearch = search.trim();
+    const searchFilter = {
       [Op.or]: [
-        { candidateFirstName: { [Op.iLike]: `${search}%` } },
-        { candidateLastName: { [Op.iLike]: `${search}%` } },
-        { candidateEmail: { [Op.iLike]: `${search}%` } },
+        { candidateFirstName: { [Op.iLike]: `%${trimmedSearch}%` } },
+        { candidateLastName: { [Op.iLike]: `%${trimmedSearch}%` } },
+        Sequelize.where(
+          Sequelize.literal(`CONCAT("candidate"."candidateFirstName", ' ', "candidate"."candidateLastName")`),
+          { [Op.iLike]: `%${trimmedSearch}%` }
+        ),
+        { candidateEmail: { [Op.iLike]: `%${trimmedSearch}%` } },
       ],
     };
+    if (searchCondition[Op.and]) {
+      searchCondition[Op.and].push(searchFilter);
+    } else {
+      searchCondition = searchFilter;
+    }
   }
+  const include = [
+    {
+      model: reqServiceRequest,
+      as: "serviceRequest",
+      required: true,
+    },
+    {
+      model: reqCandidates,
+      attributes: {
+        exclude: [
+          "createdAt",
+          "updatedAt",
+          "candidateStatus",
+          "candidateCreatedby",
+          "candidateStation",
+          "candidateHireRole",
+          "resumeSourceId",
+        ],
+      },
+      as: "candidate",
+      required: true,
+      where: searchCondition,
+    },
+  ];
 
   let candidates = await reqServiceSequencesAcitve.findAll({
     attributes: {
@@ -94,37 +129,18 @@ exports.list = tryCatch(async (req, res) => {
         ],
       ],
     },
-    include: [
-      {
-        model: reqServiceRequest,
-        as: "serviceRequest",
-        required: true,
-      },
-      {
-        model: reqCandidates,
-        attributes: {
-          exclude: [
-            "createdAt",
-            "updatedAt",
-            "candidateStatus",
-            "candidateCreatedby",
-            "candidateStation",
-            "candidateHireRole",
-            "resumeSourceId",
-          ],
-        },
-        as: "candidate",
-        required: true,
-        where: searchCondition,
-      },
-    ],
+    include,
     raw: true,
     limit: limit,
     offset: offset,
     where,
     order: [["serviceId", "DESC"]],
   });
-  const totalCount = await reqServiceSequencesAcitve.count({ where });
+  const totalCount = await reqServiceSequencesAcitve.count({
+    where,
+    include,
+    distinct: true,
+  });
 
   if (candidates) {
     candidates = candidates.map((c) => {
