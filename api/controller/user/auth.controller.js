@@ -64,6 +64,14 @@ exports.login = async (req, res, next) => {
         if (!await user.validatePassword(userPassword)) return res
             .status(401)
             .json({ status: false, message: 'Invalid password' });
+        if (user.autologout !== 1) {
+            return res.status(404).json({
+                status: false,
+                message: 'User is logged out.'
+            });
+        }
+
+        await user.update({ autologout: 1 });
 
         const formattedRoles = await getUserRoles(user.userId);
         if (!formattedRoles.length) {
@@ -123,7 +131,7 @@ exports.changePassword = async (req, res, next) => {
         if (!isValidPassword) return res.status(400).json({ status: false, message: 'Enter the Correct current Password' });
 
         const hashedNewPassword = await bcrypt.hash(userNewPassword, 10);
-        await reqUser.update({ userPassword: hashedNewPassword }, condition);
+        await reqUser.update({ userPassword: hashedNewPassword, passwordchanged: 1,autologout: 1 }, condition);
         return res.json({ status: true, message: 'Password Successfully changed' });
 
     } catch (error) {
@@ -180,7 +188,7 @@ exports.resetPassword = async (req, res, next) => {
             return res.status(400).json({ status: false, message: 'OTP is invalid or has expired.' });
         }
         const hashedNewPassword = await bcrypt.hash(confirmPassword, 10);
-        await isValidOtp.update({ userPassword: hashedNewPassword, userOtp: null, useOtpExpire: null });
+        await isValidOtp.update({ userPassword: hashedNewPassword, passwordchanged: 1, userOtp: null, useOtpExpire: null });
         return res.status(200).json({ status: true, message: 'Password changed successfully.' });
     } catch (error) {
         next(error);

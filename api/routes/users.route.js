@@ -3,12 +3,12 @@ const router = express.Router();
 let controller = require('../controller/user/user.controller');
 let authController = require('../controller/user/auth.controller');
 let commonController = require('../controller/common.controller');
-let { authenticate, verifyAdmin } = require('../middleware/auth');
+let { authenticate, authenticateAllowLoggedOut, verifyAdmin } = require('../middleware/auth');
 let { updateUser, changePswd, forgotPassword, resetPassword, flows, skipStation } = require('../validation/user.validate');
 
 router.post('/login', authController.login);
 
-router.post('/changePassword', changePswd, authenticate, authController.changePassword);
+router.post('/changePassword', changePswd, authenticateAllowLoggedOut, authController.changePassword);
 
 router.post("/forgotPassword", forgotPassword, authController.forgotPassword);
 

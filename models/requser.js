@@ -110,6 +110,16 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: 1
     },
+    autologout: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0
+    },
+    passwordchanged: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0
+    },
     userOtp: {
       type: DataTypes.STRING
     },

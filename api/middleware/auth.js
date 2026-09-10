@@ -10,7 +10,7 @@ const getBearerToken = (authHeader) => {
     return parts[1];
 };
 
-const ensureFreshSession = async (tokenPayload, res) => {
+const ensureFreshSession = async (tokenPayload, res, allowLoggedOut = false) => {
     if (!tokenPayload || !tokenPayload.userId) {
         return null;
     }
@@ -18,6 +18,11 @@ const ensureFreshSession = async (tokenPayload, res) => {
     const user = await reqUser.findOne({ where: { userId: tokenPayload.userId } });
     if (!user) {
         res.status(401).json({ result: false, message: 'Unauthorized! User not found' });
+        return null;
+    }
+
+    if (!allowLoggedOut && Number(user.autologout) !== 1) {
+        res.status(401).json({ result: false, message: 'User is logged out.' });
         return null;
     }
 
@@ -35,7 +40,7 @@ const ensureFreshSession = async (tokenPayload, res) => {
     return user;
 };
 
-exports.authenticate = async (req, res, next) => {
+const authenticateRequest = async (req, res, next, allowLoggedOut = false) => {
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader) {
@@ -52,7 +57,7 @@ exports.authenticate = async (req, res, next) => {
             return res.status(403).send({ result: false, message: 'Invalid Token, Re-login' });
         }
 
-        const user = await ensureFreshSession(existToken, res);
+        const user = await ensureFreshSession(existToken, res, allowLoggedOut);
         if (!user) return;
 
         req.userId = user.userId;
@@ -70,6 +75,9 @@ exports.authenticate = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.authenticate = (req, res, next) => authenticateRequest(req, res, next);
+exports.authenticateAllowLoggedOut = (req, res, next) => authenticateRequest(req, res, next, true);
  
  
 let { jwtDecode } = require('../utils/jwt');
