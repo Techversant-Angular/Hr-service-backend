@@ -1488,6 +1488,7 @@ exports.removeAfterMapped = tryCatch(async (req, res) => {
 
 exports.candidatesPrgressList = tryCatch(async (req, res) => {
   const candidateId = req.query.candidateId;
+  let candidates;
   if (!candidateId) return res
     .status(400)
     .json({ result: false, message: "Candidate id is Mandatory" });
@@ -1501,7 +1502,57 @@ exports.candidatesPrgressList = tryCatch(async (req, res) => {
   if (req.userRole == 'visitor') {
     excludeData.push("candidateCurrentSalary", "candidateExpectedSalary");
   }
-  let candidates = await reqServiceSequencesAcitve.findAll({
+  const hrStation = await reqServiceSequencesAcitve.findOne({
+    where: { serviceCandidate: candidateId, serviceStation: 5 },
+    raw: true,
+  });
+  if (hrStation) {
+      candidates = await reqServiceSequencesAcitve.findAll({
+    attributes: {
+      include: [
+                [
+          sequelize.literal(`(SELECT COUNT(*)
+            FROM "reqHrReviews" AS "progress" WHERE "progress"."reviewedServiceId"="reqServiceSequencesAcitve"."serviceId")`), 'progressStatus'
+        ],
+        [
+          sequelize.literal(`(SELECT "stationName"
+                    FROM "reqServiceSequencesAcitves" AS "sequence" INNER JOIN "reqStations" ON "stationId"="serviceStation" WHERE "sequence"."serviceCandidate"="reqServiceSequencesAcitve"."serviceCandidate" ORDER BY "serviceId" DESC LIMIT 1)`),
+          "currentStation",
+        ],
+        [
+          sequelize.literal(`(SELECT "stationName" AS "name"
+                    FROM "reqStations" INNER JOIN "reqServiceSequencesAcitves" ON "stationId"="serviceStation" WHERE "reqServiceSequencesAcitve"."serviceId"="serviceId" LIMIT 1)`),
+          "stationNam",
+        ],
+       [
+          sequelize.literal(`(SELECT COUNT(*)
+                    FROM "reqCandidateProgresses" AS "review" WHERE "review"."progressServiceSequence"="reqServiceSequencesAcitve"."serviceId" AND "review"."progressStation"=5
+                    AND (LOWER(TRIM("review"."progressDescription")) != 'hold' OR "review"."progressDescription" IS NULL))`),
+          "reviewStatus",
+        ]
+      ],
+    },
+    include: [
+      {
+        model: reqServiceRequest,
+        as: "serviceRequest",
+        required: true,
+      },
+      {
+        model: reqCandidates,
+        attributes: {
+          exclude: excludeData,
+        },
+        as: "candidate",
+        required: true,
+      },
+    ],
+    raw: true,
+    where: { serviceCandidate: candidateId },
+    order: [["serviceId", "DESC"]],
+      });
+  } else {
+   candidates = await reqServiceSequencesAcitve.findAll({
     attributes: {
       include: [
         [
@@ -1544,7 +1595,9 @@ exports.candidatesPrgressList = tryCatch(async (req, res) => {
     raw: true,
     where: { serviceCandidate: candidateId },
     order: [["serviceId", "DESC"]],
-  });
+   });
+  }
+
   // Fetch flows for all unique requisitions
   if (candidates.length) {
     const requestIds = [
