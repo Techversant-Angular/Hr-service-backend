@@ -382,7 +382,14 @@ exports.recruiterList = tryCatch(async (req, res, next) => {
   if (search) {
     where = {
       userStatus: "active",
-      userRole: "6",
+      [Op.and]: [
+        sequelize.where(
+          sequelize.fn("string_to_array", sequelize.col("userRole"), ","),
+          {
+            [Op.contains]: ["6"],
+          }
+        ),
+      ],
       [Op.or]: [
         { userfirstName: { [Op.startsWith]: `${search}` } },
         { userEmail: { [Op.startsWith]: `${search}` } },
@@ -391,7 +398,14 @@ exports.recruiterList = tryCatch(async (req, res, next) => {
   } else {
     where = {
       userStatus: "active",
-      userRole: "6",
+      [Op.and]: [
+        sequelize.where(
+          sequelize.fn("string_to_array", sequelize.col("userRole"), ","),
+          {
+            [Op.contains]: ["6"],
+          }
+        ),
+      ],
     };
   }
   const recruiterList = await reqUser.findAll({
