@@ -115,6 +115,24 @@ exports.createCandidateRecords = tryCatch(async (req, res) => {
     },
   });
 
+    const candidatepresentInCareers = await reqJobApplicants.findOne({
+    where: {
+      candidateStatus: "active",
+      [Op.or]: [
+        { candidateEmail },
+        { candidateMobileNo: parameter.candidateMobileNo },
+        
+      ],
+    },
+  });
+
+    if(candidatepresentInCareers) {
+    return res.status(401).json({
+      status: false,
+      message: "Candidate already exists",
+    });
+  }
+
   if(candidateIspresent) {
     return res.status(401).json({
       status: false,
@@ -1328,6 +1346,24 @@ exports.jobApply = tryCatch(async (req, res) => {
   if (!candidateResume) {
     safeUnlinkFile(req.file);
     return res.status(400).json({ status: false, message: "CV/Resume file is required" });
+  }
+
+    const candidateIspresent = await reqCandidates.findOne({
+    where: {
+      candidateStatus: "active",
+      [Op.or]: [
+        { candidateEmail },
+        { candidateMobileNo },
+        
+      ],
+    },
+  });
+
+    if(candidateIspresent) {
+    return res.status(401).json({
+      status: false,
+      message: "Candidate already exists",
+    });
   }
 
   // Check if candidate already applied with same email for the same position
