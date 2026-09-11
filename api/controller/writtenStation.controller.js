@@ -73,14 +73,29 @@ exports.list = tryCatch(async (req, res) => {
 
   if (search) {
     const trimmedSearch = search.trim();
+    const normalizedSearch = trimmedSearch.replace(/[^a-zA-Z0-9]/g, '');
     const searchFilter = {
       [Op.or]: [
         { candidateFirstName: { [Op.iLike]: `%${trimmedSearch}%` } },
         { candidateLastName: { [Op.iLike]: `%${trimmedSearch}%` } },
+
         Sequelize.where(
-          Sequelize.literal(`CONCAT("candidate"."candidateFirstName", ' ', "candidate"."candidateLastName")`),
-          { [Op.iLike]: `%${trimmedSearch}%` }
+          Sequelize.literal(`
+            REGEXP_REPLACE(
+              CONCAT(
+                COALESCE("candidate"."candidateFirstName", ''),
+                COALESCE("candidate"."candidateLastName", '')
+              ),
+              '[^a-zA-Z0-9]',
+              '',
+              'g'
+            )
+          `),
+          {
+            [Op.iLike]: `%${normalizedSearch}%`,
+          }
         ),
+
         { candidateEmail: { [Op.iLike]: `%${trimmedSearch}%` } },
       ],
     };
