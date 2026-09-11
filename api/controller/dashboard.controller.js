@@ -707,6 +707,16 @@ exports.recruiterChart = tryCatch(async (req, res) => {
       .status(200)
       .json({ result: true, message: response.DATA_RETRIEVED, data: [] });
   }
+  const currentRoles = (Array.isArray(userRole) ? userRole : String(userRole).split(","))
+    .map((role) => String(role).trim())
+    .filter(Boolean);
+  let queryRoles;
+  if (currentRoles.includes("1")) {
+    queryRoles = ["1", "2", "3", "4", "5", "6"];
+  } else {
+    queryRoles = currentRoles;
+  }
+  const queryRoleCondition = queryRoles.map((role) => `'${role}'`).join(", ");
 
   let startDate = start_date + ' 00:00:00Z';
   let endDate = end_date + ' 23:59:59Z';
@@ -726,10 +736,10 @@ exports.recruiterChart = tryCatch(async (req, res) => {
     INNER JOIN public."reqUsers" u
         ON u."userId" = c."candidateCreatedby"
     INNER JOIN public."reqUserRoles" ur
-        ON ur."roleUserId"::varchar = u."userRole"
+      ON ur."roleUserId"::text = ANY(string_to_array(replace(u."userRole", ' ', ''), ','))
     WHERE
         (ss."serviceStation" = 1 OR ss."serviceStation" IS NULL)
-        AND u."userRole" = '6'
+        AND string_to_array(replace(u."userRole", ' ', ''), ',') && ARRAY[${queryRoleCondition}]
         AND ss."insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'
     GROUP BY
         u."userfirstName"
@@ -744,10 +754,10 @@ FROM "reqServiceSequences" ss
 INNER JOIN "reqUsers" u
     ON u."userId" = ss."serviceScheduledBy"
 INNER JOIN "reqUserRoles" ur
-    ON ur."roleUserId"::varchar = u."userRole"
+    ON ur."roleUserId"::text = ANY(string_to_array(replace(u."userRole", ' ', ''), ','))
 WHERE
     ss."serviceStation" = 5
-    AND u."userRole" = '6'
+    AND string_to_array(replace(u."userRole", ' ', ''), ',') && ARRAY[${queryRoleCondition}]
     AND ss."serviceStatus" = 'done'
     AND ss."insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'
 GROUP BY
@@ -768,10 +778,10 @@ ORDER BY
     INNER JOIN public."reqUsers" u
         ON u."userId" = ss."serviceScheduledBy"
     INNER JOIN public."reqUserRoles" ur
-        ON ur."roleUserId"::varchar = u."userRole"
+      ON ur."roleUserId"::text = ANY(string_to_array(replace(u."userRole", ' ', ''), ','))
     WHERE
         ss."serviceStation" = 5
-        AND u."userRole" = '6'
+        AND string_to_array(replace(u."userRole", ' ', ''), ',') && ARRAY[${queryRoleCondition}]
         AND ss."insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'
     GROUP BY
         u."userfirstName"
