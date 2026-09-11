@@ -837,17 +837,66 @@ exports.candiateMailList = tryCatch(async (req, res, next) => {
   const search = req.query.search ? decodeURIComponent(req.query.search) : req.query.search;
   const where = { candidateStatus: "active" };
   if (search) {
-    const searchLower = search.toLowerCase();
+    const searchLower = search.trim().toLowerCase();
+    const normalizedSearch = searchLower.replace(/[^a-z0-9]/g, '');
+
     where[Op.or] = [
-      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateFirstName')), { [Op.like]: `%${searchLower}%` }),
-      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateLastName')), { [Op.like]: `%${searchLower}%` }),
       Sequelize.where(
-        Sequelize.fn('LOWER', Sequelize.fn("concat", Sequelize.col("candidateFirstName"), " ", Sequelize.col("candidateLastName"))),
+        Sequelize.fn('LOWER', Sequelize.col('candidateFirstName')),
         { [Op.like]: `%${searchLower}%` }
       ),
-      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateEmail')), { [Op.like]: `%${searchLower}%` }),
-      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidateMobileNo')), { [Op.like]: `%${searchLower}%` }),
-      Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('candidatePreviousOrg')), { [Op.like]: `%${searchLower}%` }),
+
+      Sequelize.where(
+        Sequelize.fn('LOWER', Sequelize.col('candidateLastName')),
+        { [Op.like]: `%${searchLower}%` }
+      ),
+
+      Sequelize.where(
+        Sequelize.fn(
+          'LOWER',
+          Sequelize.fn(
+            'concat',
+            Sequelize.col('candidateFirstName'),
+            ' ',
+            Sequelize.col('candidateLastName')
+          )
+        ),
+        { [Op.like]: `%${searchLower}%` }
+      ),
+
+      // Normalized full-name search
+      Sequelize.where(
+        Sequelize.fn(
+          'LOWER',
+          Sequelize.fn(
+            'REGEXP_REPLACE',
+            Sequelize.fn(
+              'concat',
+              Sequelize.col('candidateFirstName'),
+              Sequelize.col('candidateLastName')
+            ),
+            '[^a-zA-Z0-9]',
+            '',
+            'g'
+          )
+        ),
+        { [Op.like]: `%${normalizedSearch}%` }
+      ),
+
+      Sequelize.where(
+        Sequelize.fn('LOWER', Sequelize.col('candidateEmail')),
+        { [Op.like]: `%${searchLower}%` }
+      ),
+
+      Sequelize.where(
+        Sequelize.fn('LOWER', Sequelize.col('candidateMobileNo')),
+        { [Op.like]: `%${searchLower}%` }
+      ),
+
+      Sequelize.where(
+        Sequelize.fn('LOWER', Sequelize.col('candidatePreviousOrg')),
+        { [Op.like]: `%${searchLower}%` }
+      ),
     ];
   }
 
