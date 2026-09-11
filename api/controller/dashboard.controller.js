@@ -359,6 +359,17 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
     });
   }
 
+  const currentRoles = (Array.isArray(userRole) ? userRole : String(userRole).split(","))
+    .map((role) => String(role).trim())
+    .filter(Boolean);
+  const isAdmin = currentRoles.includes("1");
+  const candidateUserCondition = isAdmin
+    ? ""
+    : ` AND "reqCandidates"."candidateCreatedby" = ${req.userId}`;
+  const sequenceUserCondition = isAdmin
+    ? ""
+    : ` AND "reqServiceSequences"."serviceScheduledBy" = ${req.userId}`;
+
   const report = req.query.report;
   let start_date = req.query.start_date;
   let end_date = req.query.end_date;
@@ -388,12 +399,12 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
       message: "start date and end date is mandatory ",
     });
   }
-  let adminQuery = '';
+  let adminQuery = isAdmin ? '1=1' : `"userId"=${req.userId}`;
   if (req.userType == 'admin') {
-    adminQuery = ` OR "userRole"='admin'`
+    adminQuery = `(${adminQuery} OR "userRole"='admin')`
   }
   if (req.userType == 'super-admin') {
-    adminQuery = ` OR "userRole"='super-admin'`
+    adminQuery = `(${adminQuery} OR "userRole"='super-admin')`
   }
   start_date = start_date + "  00:00:00Z"
   end_date = end_date + " 23:59:59Z";
@@ -407,9 +418,9 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
   let countQuery = "";
 
   if (dataBy == "position") {
-    let requestIdQueryCondition = ` AND "serviceServiceRequst"="requestId"`;
+    let requestIdQueryCondition = ` AND "serviceServiceRequst"="requestId" ${sequenceUserCondition}`;
     // userCondidtion = !userId ? ' ' : userCondidtion;
-    query = `SELECT "requestName","requestId",(SELECT COUNT(DISTINCT("serviceCandidate")) FROM public."reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) ${requestIdQueryCondition} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_totalsourced",
+    query = `SELECT "requestName","requestId",(SELECT COUNT(DISTINCT("serviceCandidate")) FROM public."reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) ${requestIdQueryCondition} ${candidateUserCondition} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_totalsourced",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${requestIdQueryCondition} AND ("serviceStation"=1 OR "serviceStation" IS NULL)  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_screenrejected",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${requestIdQueryCondition} AND "serviceStation"=2  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_techonereject",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${requestIdQueryCondition} AND "serviceStation"=3  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_techtworeject",
@@ -425,7 +436,7 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
              FROM "reqServiceRequests"  ORDER BY "requestId" DESC ${report == "false" ? ` OFFSET ${offset} LIMIT ${limit}` : ""};`;
 
     countQuery = `SELECT "requestName", "requestId", (SELECT COUNT(DISTINCT("serviceCandidate")) FROM public."reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" 
-                  WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) ${requestIdQueryCondition} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_totalsourced",
+                  WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) ${requestIdQueryCondition} ${candidateUserCondition} AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_totalsourced",
                   (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE ("serviceStatus"='rejected' OR "serviceStatus"='pannel-rejection') ${requestIdQueryCondition} AND "serviceStation" IN (1, 2, 3, 4, 5, 6) 
                   AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_rejected",  
                   (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE ("serviceStatus"='done' OR "serviceStatus"='pending') 
@@ -449,7 +460,7 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE  "serviceStation"=5 AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "hr_total_technicalselected",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences"  WHERE "serviceStatus"='done' AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hired",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE "serviceStation" IN (2,3,4) AND "serviceStatus" NOT IN ('cancelled','pannel-rejection','shorted','rejected','back-off') AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_technicalselected"
-            FROM "reqUsers" WHERE  "userRole"='talent' ${adminQuery}  ${userBased} ${report == "false" ? ` OFFSET ${offset} LIMIT ${limit}` : ""} ;`;
+            FROM "reqUsers" WHERE ${adminQuery} ${report == "false" ? ` OFFSET ${offset} LIMIT ${limit}` : ""} ;`;
 
     countQuery = `SELECT "userfirstName","userId",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM public."reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_totalsourced",
@@ -465,7 +476,7 @@ exports.requriterHiringData = tryCatch(async (req, res) => {
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE  "serviceStation"=5 AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "hr_total_technicalselected",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences"  WHERE "serviceStatus"='done' AND "serviceStation"=5  AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_hired",
             (SELECT COUNT(DISTINCT("serviceCandidate")) FROM "reqServiceSequences" WHERE "serviceStation" IN (2,3,4) AND "serviceStatus" NOT IN ('cancelled','pannel-rejection','shorted','rejected','back-off') AND "insertOrUpdateDate" BETWEEN '${start_date}' AND '${end_date}') AS "total_technicalselected"
-            FROM "reqUsers" WHERE  "userRole"='talent' ${adminQuery} ${userBased}`;
+            FROM "reqUsers" WHERE ${adminQuery}`;
   }
 
   const [reqReportData, metaData] = await sequelize.query(query);
@@ -717,6 +728,9 @@ exports.recruiterChart = tryCatch(async (req, res) => {
     queryRoles = currentRoles;
   }
   const queryRoleCondition = queryRoles.map((role) => `'${role}'`).join(", ");
+  const hiredCandidateCondition = currentRoles.includes("1")
+    ? ""
+    : `AND c."candidateCreatedby" = '${userId}'`;
 
   let startDate = start_date + ' 00:00:00Z';
   let endDate = end_date + ' 23:59:59Z';
@@ -740,6 +754,7 @@ exports.recruiterChart = tryCatch(async (req, res) => {
     WHERE
         (ss."serviceStation" = 1 OR ss."serviceStation" IS NULL)
         AND string_to_array(replace(u."userRole", ' ', ''), ',') && ARRAY[${queryRoleCondition}]
+        ${hiredCandidateCondition}
         AND ss."insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'
     GROUP BY
         u."userfirstName"
@@ -751,13 +766,15 @@ exports.recruiterChart = tryCatch(async (req, res) => {
     u."userRole",
     COUNT(*) AS total_hired
 FROM "reqServiceSequences" ss
+INNER JOIN public."reqCandidates" c
+  ON ss."serviceCandidate" = c."candidateId"
 INNER JOIN "reqUsers" u
     ON u."userId" = ss."serviceScheduledBy"
 INNER JOIN "reqUserRoles" ur
     ON ur."roleUserId"::text = ANY(string_to_array(replace(u."userRole", ' ', ''), ','))
 WHERE
     ss."serviceStation" = 5
-    AND string_to_array(replace(u."userRole", ' ', ''), ',') && ARRAY[${queryRoleCondition}]
+    ${hiredCandidateCondition}
     AND ss."serviceStatus" = 'done'
     AND ss."insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'
 GROUP BY
@@ -781,7 +798,7 @@ ORDER BY
       ON ur."roleUserId"::text = ANY(string_to_array(replace(u."userRole", ' ', ''), ','))
     WHERE
         ss."serviceStation" = 5
-        AND string_to_array(replace(u."userRole", ' ', ''), ',') && ARRAY[${queryRoleCondition}]
+        ${hiredCandidateCondition}
         AND ss."insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'
     GROUP BY
         u."userfirstName"
@@ -859,23 +876,40 @@ exports.departmentChart = tryCatch(async (req, res) => {
     return res.send([]);
   }
 
+
   const currentRoles = (Array.isArray(userRole) ? userRole : String(userRole).split(","))
     .map((role) => String(role).trim())
     .filter(Boolean);
-  const queryRoles = currentRoles.includes("1")
-    ? ["1", "2", "3", "4", "5", "6"]
-    : currentRoles;
-  const queryRoleCondition = queryRoles.map((role) => `'${role}'`).join(", ");
-  const candidateRoleCondition = `AND EXISTS (
-        SELECT 1 FROM "reqUsers" role_user
-        WHERE role_user."userId" = "reqCandidates"."candidateCreatedby"
-          AND string_to_array(replace(role_user."userRole", ' ', ''), ',') && ARRAY[${queryRoleCondition}]
-      )`;
-  const sequenceRoleCondition = `AND EXISTS (
-        SELECT 1 FROM "reqUsers" role_user
-        WHERE role_user."userId" = "reqServiceSequences"."serviceScheduledBy"
-          AND string_to_array(replace(role_user."userRole", ' ', ''), ',') && ARRAY[${queryRoleCondition}]
-      )`;
+  const isAdmin = currentRoles.includes("1");
+
+  let candidateUserCondition = "";
+  let sequenceUserCondition = "";
+
+  if (!isAdmin) {
+    candidateUserCondition = `
+      AND "reqCandidates"."candidateCreatedby" = ${userId}
+    `;
+
+    sequenceUserCondition = `
+      AND "reqServiceSequences"."serviceScheduledBy" = ${userId}
+    `;
+  }
+  // const queryRoles = currentRoles.includes("1")
+  //   ? ["1", "2", "3", "4", "5", "6"]
+  //   : currentRoles;
+
+  // const queryRoleCondition = queryRoles.map((role) => `'${role}'`).join(", ");
+  // const candidateRoleCondition = `AND EXISTS (
+  //       SELECT 1 FROM "reqUsers" role_user
+  //       WHERE role_user."userId" = "reqCandidates"."candidateCreatedby"
+  //         AND string_to_array(replace(role_user."userRole", ' ', ''), ',') && ARRAY[${queryRoleCondition}]
+  //     )`;
+  // const sequenceRoleCondition = `AND EXISTS (
+  //       SELECT 1 FROM "reqUsers" role_user
+  //       WHERE role_user."userId" = "reqServiceSequences"."serviceScheduledBy"
+  //         AND string_to_array(replace(role_user."userRole", ' ', ''), ',') && ARRAY[${queryRoleCondition}]
+  //     )`;
+  
 
   let userCondidtion = "";
   if (userId) {
@@ -890,10 +924,10 @@ exports.departmentChart = tryCatch(async (req, res) => {
   if (teamId) {
     const [getRequestionByTeam, meataData] = await sequelize.query(`SELECT "requestId","requestName" FROM "reqServiceRequests" WHERE "requestTeam"=${teamId} `);
     for (let i = 0; i < getRequestionByTeam.length; i++) {
-      const [countTotal, TotalmeataData] = await sequelize.query(`select COUNT(DISTINCT("candidateId")) FROM "reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) AND "serviceServiceRequst" =${getRequestionByTeam[i].requestId} ${candidateRoleCondition} AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
-      const [countHired, meataData] = await sequelize.query(`SELECT COUNT(DISTINCT("serviceCandidate")) FROM  "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE "serviceServiceRequst" =${getRequestionByTeam[i].requestId} AND "serviceStation"=5 AND "serviceStatus"='done' AND DATE("reviewedJoiningDate") <= CURRENT_DATE ${sequenceRoleCondition} AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
-      const [countTechSelect, meataDataTech] = await sequelize.query(`SELECT COUNT(DISTINCT("serviceCandidate")) FROM  "reqServiceSequences" WHERE "serviceServiceRequst" =${getRequestionByTeam[i].requestId} AND "serviceStation" IN (2,3,4) AND "serviceStatus" NOT IN ('cancelled','pannel-rejection','shorted','rejected','back-off','hired','done') ${sequenceRoleCondition} AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
-      const [countTechoffer, meataDataOffer] = await sequelize.query(`SELECT COUNT(DISTINCT("serviceCandidate")) FROM  "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE "serviceServiceRequst" =${getRequestionByTeam[i].requestId} AND "serviceStation"=5 ${sequenceRoleCondition} AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
+      const [countTotal, TotalmeataData] = await sequelize.query(`select COUNT(DISTINCT("candidateId")) FROM "reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) AND "serviceServiceRequst" =${getRequestionByTeam[i].requestId} ${candidateUserCondition} AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
+      const [countHired, meataData] = await sequelize.query(`SELECT COUNT(DISTINCT("serviceCandidate")) FROM  "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE "serviceServiceRequst" =${getRequestionByTeam[i].requestId} AND "serviceStation"=5 AND "serviceStatus"='done' AND DATE("reviewedJoiningDate") <= CURRENT_DATE ${sequenceUserCondition} AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
+      const [countTechSelect, meataDataTech] = await sequelize.query(`SELECT COUNT(DISTINCT("serviceCandidate")) FROM  "reqServiceSequences" WHERE "serviceServiceRequst" =${getRequestionByTeam[i].requestId} AND "serviceStation" IN (2,3,4) AND "serviceStatus" NOT IN ('cancelled','pannel-rejection','shorted','rejected','back-off','hired','done') ${sequenceUserCondition} AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
+      const [countTechoffer, meataDataOffer] = await sequelize.query(`SELECT COUNT(DISTINCT("serviceCandidate")) FROM  "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE "serviceServiceRequst" =${getRequestionByTeam[i].requestId} AND "serviceStation"=5 ${sequenceUserCondition} AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
 
       const isValidCondition = parseInt(countTotal[0].count) + parseInt(countHired[0].count) + parseInt(countTechSelect[0].count) + parseInt(countTechoffer[0].count);
       if (isValidCondition) {
@@ -910,10 +944,10 @@ exports.departmentChart = tryCatch(async (req, res) => {
 
   for (let i = 0; i < getcandidateRequirementQuery.length; i++) {
 
-    const [countTotal, TotalmeataData] = await sequelize.query(`select COUNT(DISTINCT("candidateId")) FROM "reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) AND "serviceServiceRequst" IN (SELECT DISTINCT("requestId") FROM "reqServiceRequests" WHERE "requestTeam"=${getcandidateRequirementQuery[i].teamId}) ${candidateRoleCondition} AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
-    const [countHired, meataData] = await sequelize.query(`SELECT COUNT(DISTINCT("serviceCandidate")) FROM  "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE "serviceServiceRequst" IN (SELECT DISTINCT ("requestId") FROM "reqServiceRequests" WHERE "requestTeam"=${getcandidateRequirementQuery[i].teamId}) AND "serviceStation"=5 AND "serviceStatus"='done' AND DATE("reviewedJoiningDate") <= CURRENT_DATE ${sequenceRoleCondition} AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
-    const [countTechSelect, meataDataTech] = await sequelize.query(`SELECT COUNT(DISTINCT("serviceCandidate")) FROM  "reqServiceSequences" WHERE "serviceServiceRequst" IN (SELECT DISTINCT ("requestId") FROM "reqServiceRequests" WHERE "requestTeam"=${getcandidateRequirementQuery[i].teamId}) AND "serviceStation" IN (2,3,4) AND "serviceStatus" NOT IN ('cancelled','pannel-rejection','shorted','rejected','back-off','hired','done') ${sequenceRoleCondition} AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
-    const [countTechoffer, meataDataOffer] = await sequelize.query(`SELECT COUNT(DISTINCT("serviceCandidate")) FROM  "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE "serviceServiceRequst" IN (SELECT DISTINCT ("requestId") FROM "reqServiceRequests" WHERE "requestTeam"=${getcandidateRequirementQuery[i].teamId}) AND "serviceStation"=5 ${sequenceRoleCondition} AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
+    const [countTotal, TotalmeataData] = await sequelize.query(`select COUNT(DISTINCT("candidateId")) FROM "reqCandidates" INNER JOIN "reqServiceSequences" ON "serviceCandidate"="candidateId" WHERE ("serviceStation"=1 OR "serviceStation" IS NULL) AND "serviceServiceRequst" IN (SELECT DISTINCT("requestId") FROM "reqServiceRequests" WHERE "requestTeam"=${getcandidateRequirementQuery[i].teamId}) ${candidateUserCondition} AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
+    const [countHired, meataData] = await sequelize.query(`SELECT COUNT(DISTINCT("serviceCandidate")) FROM  "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE "serviceServiceRequst" IN (SELECT DISTINCT ("requestId") FROM "reqServiceRequests" WHERE "requestTeam"=${getcandidateRequirementQuery[i].teamId}) AND "serviceStation"=5 AND "serviceStatus"='done' AND DATE("reviewedJoiningDate") <= CURRENT_DATE ${sequenceUserCondition} AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
+    const [countTechSelect, meataDataTech] = await sequelize.query(`SELECT COUNT(DISTINCT("serviceCandidate")) FROM  "reqServiceSequences" WHERE "serviceServiceRequst" IN (SELECT DISTINCT ("requestId") FROM "reqServiceRequests" WHERE "requestTeam"=${getcandidateRequirementQuery[i].teamId}) AND "serviceStation" IN (2,3,4) AND "serviceStatus" NOT IN ('cancelled','pannel-rejection','shorted','rejected','back-off','hired','done') ${sequenceUserCondition} AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
+    const [countTechoffer, meataDataOffer] = await sequelize.query(`SELECT COUNT(DISTINCT("serviceCandidate")) FROM  "reqServiceSequences" INNER JOIN "reqHrReviews" ON "serviceId"="reviewedServiceId" WHERE "serviceServiceRequst" IN (SELECT DISTINCT ("requestId") FROM "reqServiceRequests" WHERE "requestTeam"=${getcandidateRequirementQuery[i].teamId}) AND "serviceStation"=5 ${sequenceUserCondition} AND "insertOrUpdateDate" BETWEEN '${startDate}' AND '${endDate}'`);
 
     const isValidCondition = parseInt(countTotal[0].count) + parseInt(countHired[0].count) + parseInt(countTechSelect[0].count) + parseInt(countTechoffer[0].count);
     if (isValidCondition) {
